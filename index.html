@@ -34,8 +34,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--lamp);outline-o
 .go:disabled{opacity:.6;cursor:default}
 .err{color:var(--danger);font-size:14px;margin-top:10px;min-height:20px}
 
-.app{display:grid;grid-template-columns:290px 1fr;height:100%}
-aside{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.app{display:grid;grid-template-columns:290px minmax(0,1fr);height:100%}
+aside{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;min-width:0}
 .brand{padding:20px 18px 14px;border-bottom:3px solid var(--lamp)}
 .brand p{margin:6px 0 0;color:var(--mute);font-size:14px}
 .q{margin:10px 10px 0;width:calc(100% - 20px);background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
@@ -71,7 +71,7 @@ form.send{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line
 form.send input{flex:1;min-width:0;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px 12px}
 form.send button{background:var(--lamp);color:var(--lamp-ink);border:0;border-radius:10px;padding:0 18px;font:700 18px var(--head);cursor:pointer}
 @media (max-width:760px){
-.app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+.app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr}
 aside{border-right:0;border-bottom:1px solid var(--line)}
 .brand p{display:none}
 .brand{padding:10px 16px 6px}
