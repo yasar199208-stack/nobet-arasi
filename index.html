@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nöbet Arası</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f1a2a;--panel:#18273b;--line:#2a3d57;--text:#e3e9f0;--mute:#8da0b6;--lamp:#f0c24b;--lamp-ink:#1d1606;--mine:#244466;--danger:#e0786a;
+--head:"Barlow Condensed","Arial Narrow",sans-serif;--body:"Source Sans 3",system-ui,sans-serif;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:light){:root{--bg:#eef2f6;--panel:#ffffff;--line:#cfd9e4;--text:#14202f;--mute:#5b6e84;--lamp:#c98f00;--lamp-ink:#ffffff;--mine:#d8e6f4;--danger:#b2432f}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+body{margin:0;height:100%;background:var(--bg);color:var(--text);font:16px/1.45 var(--body)}
+button,input{font:inherit}
+button:focus-visible,input:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+
+.auth{min-height:100%;display:grid;place-items:center;padding:20px}
+.card{width:100%;max-width:400px;background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--lamp);border-radius:12px;padding:24px}
+.logo{display:flex;align-items:center;gap:10px}
+.logo svg{width:36px;height:36px;flex:none}
+.logo h1{margin:0;font:700 30px/1 var(--head)}
+.card>p{color:var(--mute);margin:8px 0 18px;font-size:15px}
+.tabs{display:flex;gap:6px;margin-bottom:14px}
+.tabs button{flex:1;background:none;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px;cursor:pointer}
+.tabs button[aria-pressed="true"]{border-color:var(--lamp);background:rgba(127,150,180,.15);font-weight:600}
+.card label{display:block;font-size:14px;color:var(--mute);margin:10px 0 4px}
+.card input{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.hint{font-size:13px;color:var(--mute);margin-top:4px}
+.go{width:100%;margin-top:16px;background:var(--lamp);color:var(--lamp-ink);border:0;border-radius:10px;padding:11px;font:700 19px var(--head);cursor:pointer}
+.go:disabled{opacity:.6;cursor:default}
+.err{color:var(--danger);font-size:14px;margin-top:10px;min-height:20px}
+
+.app{display:grid;grid-template-columns:290px 1fr;height:100%}
+aside{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.brand{padding:20px 18px 14px;border-bottom:3px solid var(--lamp)}
+.brand p{margin:6px 0 0;color:var(--mute);font-size:14px}
+.q{margin:10px 10px 0;width:calc(100% - 20px);background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.rooms{flex:1;overflow:auto;padding:8px}
+.room{display:block;width:100%;text-align:left;background:none;border:0;border-left:3px solid transparent;color:var(--text);padding:10px 12px;cursor:pointer;border-radius:0 8px 8px 0}
+.room:hover{background:rgba(127,150,180,.12)}
+.room[aria-current="true"]{border-left-color:var(--lamp);background:rgba(127,150,180,.18)}
+.room b{display:block;font-weight:600}
+.room span{color:var(--mute);font-size:13px}
+main{display:flex;flex-direction:column;min-height:0;min-width:0}
+.top{padding:12px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px 16px;flex-wrap:wrap}
+.top h2{margin:0;font:700 26px/1 var(--head)}
+.tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:14px;color:var(--mute)}
+.tools b{color:var(--lamp);font-weight:600}
+.tools button{background:none;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:14px}
+.desc{width:100%;margin:0;color:var(--mute);font-size:14px}
+.log{flex:1;overflow:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:10px;align-items:flex-end}
+.row.mine{flex-direction:row-reverse}
+.av{width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;font:700 16px var(--head);color:#10151d}
+.msg{max-width:min(560px,82%);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+.row.mine .msg{background:var(--mine)}
+.who{font-weight:600;font-size:14px;color:var(--lamp)}
+.who span{color:var(--mute);font-size:12px;margin-left:8px;font-weight:400}
+.msg p{margin:2px 0 0;overflow-wrap:anywhere;white-space:pre-wrap}
+.acts{margin-top:4px;display:none;gap:12px}
+.msg:hover .acts,.msg:focus-within .acts{display:flex}
+.acts button{background:none;border:0;color:var(--mute);font-size:13px;padding:2px 0;cursor:pointer;text-decoration:underline}
+.acts button:hover,.acts button:focus-visible{color:var(--danger)}
+.note{align-self:center;color:var(--mute);font-size:13px;text-align:center;max-width:460px}
+.toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:14px;z-index:5}
+form.send{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line);background:var(--panel)}
+form.send input{flex:1;min-width:0;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+form.send button{background:var(--lamp);color:var(--lamp-ink);border:0;border-radius:10px;padding:0 18px;font:700 18px var(--head);cursor:pointer}
+@media (max-width:760px){
+.app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+aside{border-right:0;border-bottom:1px solid var(--line)}
+.brand p{display:none}
+.brand{padding:10px 16px 6px}
+.q{margin-top:6px}
+.rooms{display:flex;overflow-x:auto;padding:6px 8px 8px;gap:6px;flex:none}
+.room{flex:none;width:auto;border-left:0;border:1px solid var(--line);border-radius:999px;padding:6px 14px}
+.room span{display:none}
+.room[aria-current="true"]{border-color:var(--lamp)}
+.acts{display:flex}
+.top{padding:10px 16px}
+}
+</style>
+</head>
+<body>
+
+<div class="auth" id="auth">
+ <div class="card">
+  <div class="logo"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2l11 4v9c0 7-4.6 12.4-11 15C9.6 27.4 5 22 5 15V6z" fill="var(--lamp)"/><path d="M11 16l4 4 7-8" fill="none" stroke="var(--lamp-ink)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><h1>Nöbet Arası</h1></div>
+  <p>Güvenlik görevlilerinin kendi sohbet alanı. Burada takma adınla görünürsün.</p>
+  <div class="tabs"><button type="button" id="tIn" aria-pressed="true">Giriş yap</button><button type="button" id="tUp" aria-pressed="false">Kayıt ol</button></div>
+  <form id="af" novalidate>
+   <div id="nickBox" hidden>
+    <label for="nick">Takma ad</label>
+    <input id="nick" maxlength="20" autocomplete="nickname" placeholder="Örn. Kule7">
+    <div class="hint">3-20 karakter. Harf, rakam ve alt çizgi kullanabilirsin. Gerçek adın görünmez.</div>
+   </div>
+   <label for="em">E-posta</label>
+   <input id="em" type="email" autocomplete="email" inputmode="email">
+   <label for="pw">Şifre</label>
+   <input id="pw" type="password" autocomplete="current-password">
+   <button class="go" id="go">Giriş yap</button>
+   <div class="err" id="err" role="alert"></div>
+  </form>
+ </div>
+</div>
+
+<div class="app" id="app" hidden>
+ <aside>
+  <div class="brand">
+   <div class="logo"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2l11 4v9c0 7-4.6 12.4-11 15C9.6 27.4 5 22 5 15V6z" fill="var(--lamp)"/><path d="M11 16l4 4 7-8" fill="none" stroke="var(--lamp-ink)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><h1>Nöbet Arası</h1></div>
+   <p>Meslektaşlar için güvenli sohbet alanı.</p>
+  </div>
+  <input class="q" id="q" type="search" autocomplete="off" placeholder="İl veya oda ara…" aria-label="İl veya oda ara">
+  <nav class="rooms" id="rooms" aria-label="Sohbet odaları"></nav>
+ </aside>
+ <main>
+  <div class="top">
+   <h2 id="rt"></h2>
+   <div class="tools"><span>Sen: <b id="me"></b></span><button id="unb" hidden>Engelleri kaldır</button><button id="out">Çıkış yap</button></div>
+   <p class="desc" id="rd"></p>
+  </div>
+  <div class="log" id="log" aria-live="polite"></div>
+  <form class="send" id="sf"><input id="in" autocomplete="off" maxlength="400" placeholder="Bir şeyler yaz…" aria-label="Mesaj"><button>Gönder</button></form>
+ </main>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, deleteDoc, runTransaction, collection, addDoc, getDocs, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBaIbceZ4EIsUEd4IhNcHH4NnJjnixjzFc",
+  authDomain: "nobet-arasi.firebaseapp.com",
+  projectId: "nobet-arasi",
+  storageBucket: "nobet-arasi.firebasestorage.app",
+  messagingSenderId: "525115130558",
+  appId: "1:525115130558:web:7147ce142a12b173d494ef"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const $ = (i) => document.getElementById(i);
+
+const ILLER = "Adana,Adıyaman,Afyonkarahisar,Ağrı,Aksaray,Amasya,Ankara,Antalya,Ardahan,Artvin,Aydın,Balıkesir,Bartın,Batman,Bayburt,Bilecik,Bingöl,Bitlis,Bolu,Burdur,Bursa,Çanakkale,Çankırı,Çorum,Denizli,Diyarbakır,Düzce,Edirne,Elazığ,Erzincan,Erzurum,Eskişehir,Gaziantep,Giresun,Gümüşhane,Hakkâri,Hatay,Iğdır,Isparta,İstanbul,İzmir,Kahramanmaraş,Karabük,Karaman,Kars,Kastamonu,Kayseri,Kırıkkale,Kırklareli,Kırşehir,Kilis,Kocaeli,Konya,Kütahya,Malatya,Manisa,Mardin,Mersin,Muğla,Muş,Nevşehir,Niğde,Ordu,Osmaniye,Rize,Sakarya,Samsun,Siirt,Sinop,Sivas,Şanlıurfa,Şırnak,Tekirdağ,Tokat,Trabzon,Tunceli,Uşak,Van,Yalova,Yozgat,Zonguldak".split(",");
+const ROOMS = [
+  { id: "gece", n: "Gece vardiyası", d: "Uykusuzluk, soğuk, uzun saatler" },
+  { id: "maas", n: "Maaş ve haklar", d: "Fazla mesai, izin, sözleşme" },
+  { id: "moral", n: "Moral köşesi", d: "Dertleş, rahatla, destek ol" }
+].concat(ILLER.map((il, i) => ({ id: "il" + i, n: il, d: "Şehre özel sohbet" })));
+
+let mode = "in", registering = false;
+const NICK_RE = /^[\p{L}0-9_]{3,20}$/u;
+
+function setMode(m) {
+  mode = m;
+  $("tIn").setAttribute("aria-pressed", m === "in");
+  $("tUp").setAttribute("aria-pressed", m === "up");
+  $("nickBox").hidden = m !== "up";
+  $("go").textContent = m === "in" ? "Giriş yap" : "Kayıt ol";
+  $("pw").autocomplete = m === "in" ? "current-password" : "new-password";
+  $("err").textContent = "";
+}
+$("tIn").onclick = () => setMode("in");
+$("tUp").onclick = () => setMode("up");
+
+function errText(e) {
+  const c = e && (e.code || e.message);
+  const map = {
+    "auth/invalid-email": "E-posta adresi geçerli görünmüyor.",
+    "auth/email-already-in-use": "Bu e-posta ile zaten bir hesap var. Giriş yapmayı dene.",
+    "auth/weak-password": "Şifre en az 6 karakter olmalı.",
+    "auth/invalid-credential": "E-posta ya da şifre hatalı.",
+    "auth/user-not-found": "E-posta ya da şifre hatalı.",
+    "auth/wrong-password": "E-posta ya da şifre hatalı.",
+    "auth/too-many-requests": "Çok fazla deneme yapıldı. Biraz bekleyip tekrar dene.",
+    "auth/network-request-failed": "İnternet bağlantısı yok gibi görünüyor.",
+    "nick-taken": "Bu takma ad alınmış. Başka bir tane dene.",
+    "permission-denied": "İşlem reddedildi. Güvenlik kurallarının yayınlandığından emin ol."
+  };
+  return map[c] || "Bir sorun oluştu. Tekrar dene.";
+}
+
+async function signUp(email, pw, nick) {
+  const key = nick.toLocaleLowerCase("tr");
+  const cred = await createUserWithEmailAndPassword(auth, email, pw);
+  try {
+    await runTransaction(db, async (tx) => {
+      const nr = doc(db, "nicks", key);
+      if ((await tx.get(nr)).exists()) throw new Error("nick-taken");
+      tx.set(nr, { uid: cred.user.uid });
+      tx.set(doc(db, "users", cred.user.uid), { nick: nick, createdAt: serverTimestamp() });
+    });
+  } catch (e) {
+    await cred.user.delete().catch(() => {});
+    throw e;
+  }
+  return cred.user;
+}
+
+$("af").onsubmit = async (e) => {
+  e.preventDefault();
+  const email = $("em").value.trim(), pw = $("pw").value, nick = $("nick").value.trim();
+  $("err").textContent = "";
+  if (!email || !pw) { $("err").textContent = "E-posta ve şifre gerekli."; return; }
+  if (mode === "up" && !NICK_RE.test(nick)) { $("err").textContent = "Takma ad 3-20 karakter olmalı; yalnızca harf, rakam ve alt çizgi."; return; }
+  $("go").disabled = true;
+  try {
+    if (mode === "up") {
+      registering = true;
+      const u = await signUp(email, pw, nick);
+      registering = false;
+      await enter(u);
+    } else {
+      await signInWithEmailAndPassword(auth, email, pw);
+    }
+  } catch (err) {
+    registering = false;
+    $("err").textContent = errText(err);
+  }
+  $("go").disabled = false;
+};
+
+onAuthStateChanged(auth, (u) => { if (!registering) enter(u); });
+$("out").onclick = () => signOut(auth);
+
+let user = null, nick = "", room = ROOMS[0], msgs = [], blocked = new Set();
+let unsubMsgs = null, unsubBlocks = null, lastSend = 0;
+
+async function enter(u) {
+  if (unsubMsgs) { unsubMsgs(); unsubMsgs = null; }
+  if (unsubBlocks) { unsubBlocks(); unsubBlocks = null; }
+  if (!u) {
+    user = null; msgs = []; blocked = new Set();
+    $("app").hidden = true; $("auth").hidden = false;
+    return;
+  }
+  try {
+    const snap = await getDoc(doc(db, "users", u.uid));
+    if (!snap.exists()) {
+      await signOut(auth);
+      $("err").textContent = "Profil bulunamadı. Lütfen yeniden kayıt ol.";
+      return;
+    }
+    user = u; nick = snap.data().nick;
+  } catch (e) {
+    $("err").textContent = errText(e);
+    return;
+  }
+  $("auth").hidden = true; $("app").hidden = false;
+  $("me").textContent = nick;
+  unsubBlocks = onSnapshot(collection(db, "users", user.uid, "blocks"), (s) => {
+    blocked = new Set(s.docs.map((d) => d.id));
+    $("unb").hidden = blocked.size === 0;
+    renderChat();
+  });
+  renderRooms();
+  openRoom(room);
+}
+
+function renderRooms() {
+  const h = $("rooms"); h.innerHTML = "";
+  const q = $("q").value.toLocaleLowerCase("tr");
+  ROOMS.forEach((r) => {
+    if (q && r.n.toLocaleLowerCase("tr").indexOf(q) < 0) return;
+    const b = document.createElement("button");
+    b.className = "room";
+    b.setAttribute("aria-current", r.id === room.id);
+    const t = document.createElement("b"); t.textContent = r.n;
+    const s = document.createElement("span"); s.textContent = r.d;
+    b.appendChild(t); b.appendChild(s);
+    b.onclick = () => { openRoom(r); renderRooms(); };
+    h.appendChild(b);
+  });
+}
+$("q").oninput = renderRooms;
+
+function openRoom(r) {
+  room = r;
+  if (unsubMsgs) unsubMsgs();
+  msgs = [];
+  $("rt").textContent = r.n;
+  $("rd").textContent = r.d;
+  renderChat(true);
+  const qy = query(collection(db, "rooms", r.id, "messages"), orderBy("createdAt", "desc"), limit(100));
+  unsubMsgs = onSnapshot(qy, (s) => {
+    msgs = s.docs.map((d) => {
+      const x = d.data({ serverTimestamps: "estimate" });
+      return { id: d.id, uid: x.uid, nick: x.nick, text: x.text, at: x.createdAt ? x.createdAt.toDate() : new Date() };
+    }).reverse();
+    renderChat(true);
+  }, (e) => toast(errText(e)));
+}
+
+function colorOf(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return "hsl(" + h + ",55%,68%)"; }
+
+function renderChat(forceBottom) {
+  const l = $("log");
+  l.innerHTML = "";
+  const n = document.createElement("div");
+  n.className = "note";
+  n.textContent = "Sohbet kurallarına uy: hakaret ve kişisel bilgi paylaşımı yok. Bir mesajın altından şikayet edebilir ya da kişiyi engelleyebilirsin.";
+  l.appendChild(n);
+  if (!msgs.length) {
+    const e = document.createElement("div");
+    e.className = "note"; e.textContent = "Bu odada henüz mesaj yok. İlk mesajı sen yaz.";
+    l.appendChild(e);
+  }
+  msgs.forEach((m) => {
+    if (blocked.has(m.uid)) return;
+    const mine = user && m.uid === user.uid;
+    const row = document.createElement("div"); row.className = "row" + (mine ? " mine" : "");
+    const av = document.createElement("div"); av.className = "av";
+    av.textContent = (m.nick || "?").charAt(0).toLocaleUpperCase("tr"); av.style.background = colorOf(m.nick || "");
+    const d = document.createElement("div"); d.className = "msg";
+    const w = document.createElement("div"); w.className = "who"; w.textContent = m.nick;
+    const t = document.createElement("span"); t.textContent = m.at.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+    w.appendChild(t);
+    const p = document.createElement("p"); p.textContent = m.text;
+    d.appendChild(w); d.appendChild(p);
+    if (!mine) {
+      const a = document.createElement("div"); a.className = "acts";
+      const r = document.createElement("button"); r.textContent = "Şikayet et";
+      r.onclick = async () => {
+        r.disabled = true;
+        try {
+          await addDoc(collection(db, "reports"), { reporter: user.uid, room: room.id, msgId: m.id, msgUid: m.uid, createdAt: serverTimestamp() });
+          r.textContent = "Şikayet edildi";
+        } catch (e) { r.disabled = false; toast(errText(e)); }
+      };
+      const b = document.createElement("button"); b.textContent = "Engelle";
+      b.onclick = async () => {
+        try { await setDoc(doc(db, "users", user.uid, "blocks", m.uid), { createdAt: serverTimestamp() }); toast(m.nick + " engellendi."); }
+        catch (e) { toast(errText(e)); }
+      };
+      a.appendChild(r); a.appendChild(b); d.appendChild(a);
+    }
+    row.appendChild(av); row.appendChild(d); l.appendChild(row);
+  });
+  if (forceBottom) l.scrollTop = l.scrollHeight;
+}
+
+$("sf").onsubmit = async (e) => {
+  e.preventDefault();
+  const t = $("in").value.trim();
+  if (!t || !user) return;
+  if (Date.now() - lastSend < 1000) { toast("Biraz yavaş yaz."); return; }
+  lastSend = Date.now();
+  $("in").value = "";
+  try {
+    await addDoc(collection(db, "rooms", room.id, "messages"), { uid: user.uid, nick: nick, text: t, createdAt: serverTimestamp() });
+  } catch (err) {
+    $("in").value = t;
+    toast("Mesaj gönderilemedi. " + errText(err));
+  }
+};
+
+$("unb").onclick = async () => {
+  try {
+    const s = await getDocs(collection(db, "users", user.uid, "blocks"));
+    await Promise.all(s.docs.map((d) => deleteDoc(d.ref)));
+    toast("Engeller kaldırıldı.");
+  } catch (e) { toast(errText(e)); }
+};
+
+let tt;
+function toast(m) {
+  const t = $("toast"); t.textContent = m; t.hidden = false;
+  clearTimeout(tt); tt = setTimeout(() => { t.hidden = true; }, 3200);
+}
+</script>
+</body>
+</html>
