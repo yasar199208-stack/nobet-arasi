@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Nöbet Arası</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0f1a2a">
+<script>if ("serviceWorker" in navigator) { navigator.serviceWorker.register("sw.js").catch(function () {}); }</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -97,6 +100,8 @@ aside{border-right:0;border-bottom:1px solid var(--line)}
     <label for="nick">Takma ad</label>
     <input id="nick" maxlength="20" autocomplete="nickname" placeholder="Örn. Kule7">
     <div class="hint">3-20 karakter. Harf, rakam ve alt çizgi kullanabilirsin. Gerçek adın görünmez.</div>
+    <label for="inv">Davet kodu</label>
+    <input id="inv" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Sana verilen kod">
    </div>
    <label for="em">E-posta</label>
    <input id="em" type="email" autocomplete="email" inputmode="email">
@@ -182,12 +187,13 @@ function errText(e) {
     "auth/too-many-requests": "Çok fazla deneme yapıldı. Biraz bekleyip tekrar dene.",
     "auth/network-request-failed": "İnternet bağlantısı yok gibi görünüyor.",
     "nick-taken": "Bu takma ad alınmış. Başka bir tane dene.",
+    "bad-invite": "Davet kodu geçersiz. Kodu kontrol et.",
     "permission-denied": "İşlem reddedildi. Güvenlik kurallarının yayınlandığından emin ol."
   };
   return map[c] || "Bir sorun oluştu. Tekrar dene.";
 }
 
-async function signUp(email, pw, nick) {
+async function signUp(email, pw, nick, inv) {
   const key = nick.toLocaleLowerCase("tr");
   const cred = await createUserWithEmailAndPassword(auth, email, pw);
   try {
@@ -195,10 +201,11 @@ async function signUp(email, pw, nick) {
       const nr = doc(db, "nicks", key);
       if ((await tx.get(nr)).exists()) throw new Error("nick-taken");
       tx.set(nr, { uid: cred.user.uid });
-      tx.set(doc(db, "users", cred.user.uid), { nick: nick, createdAt: serverTimestamp() });
+      tx.set(doc(db, "users", cred.user.uid), { nick: nick, invite: inv, createdAt: serverTimestamp() });
     });
   } catch (e) {
     await cred.user.delete().catch(() => {});
+    if (e && e.code === "permission-denied") throw new Error("bad-invite");
     throw e;
   }
   return cred.user;
@@ -206,15 +213,16 @@ async function signUp(email, pw, nick) {
 
 $("af").onsubmit = async (e) => {
   e.preventDefault();
-  const email = $("em").value.trim(), pw = $("pw").value, nick = $("nick").value.trim();
+  const email = $("em").value.trim(), pw = $("pw").value, nick = $("nick").value.trim(), inv = $("inv").value.trim();
   $("err").textContent = "";
   if (!email || !pw) { $("err").textContent = "E-posta ve şifre gerekli."; return; }
   if (mode === "up" && !NICK_RE.test(nick)) { $("err").textContent = "Takma ad 3-20 karakter olmalı; yalnızca harf, rakam ve alt çizgi."; return; }
+  if (mode === "up" && !inv) { $("err").textContent = "Davet kodu gerekli."; return; }
   $("go").disabled = true;
   try {
     if (mode === "up") {
       registering = true;
-      const u = await signUp(email, pw, nick);
+      const u = await signUp(email, pw, nick, inv);
       registering = false;
       await enter(u);
     } else {
