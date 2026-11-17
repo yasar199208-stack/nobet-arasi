@@ -73,6 +73,19 @@ main{display:flex;flex-direction:column;min-height:0;min-width:0}
 form.send{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line);background:var(--panel)}
 form.send input{flex:1;min-width:0;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px 12px}
 form.send button{background:var(--lamp);color:var(--lamp-ink);border:0;border-radius:10px;padding:0 18px;font:700 18px var(--head);cursor:pointer}
+.panel{position:fixed;inset:0;background:rgba(0,0,0,.55);display:grid;place-items:center;z-index:10;padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(16px + env(safe-area-inset-bottom,0px))}
+.sheet{width:100%;max-width:480px;max-height:100%;overflow:auto;background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--lamp);border-radius:12px;padding:16px}
+.sh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.sh h2{margin:0;font:700 26px/1 var(--head)}
+.sheet h3{margin:16px 0 6px;font:700 18px var(--head);color:var(--lamp)}
+.sheet button{background:none;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:14px}
+.addf{display:flex;gap:8px}
+.addf input{flex:1;min-width:0;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 10px}
+.addf button{background:var(--lamp);color:var(--lamp-ink);border:0;font-weight:600}
+.li{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.li span{overflow-wrap:anywhere}
+.li div{display:flex;gap:6px;flex:none}
+.empty{color:var(--mute);font-size:14px;padding:4px 0}
 @media (max-width:760px){
 .app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr}
 aside{border-right:0;border-bottom:1px solid var(--line)}
@@ -125,19 +138,28 @@ aside{border-right:0;border-bottom:1px solid var(--line)}
  <main>
   <div class="top">
    <h2 id="rt"></h2>
-   <div class="tools"><span>Sen: <b id="me"></b></span><button id="unb" hidden>Engelleri kaldır</button><button id="out">Çıkış yap</button></div>
+   <div class="tools"><span>Sen: <b id="me"></b></span><button id="fb">Arkadaşlar</button><button id="unb" hidden>Engelleri kaldır</button><button id="out">Çıkış yap</button></div>
    <p class="desc" id="rd"></p>
   </div>
   <div class="log" id="log" aria-live="polite"></div>
   <form class="send" id="sf"><input id="in" autocomplete="off" maxlength="400" placeholder="Bir şeyler yaz…" aria-label="Mesaj"><button>Gönder</button></form>
  </main>
 </div>
+<div class="panel" id="fp" hidden>
+ <div class="sheet">
+  <div class="sh"><h2>Arkadaşlar</h2><button id="fx" type="button">Kapat</button></div>
+  <form id="ff" class="addf"><input id="fn" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Arkadaşının takma adı" aria-label="Arkadaşının takma adı"><button>İstek gönder</button></form>
+  <h3>Gelen istekler</h3><div id="fin"></div>
+  <h3>Gönderilen istekler</h3><div id="fout"></div>
+  <h3>Arkadaşlarım</h3><div id="fl"></div>
+ </div>
+</div>
 <div class="toast" id="toast" hidden></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, deleteDoc, runTransaction, collection, addDoc, getDocs, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, deleteDoc, runTransaction, collection, addDoc, getDocs, query, orderBy, limit, onSnapshot, serverTimestamp, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBaIbceZ4EIsUEd4IhNcHH4NnJjnixjzFc",
@@ -240,12 +262,18 @@ $("out").onclick = () => signOut(auth);
 
 let user = null, nick = "", room = ROOMS[0], msgs = [], blocked = new Set();
 let unsubMsgs = null, unsubBlocks = null, lastSend = 0;
+let friendRooms = [], incoming = [], outgoing = [], unsubF = null, unsubIn = null, unsubOut = null;
 
 async function enter(u) {
   if (unsubMsgs) { unsubMsgs(); unsubMsgs = null; }
   if (unsubBlocks) { unsubBlocks(); unsubBlocks = null; }
+  if (unsubF) { unsubF(); unsubF = null; }
+  if (unsubIn) { unsubIn(); unsubIn = null; }
+  if (unsubOut) { unsubOut(); unsubOut = null; }
   if (!u) {
     user = null; msgs = []; blocked = new Set();
+    friendRooms = []; incoming = []; outgoing = []; room = ROOMS[0];
+    $("fp").hidden = true;
     $("app").hidden = true; $("auth").hidden = false;
     return;
   }
@@ -268,6 +296,23 @@ async function enter(u) {
     $("unb").hidden = blocked.size === 0;
     renderChat();
   });
+  unsubF = onSnapshot(query(collection(db, "friendships"), where("members", "array-contains", user.uid)), (s) => {
+    friendRooms = s.docs.map((d) => {
+      const x = d.data();
+      const other = x.members[0] === user.uid ? x.members[1] : x.members[0];
+      return { id: "dm_" + d.id, dm: true, pairId: d.id, other: other, n: "@" + ((x.names && x.names[other]) || "arkadaş"), d: "Özel sohbet: sadece ikiniz görürsünüz" };
+    });
+    if (room.dm && !friendRooms.some((f) => f.id === room.id)) openRoom(ROOMS[0]);
+    renderRooms(); renderFriends();
+  }, (e) => toast(errText(e)));
+  unsubIn = onSnapshot(query(collection(db, "friendRequests"), where("to", "==", user.uid)), (s) => {
+    incoming = s.docs.map((d) => Object.assign({ id: d.id }, d.data()));
+    renderFriends();
+  }, (e) => toast(errText(e)));
+  unsubOut = onSnapshot(query(collection(db, "friendRequests"), where("from", "==", user.uid)), (s) => {
+    outgoing = s.docs.map((d) => Object.assign({ id: d.id }, d.data()));
+    renderFriends();
+  }, (e) => toast(errText(e)));
   renderRooms();
   openRoom(room);
 }
@@ -275,7 +320,7 @@ async function enter(u) {
 function renderRooms() {
   const h = $("rooms"); h.innerHTML = "";
   const q = $("q").value.toLocaleLowerCase("tr");
-  ROOMS.forEach((r) => {
+  friendRooms.concat(ROOMS).forEach((r) => {
     if (q && r.n.toLocaleLowerCase("tr").indexOf(q) < 0) return;
     const b = document.createElement("button");
     b.className = "room";
@@ -296,7 +341,7 @@ function openRoom(r) {
   $("rt").textContent = r.n;
   $("rd").textContent = r.d;
   renderChat(true);
-  const qy = query(collection(db, "rooms", r.id, "messages"), orderBy("createdAt", "desc"), limit(100));
+  const qy = query(msgCol(r), orderBy("createdAt", "desc"), limit(100));
   unsubMsgs = onSnapshot(qy, (s) => {
     msgs = s.docs.map((d) => {
       const x = d.data({ serverTimestamps: "estimate" });
@@ -306,82 +351,14 @@ function openRoom(r) {
   }, (e) => toast(errText(e)));
 }
 
-function colorOf(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return "hsl(" + h + ",55%,68%)"; }
-
-function renderChat(forceBottom) {
-  const l = $("log");
-  l.innerHTML = "";
-  const n = document.createElement("div");
-  n.className = "note";
-  n.textContent = "Sohbet kurallarına uy: hakaret ve kişisel bilgi paylaşımı yok. Bir mesajın altından şikayet edebilir ya da kişiyi engelleyebilirsin.";
-  l.appendChild(n);
-  if (!msgs.length) {
-    const e = document.createElement("div");
-    e.className = "note"; e.textContent = "Bu odada henüz mesaj yok. İlk mesajı sen yaz.";
-    l.appendChild(e);
-  }
-  msgs.forEach((m) => {
-    if (blocked.has(m.uid)) return;
-    const mine = user && m.uid === user.uid;
-    const row = document.createElement("div"); row.className = "row" + (mine ? " mine" : "");
-    const av = document.createElement("div"); av.className = "av";
-    av.textContent = (m.nick || "?").charAt(0).toLocaleUpperCase("tr"); av.style.background = colorOf(m.nick || "");
-    const d = document.createElement("div"); d.className = "msg";
-    const w = document.createElement("div"); w.className = "who"; w.textContent = m.nick;
-    const t = document.createElement("span"); t.textContent = m.at.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
-    w.appendChild(t);
-    const p = document.createElement("p"); p.textContent = m.text;
-    d.appendChild(w); d.appendChild(p);
-    if (!mine) {
-      const a = document.createElement("div"); a.className = "acts";
-      const r = document.createElement("button"); r.textContent = "Şikayet et";
-      r.onclick = async () => {
-        r.disabled = true;
-        try {
-          await addDoc(collection(db, "reports"), { reporter: user.uid, room: room.id, msgId: m.id, msgUid: m.uid, createdAt: serverTimestamp() });
-          r.textContent = "Şikayet edildi";
-        } catch (e) { r.disabled = false; toast(errText(e)); }
-      };
-      const b = document.createElement("button"); b.textContent = "Engelle";
-      b.onclick = async () => {
-        try { await setDoc(doc(db, "users", user.uid, "blocks", m.uid), { createdAt: serverTimestamp() }); toast(m.nick + " engellendi."); }
-        catch (e) { toast(errText(e)); }
-      };
-      a.appendChild(r); a.appendChild(b); d.appendChild(a);
-    }
-    row.appendChild(av); row.appendChild(d); l.appendChild(row);
-  });
-  if (forceBottom) l.scrollTop = l.scrollHeight;
+function msgCol(r) {
+  return r.dm ? collection(db, "dms", r.pairId, "messages") : collection(db, "rooms", r.id, "messages");
 }
 
-$("sf").onsubmit = async (e) => {
-  e.preventDefault();
-  const t = $("in").value.trim();
-  if (!t || !user) return;
-  if (Date.now() - lastSend < 1000) { toast("Biraz yavaş yaz."); return; }
-  lastSend = Date.now();
-  $("in").value = "";
-  try {
-    await addDoc(collection(db, "rooms", room.id, "messages"), { uid: user.uid, nick: nick, text: t, createdAt: serverTimestamp() });
-  } catch (err) {
-    $("in").value = t;
-    toast("Mesaj gönderilemedi. " + errText(err));
-  }
-};
+async function act(fn) { try { await fn(); } catch (e) { toast(errText(e)); } }
 
-$("unb").onclick = async () => {
-  try {
-    const s = await getDocs(collection(db, "users", user.uid, "blocks"));
-    await Promise.all(s.docs.map((d) => deleteDoc(d.ref)));
-    toast("Engeller kaldırıldı.");
-  } catch (e) { toast(errText(e)); }
-};
-
-let tt;
-function toast(m) {
-  const t = $("toast"); t.textContent = m; t.hidden = false;
-  clearTimeout(tt); tt = setTimeout(() => { t.hidden = true; }, 3200);
-}
-</script>
-</body>
-</html>
+function li(text, buttons) {
+  const d = document.createElement("div"); d.className = "li";
+  const s = document.createElement("span"); s.textContent = text;
+  const b = document.createElement("div");
+  buttons.forEach((x) => { const bt = document.createElement("button"); bt.type = "button"; bt.textContent = x[0]; bt.onclick = x[1]; b.appendChild(b
