@@ -104,6 +104,7 @@ $("out").onclick = () => signOut(auth);
 let user = null, nick = "", room = ROOMS[0], msgs = [], blocked = new Set();
 let unsubMsgs = null, unsubBlocks = null, lastSend = 0;
 let friendRooms = [], incoming = [], outgoing = [], unsubF = null, unsubIn = null, unsubOut = null;
+let profile = null;
 
 async function enter(u) {
   if (unsubMsgs) { unsubMsgs(); unsubMsgs = null; }
@@ -115,6 +116,7 @@ async function enter(u) {
     user = null; msgs = []; blocked = new Set();
     friendRooms = []; incoming = []; outgoing = []; room = ROOMS[0];
     $("fp").hidden = true;
+    profile = null; if ($("pp")) $("pp").hidden = true;
     $("app").hidden = true; $("auth").hidden = false;
     return;
   }
@@ -226,6 +228,7 @@ function renderFriends() {
     ["Mesaj", () => { openRoom(f); renderRooms(); closeFriends(); }],
     ["Çıkar", () => { if (confirm("Arkadaşlıktan çıkarılsın mı?")) act(() => deleteDoc(doc(db, "friendships", f.pairId))); }]
   ])), "Henüz arkadaşın yok. Yukarıdan takma adla istek gönderebilirsin.");
+  renderProfile();
 }
 
 async function acceptRequest(r) {
@@ -249,8 +252,60 @@ async function sendRequest(text) {
   if (outgoing.some((r) => r.to === other)) { toast("İstek zaten gönderilmiş."); return; }
   const inc = incoming.find((r) => r.from === other);
   if (inc) { await acceptRequest(inc); return; }
-  await setDoc(doc(db, "friendRequests", user.uid + "_" + other), { from: user.uid, to: other, fromNick: nick, toNick: t, createdAt: serverTimestamp() });
+  await requestUser(other, t);
+}
+
+async function requestUser(uid, nm) {
+  if (uid === user.uid) return;
+  await setDoc(doc(db, "friendRequests", user.uid + "_" + uid), { from: user.uid, to: uid, fromNick: nick, toNick: nm, createdAt: serverTimestamp() });
   toast("İstek gönderildi.");
+}
+
+/* ---------- Profil kartı: avatara ya da ada dokununca ---------- */
+const styleEl = document.createElement("style");
+styleEl.textContent = ".pcard{max-width:340px;text-align:center}.pcard .av{width:64px;height:64px;font-size:30px;margin:0 auto 8px}.pcard h2{margin:0;font:700 26px/1 var(--head)}.pbtns{display:flex;gap:8px;margin-top:14px}.pbtns button{flex:1}.sheet .pbtns #pa{background:var(--lamp);color:var(--lamp-ink);border:0;font-weight:600}.row:not(.mine) .av,.row:not(.mine) .who{cursor:pointer}";
+document.head.appendChild(styleEl);
+const ppEl = document.createElement("div");
+ppEl.className = "panel"; ppEl.id = "pp"; ppEl.hidden = true;
+ppEl.innerHTML = '<div class="sheet pcard"><div class="av" id="pav"></div><h2 id="pn"></h2><p class="empty" id="ps"></p><div class="pbtns"><button id="pa" type="button"></button><button id="px" type="button">Kapat</button></div></div>';
+document.body.appendChild(ppEl);
+
+function openProfile(uid, nm) {
+  profile = { uid: uid, nm: nm };
+  renderProfile();
+  $("pp").hidden = false;
+}
+function closeProfile() { $("pp").hidden = true; profile = null; }
+$("px").onclick = closeProfile;
+$("pp").onclick = (e) => { if (e.target === $("pp")) closeProfile(); };
+
+function renderProfile() {
+  if (!profile || $("pp").hidden) return;
+  const uid = profile.uid, nm = profile.nm;
+  $("pav").textContent = nm.charAt(0).toLocaleUpperCase("tr");
+  $("pav").style.background = colorOf(nm);
+  $("pn").textContent = nm;
+  const fr = friendRooms.find((f) => f.other === uid);
+  const inc = incoming.find((r) => r.from === uid);
+  const out = outgoing.find((r) => r.to === uid);
+  const b = $("pa");
+  if (fr) {
+    $("ps").textContent = "Arkadaşınız";
+    b.textContent = "Özel mesaj gönder";
+    b.onclick = () => { openRoom(fr); renderRooms(); closeProfile(); };
+  } else if (inc) {
+    $("ps").textContent = "Sana arkadaşlık isteği gönderdi";
+    b.textContent = "İsteği kabul et";
+    b.onclick = () => act(() => acceptRequest(inc));
+  } else if (out) {
+    $("ps").textContent = "İstek gönderildi, kabul etmesi bekleniyor";
+    b.textContent = "İsteği iptal et";
+    b.onclick = () => act(() => deleteDoc(doc(db, "friendRequests", out.id)));
+  } else {
+    $("ps").textContent = "Özel mesaj için önce arkadaş olmanız gerekir";
+    b.textContent = "Arkadaş ekle";
+    b.onclick = () => act(() => requestUser(uid, nm));
+  }
 }
 
 function closeFriends() { $("fp").hidden = true; }
@@ -291,6 +346,8 @@ function renderChat(forceBottom) {
     const p = document.createElement("p"); p.textContent = m.text;
     d.appendChild(w); d.appendChild(p);
     if (!mine) {
+      av.onclick = () => openProfile(m.uid, m.nick);
+      w.onclick = () => openProfile(m.uid, m.nick);
       const a = document.createElement("div"); a.className = "acts";
       const r = document.createElement("button"); r.textContent = "Şikayet et";
       r.onclick = async () => {
@@ -339,4 +396,4 @@ let tt;
 function toast(m) {
   const t = $("toast"); t.textContent = m; t.hidden = false;
   clearTimeout(tt); tt = setTimeout(() => { t.hidden = true; }, 3200);
-    }
+}
