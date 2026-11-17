@@ -272,8 +272,8 @@ document.body.appendChild(ppEl);
 
 function openProfile(uid, nm) {
   profile = { uid: uid, nm: nm };
-  renderProfile();
   $("pp").hidden = false;
+  renderProfile();
 }
 function closeProfile() { $("pp").hidden = true; profile = null; }
 $("px").onclick = closeProfile;
@@ -396,4 +396,4 @@ let tt;
 function toast(m) {
   const t = $("toast"); t.textContent = m; t.hidden = false;
   clearTimeout(tt); tt = setTimeout(() => { t.hidden = true; }, 3200);
-}
+                                                                  }
