@@ -58,12 +58,42 @@ function paint() {
   decorate();
 }
 
+// Yeni özel mesaj sesi + titreşim (uygulama açıkken)
+let ac = null;
+function audio() {
+  try {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    if (ac.state === "suspended") ac.resume();
+  } catch (e) {}
+}
+document.addEventListener("pointerdown", audio, { once: true });
+function ding() {
+  try { if (navigator.vibrate) navigator.vibrate([120, 60, 120]); } catch (e) {}
+  try {
+    audio();
+    if (!ac) return;
+    const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(880, t);
+    o.frequency.setValueAtTime(1175, t + 0.12);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+    o.connect(g); g.connect(ac.destination);
+    o.start(t); o.stop(t + 0.4);
+  } catch (e) {}
+}
+
 function watch(id, pairId) {
+  let ready = false;
   subs[id] = onSnapshot(query(collection(db, "dms", pairId, "messages"), orderBy("createdAt", "desc"), limit(1)), (s) => {
     const d = s.docs[0];
     if (!d) { delete last[id]; paint(); return; }
     const x = d.data({ serverTimestamps: "estimate" });
+    const prev = last[id];
     last[id] = { uid: x.uid, at: x.createdAt ? x.createdAt.toMillis() : Date.now() };
+    if (ready && !s.metadata.fromCache && !s.metadata.hasPendingWrites && x.uid !== uid && (!prev || last[id].at > prev.at)) ding();
+    ready = true;
     if (fresh && seen[id] === undefined) { seen[id] = last[id].at; save(); }
     markOpen();
     paint();
