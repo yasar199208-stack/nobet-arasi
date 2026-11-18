@@ -1,5 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { ROOMS } from "./rooms.js?v=1";
+import { initMedia, setDmUi, addPhoto, startCalls, stopCalls } from "./media.js?v=1";
 import { initAvatars, paintAv, loadAv, hasAv, pickPhoto, removePhoto } from "./avatar.js?v=1";
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, runTransaction, collection, addDoc, getDocs, query, orderBy, limit, onSnapshot, serverTimestamp, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -15,15 +17,9 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 initAvatars(db, colorOf, toast, () => renderProfile());
+initMedia({ db: db, user: () => user, nick: () => nick, room: () => room, msgCol: msgCol, toast: toast });
 
 const $ = (i) => document.getElementById(i);
-
-const ILLER = "Adana,Adıyaman,Afyonkarahisar,Ağrı,Aksaray,Amasya,Ankara,Antalya,Ardahan,Artvin,Aydın,Balıkesir,Bartın,Batman,Bayburt,Bilecik,Bingöl,Bitlis,Bolu,Burdur,Bursa,Çanakkale,Çankırı,Çorum,Denizli,Diyarbakır,Düzce,Edirne,Elazığ,Erzincan,Erzurum,Eskişehir,Gaziantep,Giresun,Gümüşhane,Hakkâri,Hatay,Iğdır,Isparta,İstanbul,İzmir,Kahramanmaraş,Karabük,Karaman,Kars,Kastamonu,Kayseri,Kırıkkale,Kırklareli,Kırşehir,Kilis,Kocaeli,Konya,Kütahya,Malatya,Manisa,Mardin,Mersin,Muğla,Muş,Nevşehir,Niğde,Ordu,Osmaniye,Rize,Sakarya,Samsun,Siirt,Sinop,Sivas,Şanlıurfa,Şırnak,Tekirdağ,Tokat,Trabzon,Tunceli,Uşak,Van,Yalova,Yozgat,Zonguldak".split(",");
-const ROOMS = [
-  { id: "gece", n: "Gece vardiyası", d: "Uykusuzluk, soğuk, uzun saatler" },
-  { id: "maas", n: "Maaş ve haklar", d: "Fazla mesai, izin, sözleşme" },
-  { id: "moral", n: "Moral köşesi", d: "Dertleş, rahatla, destek ol" }
-].concat(ILLER.map((il, i) => ({ id: "il" + i, n: il, d: "Şehre özel sohbet" })));
 
 let mode = "in", registering = false;
 const NICK_RE = /^[\p{L}0-9_]{3,20}$/u;
@@ -119,6 +115,7 @@ async function enter(u) {
     friendRooms = []; incoming = []; outgoing = []; room = ROOMS[0];
     $("fp").hidden = true;
     profile = null; if ($("pp")) $("pp").hidden = true;
+    stopCalls();
     $("app").hidden = true; $("auth").hidden = false;
     return;
   }
@@ -137,6 +134,7 @@ async function enter(u) {
   $("auth").hidden = true; $("app").hidden = false;
   $("me").textContent = nick;
   loadAv(user.uid);
+  startCalls();
   unsubBlocks = onSnapshot(collection(db, "users", user.uid, "blocks"), (s) => {
     blocked = new Set(s.docs.map((d) => d.id));
     $("unb").hidden = blocked.size === 0;
@@ -182,16 +180,17 @@ $("q").oninput = renderRooms;
 
 function openRoom(r) {
   room = r;
+  setDmUi(r);
   if (unsubMsgs) unsubMsgs();
   msgs = [];
   $("rt").textContent = r.n;
   $("rd").textContent = r.d;
   renderChat(true);
-  const qy = query(msgCol(r), orderBy("createdAt", "desc"), limit(100));
+  const qy = query(msgCol(r), orderBy("createdAt", "desc"), limit(r.dm ? 40 : 100));
   unsubMsgs = onSnapshot(qy, (s) => {
     msgs = s.docs.map((d) => {
       const x = d.data({ serverTimestamps: "estimate" });
-      return { id: d.id, uid: x.uid, nick: x.nick, text: x.text, at: x.createdAt ? x.createdAt.toDate() : new Date() };
+      return { id: d.id, uid: x.uid, nick: x.nick, text: x.text, img: x.img, at: x.createdAt ? x.createdAt.toDate() : new Date() };
     }).reverse();
     renderChat(true);
   }, (e) => toast(errText(e)));
@@ -361,7 +360,7 @@ function renderChat(forceBottom) {
     const t = document.createElement("span"); t.textContent = m.at.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
     w.appendChild(t);
     const p = document.createElement("p"); p.textContent = m.text;
-    d.appendChild(w); d.appendChild(p);
+    d.appendChild(w); if (m.text) d.appendChild(p); if (m.img) addPhoto(d, m.img);
     if (mine) av.onclick = () => openProfile(user.uid, nick);
     if (!mine) {
       av.onclick = () => openProfile(m.uid, m.nick);
@@ -414,4 +413,4 @@ let tt;
 function toast(m) {
   const t = $("toast"); t.textContent = m; t.hidden = false;
   clearTimeout(tt); tt = setTimeout(() => { t.hidden = true; }, 3200);
-  }
+}
