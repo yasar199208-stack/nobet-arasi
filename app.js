@@ -1,8 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { ROOMS } from "./rooms.js?v=1";
+import { ROOMS } from "./rooms.js?v=2";
+import { initFun, openAvatarPicker, isBigEmoji } from "./fun.js?v=1";
 import { initMedia, setDmUi, addPhoto, startCalls, stopCalls } from "./media.js?v=1";
-import { initAvatars, paintAv, loadAv, hasAv, pickPhoto, removePhoto } from "./avatar.js?v=1";
+import { initAvatars, paintAv, loadAv, hasAv, pickPhoto, removePhoto } from "./avatar.js?v=2";
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, runTransaction, collection, addDoc, getDocs, query, orderBy, limit, onSnapshot, serverTimestamp, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -18,8 +19,10 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 initAvatars(db, colorOf, toast, () => renderProfile());
 initMedia({ db: db, user: () => user, nick: () => nick, room: () => room, msgCol: msgCol, toast: toast });
+initFun({ toast: toast });
 
 const $ = (i) => document.getElementById(i);
+
 
 let mode = "in", registering = false;
 const NICK_RE = /^[\p{L}0-9_]{3,20}$/u;
@@ -144,7 +147,7 @@ async function enter(u) {
     friendRooms = s.docs.map((d) => {
       const x = d.data();
       const other = x.members[0] === user.uid ? x.members[1] : x.members[0];
-      return { id: "dm_" + d.id, dm: true, pairId: d.id, other: other, n: "@" + ((x.names && x.names[other]) || "arkadaş"), d: "Özel sohbet: sadece ikiniz görürsünüz" };
+      return { id: "dm_" + d.id, ic: "💌", dm: true, pairId: d.id, other: other, n: "@" + ((x.names && x.names[other]) || "arkadaş"), d: "Özel sohbet: sadece ikiniz görürsünüz" };
     });
     if (room.dm && !friendRooms.some((f) => f.id === room.id)) openRoom(ROOMS[0]);
     renderRooms(); renderFriends();
@@ -169,7 +172,7 @@ function renderRooms() {
     const b = document.createElement("button");
     b.className = "room";
     b.setAttribute("aria-current", r.id === room.id);
-    const t = document.createElement("b"); t.textContent = r.n;
+    const t = document.createElement("b"); t.textContent = (r.ic ? r.ic + " " : "") + r.n;
     const s = document.createElement("span"); s.textContent = r.d;
     b.appendChild(t); b.appendChild(s);
     b.onclick = () => { openRoom(r); renderRooms(); };
@@ -183,7 +186,7 @@ function openRoom(r) {
   setDmUi(r);
   if (unsubMsgs) unsubMsgs();
   msgs = [];
-  $("rt").textContent = r.n;
+  $("rt").textContent = (r.ic ? r.ic + " " : "") + r.n;
   $("rd").textContent = r.d;
   renderChat(true);
   const qy = query(msgCol(r), orderBy("createdAt", "desc"), limit(r.dm ? 40 : 100));
@@ -218,7 +221,7 @@ function fill(id, items, emptyText) {
 }
 
 function renderFriends() {
-  $("fb").textContent = incoming.length ? "Arkadaşlar (" + incoming.length + ")" : "Arkadaşlar";
+  $("fb").textContent = incoming.length ? "👥 Arkadaşlar (" + incoming.length + ")" : "👥 Arkadaşlar";
   fill("fin", incoming.map((r) => li(r.fromNick, [
     ["Kabul et", () => act(() => acceptRequest(r))],
     ["Reddet", () => act(() => deleteDoc(doc(db, "friendRequests", r.id)))]
@@ -269,11 +272,11 @@ styleEl.textContent = ".pcard{max-width:340px;text-align:center}.pcard .av{width
 document.head.appendChild(styleEl);
 const ppEl = document.createElement("div");
 ppEl.className = "panel"; ppEl.id = "pp"; ppEl.hidden = true;
-ppEl.innerHTML = '<div class="sheet pcard"><div class="av" id="pav"></div><h2 id="pn"></h2><p class="empty" id="ps"></p><div class="pbtns"><button id="pa" type="button"></button><button id="px" type="button">Kapat</button></div><div class="pbtns"><button id="pr" type="button" hidden>Resmi kaldır</button></div></div>';
+ppEl.innerHTML = '<div class="sheet pcard"><div class="av" id="pav"></div><h2 id="pn"></h2><p class="empty" id="ps"></p><div class="pbtns"><button id="pa" type="button"></button><button id="px" type="button">Kapat</button></div><div class="pbtns"><button id="pr" type="button" hidden>Resmi kaldır</button><button id="pe" type="button" hidden>😎 Hazır avatar</button></div></div>';
 document.body.appendChild(ppEl);
 
 const pbEl = document.createElement("button");
-pbEl.id = "pb"; pbEl.textContent = "Profil resmim";
+pbEl.id = "pb"; pbEl.textContent = "🖼️ Profil resmim";
 $("fb").parentNode.insertBefore(pbEl, $("fb"));
 pbEl.onclick = () => openProfile(user.uid, nick);
 
@@ -298,7 +301,10 @@ function renderProfile() {
   const out = outgoing.find((r) => r.to === uid);
   const b = $("pa");
   $("pr").hidden = true;
+  $("pe").hidden = true;
   if (uid === user.uid) {
+    $("pe").hidden = false;
+    $("pe").onclick = () => openAvatarPicker(uid);
     $("ps").textContent = hasAv(uid) ? "Bu sensin" : "Bu sensin. Henüz profil resmin yok.";
     b.textContent = "Profil resmi seç";
     b.onclick = () => pickPhoto(uid);
@@ -360,6 +366,7 @@ function renderChat(forceBottom) {
     const t = document.createElement("span"); t.textContent = m.at.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
     w.appendChild(t);
     const p = document.createElement("p"); p.textContent = m.text;
+    if (isBigEmoji(m.text)) p.className = "big";
     d.appendChild(w); if (m.text) d.appendChild(p); if (m.img) addPhoto(d, m.img);
     if (mine) av.onclick = () => openProfile(user.uid, nick);
     if (!mine) {
