@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { initAvatars, paintAv, loadAv, hasAv, pickPhoto, removePhoto } from "./avatar.js?v=1";
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, runTransaction, collection, addDoc, getDocs, query, orderBy, limit, onSnapshot, serverTimestamp, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -13,6 +14,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+initAvatars(db, colorOf, toast, () => renderProfile());
 
 const $ = (i) => document.getElementById(i);
 
@@ -134,6 +136,7 @@ async function enter(u) {
   }
   $("auth").hidden = true; $("app").hidden = false;
   $("me").textContent = nick;
+  loadAv(user.uid);
   unsubBlocks = onSnapshot(collection(db, "users", user.uid, "blocks"), (s) => {
     blocked = new Set(s.docs.map((d) => d.id));
     $("unb").hidden = blocked.size === 0;
@@ -263,12 +266,17 @@ async function requestUser(uid, nm) {
 
 /* ---------- Profil kartı: avatara ya da ada dokununca ---------- */
 const styleEl = document.createElement("style");
-styleEl.textContent = ".pcard{max-width:340px;text-align:center}.pcard .av{width:64px;height:64px;font-size:30px;margin:0 auto 8px}.pcard h2{margin:0;font:700 26px/1 var(--head)}.pbtns{display:flex;gap:8px;margin-top:14px}.pbtns button{flex:1}.sheet .pbtns #pa{background:var(--lamp);color:var(--lamp-ink);border:0;font-weight:600}.row:not(.mine) .av,.row:not(.mine) .who{cursor:pointer}";
+styleEl.textContent = ".pcard{max-width:340px;text-align:center}.pcard .av{width:64px;height:64px;font-size:30px;margin:0 auto 8px}.pcard h2{margin:0;font:700 26px/1 var(--head)}.pbtns{display:flex;gap:8px;margin-top:14px}.pbtns button{flex:1}.sheet .pbtns #pa{background:var(--lamp);color:var(--lamp-ink);border:0;font-weight:600}.row .av,.row:not(.mine) .who{cursor:pointer}";
 document.head.appendChild(styleEl);
 const ppEl = document.createElement("div");
 ppEl.className = "panel"; ppEl.id = "pp"; ppEl.hidden = true;
-ppEl.innerHTML = '<div class="sheet pcard"><div class="av" id="pav"></div><h2 id="pn"></h2><p class="empty" id="ps"></p><div class="pbtns"><button id="pa" type="button"></button><button id="px" type="button">Kapat</button></div></div>';
+ppEl.innerHTML = '<div class="sheet pcard"><div class="av" id="pav"></div><h2 id="pn"></h2><p class="empty" id="ps"></p><div class="pbtns"><button id="pa" type="button"></button><button id="px" type="button">Kapat</button></div><div class="pbtns"><button id="pr" type="button" hidden>Resmi kaldır</button></div></div>';
 document.body.appendChild(ppEl);
+
+const pbEl = document.createElement("button");
+pbEl.id = "pb"; pbEl.textContent = "Profil resmim";
+$("fb").parentNode.insertBefore(pbEl, $("fb"));
+pbEl.onclick = () => openProfile(user.uid, nick);
 
 function openProfile(uid, nm) {
   profile = { uid: uid, nm: nm };
@@ -282,14 +290,22 @@ $("pp").onclick = (e) => { if (e.target === $("pp")) closeProfile(); };
 function renderProfile() {
   if (!profile || $("pp").hidden) return;
   const uid = profile.uid, nm = profile.nm;
-  $("pav").textContent = nm.charAt(0).toLocaleUpperCase("tr");
-  $("pav").style.background = colorOf(nm);
+  $("pav").dataset.av = uid; $("pav").dataset.nm = nm;
+  paintAv($("pav"), uid, nm);
+  loadAv(uid);
   $("pn").textContent = nm;
   const fr = friendRooms.find((f) => f.other === uid);
   const inc = incoming.find((r) => r.from === uid);
   const out = outgoing.find((r) => r.to === uid);
   const b = $("pa");
-  if (fr) {
+  $("pr").hidden = true;
+  if (uid === user.uid) {
+    $("ps").textContent = hasAv(uid) ? "Bu sensin" : "Bu sensin. Henüz profil resmin yok.";
+    b.textContent = "Profil resmi seç";
+    b.onclick = () => pickPhoto(uid);
+    $("pr").hidden = !hasAv(uid);
+    $("pr").onclick = () => removePhoto(uid);
+  } else if (fr) {
     $("ps").textContent = "Arkadaşınız";
     b.textContent = "Özel mesaj gönder";
     b.onclick = () => { openRoom(fr); renderRooms(); closeProfile(); };
@@ -338,13 +354,15 @@ function renderChat(forceBottom) {
     const mine = user && m.uid === user.uid;
     const row = document.createElement("div"); row.className = "row" + (mine ? " mine" : "");
     const av = document.createElement("div"); av.className = "av";
-    av.textContent = (m.nick || "?").charAt(0).toLocaleUpperCase("tr"); av.style.background = colorOf(m.nick || "");
+    av.dataset.av = m.uid; av.dataset.nm = m.nick || "";
+    paintAv(av, m.uid, m.nick); loadAv(m.uid);
     const d = document.createElement("div"); d.className = "msg";
     const w = document.createElement("div"); w.className = "who"; w.textContent = m.nick;
     const t = document.createElement("span"); t.textContent = m.at.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
     w.appendChild(t);
     const p = document.createElement("p"); p.textContent = m.text;
     d.appendChild(w); d.appendChild(p);
+    if (mine) av.onclick = () => openProfile(user.uid, nick);
     if (!mine) {
       av.onclick = () => openProfile(m.uid, m.nick);
       w.onclick = () => openProfile(m.uid, m.nick);
@@ -396,4 +414,4 @@ let tt;
 function toast(m) {
   const t = $("toast"); t.textContent = m; t.hidden = false;
   clearTimeout(tt); tt = setTimeout(() => { t.hidden = true; }, 3200);
-                                                                  }
+  }
