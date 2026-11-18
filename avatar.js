@@ -98,3 +98,12 @@ export async function removePhoto(uid) {
     toast("Profil resmin kaldırıldı.");
   } catch (e) { toast("Resim kaldırılamadı."); }
 }
+
+export async function setAvatarData(uid, data) {
+  try {
+    await setDoc(doc(db, "avatars", uid), { img: data, updatedAt: serverTimestamp() });
+    cache.set(uid, data);
+    refreshAvs(uid);
+    toast("Profil resmin güncellendi.");
+  } catch (e) { toast("Resim kaydedilemedi."); }
+}
