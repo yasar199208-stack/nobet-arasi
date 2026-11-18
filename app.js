@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { ROOMS } from "./rooms.js?v=2";
+import { initAdmin, loadAdmin, resetAdmin, isAdmin, addAdminDelete } from "./admin.js?v=1";
 import { initFun, openAvatarPicker, isBigEmoji } from "./fun.js?v=1";
 import { initMedia, setDmUi, addPhoto, startCalls, stopCalls } from "./media.js?v=1";
 import { initAvatars, paintAv, loadAv, hasAv, pickPhoto, removePhoto } from "./avatar.js?v=2";
@@ -20,6 +21,7 @@ const db = getFirestore(app);
 initAvatars(db, colorOf, toast, () => renderProfile());
 initMedia({ db: db, user: () => user, nick: () => nick, room: () => room, msgCol: msgCol, toast: toast });
 initFun({ toast: toast });
+initAdmin({ db: db, user: () => user, toast: toast, rooms: ROOMS, refresh: () => renderChat() });
 
 const $ = (i) => document.getElementById(i);
 
@@ -119,6 +121,7 @@ async function enter(u) {
     $("fp").hidden = true;
     profile = null; if ($("pp")) $("pp").hidden = true;
     stopCalls();
+    resetAdmin();
     $("app").hidden = true; $("auth").hidden = false;
     return;
   }
@@ -138,6 +141,7 @@ async function enter(u) {
   $("me").textContent = nick;
   loadAv(user.uid);
   startCalls();
+  loadAdmin();
   unsubBlocks = onSnapshot(collection(db, "users", user.uid, "blocks"), (s) => {
     blocked = new Set(s.docs.map((d) => d.id));
     $("unb").hidden = blocked.size === 0;
@@ -193,8 +197,7 @@ function openRoom(r) {
   unsubMsgs = onSnapshot(qy, (s) => {
     msgs = s.docs.map((d) => {
       const x = d.data({ serverTimestamps: "estimate" });
-      return { id: d.id, uid: x.uid, nick: x.nick, text: x.text, img: x.img, at: x.createdAt ? x.createdAt.toDate() : new Date() };
-    }).reverse();
+      return { id: d.id, uid: x.uid, nick: x.nick, text: x.text, img: x.img, at: x.createdAt ? x.createdAt.toDate() : new Date() };    }).reverse();
     renderChat(true);
   }, (e) => toast(errText(e)));
 }
@@ -388,6 +391,7 @@ function renderChat(forceBottom) {
       };
       a.appendChild(r); a.appendChild(b); d.appendChild(a);
     }
+    if (isAdmin() && !room.dm) addAdminDelete(d, m, room);
     row.appendChild(av); row.appendChild(d); l.appendChild(row);
   });
   if (forceBottom) l.scrollTop = l.scrollHeight;
@@ -420,4 +424,4 @@ let tt;
 function toast(m) {
   const t = $("toast"); t.textContent = m; t.hidden = false;
   clearTimeout(tt); tt = setTimeout(() => { t.hidden = true; }, 3200);
-      }
+}
