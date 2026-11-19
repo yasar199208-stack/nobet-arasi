@@ -26,7 +26,7 @@ jobs:
       - name: Bubblewrap kur
         run: npm install -g @bubblewrap/cli
 
-      - name: Bubblewrap ayarı
+      - name: Bubblewrap ayari
         run: |
           if [ ! -e "$ANDROID_HOME/tools" ]; then
             ln -s "$ANDROID_HOME/cmdline-tools/latest" "$ANDROID_HOME/tools"
@@ -34,10 +34,6 @@ jobs:
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
           cat ~/.bubblewrap/config.json
-          echo "--- SDK klasoru ---"
-          ls -la "$ANDROID_HOME"
-          ls -la "$ANDROID_HOME/tools/bin" || true
-          ls -la "$ANDROID_HOME/build-tools" || true
 
       - name: Imza anahtari uret
         working-directory: android
@@ -56,10 +52,19 @@ jobs:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
-          bubblewrap update --skipVersionUpgrade --manifest=./twa-manifest.json
-          bubblewrap build --skipPwaValidation --manifest=./twa-manifest.json
+          set -o pipefail
+          bubblewrap update --skipVersionUpgrade --manifest=./twa-manifest.json 2>&1 | tee ../update.log
+          bubblewrap build --skipPwaValidation --manifest=./twa-manifest.json 2>&1 | tee ../build.log
           keytool -list -v -keystore android.keystore -alias nobetarasi -storepass "$BUBBLEWRAP_KEYSTORE_PASSWORD" | grep -E "SHA1|SHA256" | tee sha.txt
           ls -la
+
+      - name: HATA OZETI
+        if: failure()
+        run: |
+          echo "===== build.log icinde hata satirlari ====="
+          grep -n -i -E "what went wrong|FAILURE:|error:|Caused by|not found|cannot|could not|Execution failed" build.log | head -40 || true
+          echo "===== build.log son 25 satir (stack haric) ====="
+          grep -v -E "^\s+at " build.log | tail -25 || true
 
       - name: Ciktilari yukle
         uses: actions/upload-artifact@v4
