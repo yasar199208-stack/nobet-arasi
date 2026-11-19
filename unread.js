@@ -70,7 +70,7 @@ function audio() {
 }
 document.addEventListener("pointerdown", audio, { once: true });
 
-// Yedek konuşma: telefonun Türkçe sesini bulup kullanır
+// Yedek konuşma: mesaj.mp3 çalmazsa telefonun Türkçe sesi
 let voices = [];
 function loadVoices() {
   try { voices = speechSynthesis.getVoices() || []; } catch (e) {}
@@ -112,12 +112,17 @@ const TONES = {
   melodi: { n: "Melodi", w: "triangle", v: 0.9, d: 0.22, s: [[523, 0], [659, 0.2], [784, 0.4], [1047, 0.6], [784, 0.9], [1047, 1.1]] },
   sesli: { n: "Sesli", w: "square", v: 0.4, d: 0.12, s: [[1175, 0], [1568, 0.13]], say: "Mesaj geldi, baksana" }
 };
-let tone = "zil";
+let tone = "sesli";
 try { const k = localStorage.getItem("tone"); if (k && TONES[k]) tone = k; } catch (e) {}
+let lastDing = 0;
 function ding(force) {
   if (!snd && !force) return;
+  // Aynı anda birçok odadan mesaj gelirse üst üste çalmasın
+  const now = Date.now();
+  if (!force && now - lastDing < 2500) return;
+  lastDing = now;
   try { if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]); } catch (e) {}
-  const T = TONES[tone] || TONES.zil;
+  const T = TONES[tone] || TONES.sesli;
   try {
     audio();
     if (ac) {
@@ -137,25 +142,23 @@ function ding(force) {
   if (T.say) setTimeout(() => say(T.say), 300);
 }
 
-// Açık herkese açık odadaki yeni mesaj sesi
-let curPub = null, unPub = null;
-function watchPublic() {
-  const t = $("rt") ? $("rt").textContent.trim() : "";
-  const r = ROOMS.find((x) => (x.ic ? x.ic + " " : "") + x.n === t);
-  const id = r ? r.id : null;
-  if (id === curPub) return;
-  if (unPub) { unPub(); unPub = null; }
-  curPub = id;
-  if (!id || !uid) return;
-  let ready = false, prev = 0;
-  unPub = onSnapshot(query(collection(db, "rooms", id, "messages"), orderBy("createdAt", "desc"), limit(1)), (s) => {
-    const d = s.docs[0];
-    if (!d) { ready = true; return; }
-    const x = d.data({ serverTimestamps: "estimate" });
-    const at = x.createdAt ? x.createdAt.toMillis() : Date.now();
-    if (ready && !s.metadata.fromCache && !s.metadata.hasPendingWrites && x.uid !== uid && at > prev) ding();
-    prev = at; ready = true;
-  }, () => {});
+// Tüm herkese açık odalardaki yeni mesaj sesi
+let pubSubs = [];
+function watchAll() {
+  pubSubs.forEach((u) => u());
+  pubSubs = [];
+  ROOMS.forEach((r) => {
+    let ready = false, prev = 0;
+    const un = onSnapshot(query(collection(db, "rooms", r.id, "messages"), orderBy("createdAt", "desc"), limit(1)), (s) => {
+      const d = s.docs[0];
+      if (!d) { ready = true; return; }
+      const x = d.data({ serverTimestamps: "estimate" });
+      const at = x.createdAt ? x.createdAt.toMillis() : Date.now();
+      if (ready && !s.metadata.fromCache && !s.metadata.hasPendingWrites && x.uid !== uid && at > prev) ding();
+      prev = at; ready = true;
+    }, () => {});
+    pubSubs.push(un);
+  });
 }
 
 // 🔔 Ses düğmesi: dokununca ses çalar, ikinci dokunuşta açıp kapatır
@@ -208,16 +211,15 @@ function stop() {
   if (unF) unF();
   unF = null;
   Object.keys(subs).forEach((id) => subs[id]());
-  if (unPub) { unPub(); unPub = null; }
-  curPub = null;
+  pubSubs.forEach((u) => u());
+  pubSubs = [];
   subs = {}; rooms = {}; last = {}; seen = {}; uid = null;
   document.title = TITLE;
 }
 
 function start(u, tries) {
   uid = u.uid;
-  if (!tries) load();
-  watchPublic();
+  if (!tries) { load(); watchAll(); }
   unF = onSnapshot(query(collection(db, "friendships"), where("members", "array-contains", uid)), (s) => {
     const next = {};
     s.docs.forEach((d) => {
@@ -243,5 +245,5 @@ function start(u, tries) {
 onAuthStateChanged(auth, (u) => { stop(); if (u) start(u, 0); });
 
 if ($("rooms")) new MutationObserver(decorate).observe($("rooms"), { childList: true });
-if ($("rt")) new MutationObserver(() => { markOpen(); paint(); watchPublic(); }).observe($("rt"), { childList: true, characterData: true, subtree: true });
+if ($("rt")) new MutationObserver(() => { markOpen(); paint(); }).observe($("rt"), { childList: true, characterData: true, subtree: true });
 document.addEventListener("visibilitychange", () => { markOpen(); paint(); });
