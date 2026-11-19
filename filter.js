@@ -2,14 +2,14 @@
 const $ = (i) => document.getElementById(i);
 
 // Tam eşleşen kelimeler (kısa köklerin yanlış alarm vermemesi için)
-const EXACT = ["amk", "aq", "amq", "sik", "sikim", "siktir", "got", "gotun", "gotu", "pic", "picler", "oc", "ibne", "ibneler"];
+const EXACT = ["am", "amk", "aq", "amq", "sik", "sikim", "siktir", "got", "gotun", "gotu", "pic", "picler", "oc", "ibne", "ibneler"];
 // Kelimenin başı eşleşenler
 const PREFIX = ["orospu", "yarrak", "yarak", "pezevenk", "siktir", "sikeyim", "sikerim", "sikik", "amcik", "amina", "aminako", "gotveren", "ibne", "anani", "kahpe", "pust", "gavat", "surtuk"];
 
 function norm(s) {
   let t = s.toLocaleLowerCase("tr");
-  const map = { "ç": "c", "ğ": "g", "ı": "i", "ö": "o", "ş": "s", "ü": "u", "â": "a", "î": "i", "û": "u", "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s", "!": "i" };
-  t = t.replace(/[çğıöşüâîû0134 57@$!]/g, (c) => map[c] || c);
+  const map = { "ç": "c", "ğ": "g", "ı": "i", "ö": "o", "ş": "s", "ü": "u", "â": "a", "î": "i", "û": "u", "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s" };
+  t = t.replace(/[çğıöşüâîû0134 57@$]/g, (c) => map[c] || c);
   t = t.replace(/[^a-z]+/g, " ");
   t = t.replace(/([a-z])\1+/g, "$1");
   return t.trim();
