@@ -1,3 +1,5 @@
+import "./legal.js?v=1";
+
 // Küfür filtresi: uygunsuz ifade içeren mesaj gönderilmeden önce engellenir.
 const $ = (i) => document.getElementById(i);
 
