@@ -1,1 +1,29 @@
-{"name":"Nöbet Arası","short_name":"Nöbet Arası","description":"Güvenlik görevlilerinin kendi sohbet alanı","lang":"tr","start_url":"./","scope":"./","display":"standalone","background_color":"#0f1a2a","theme_color":"#0f1a2a","icons":[{"src":"data:image/png;base64,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","sizes":"192x192 512x512","type":"image/png","purpose":"any"}]}
+{
+ "id": "/nobet-arasi/",
+ "name": "Nöbet Arası",
+ "short_name": "Nöbet Arası",
+ "description": "Özel güvenlik görevlileri için anonim sohbet topluluğu",
+ "lang": "tr",
+ "dir": "ltr",
+ "start_url": "/nobet-arasi/",
+ "scope": "/nobet-arasi/",
+ "display": "standalone",
+ "orientation": "portrait",
+ "background_color": "#0f1a2a",
+ "theme_color": "#0f1a2a",
+ "categories": ["social", "communication"],
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  }
+ ]
+}
