@@ -28,26 +28,29 @@ jobs:
 
       - name: Bubblewrap ayarı
         run: |
+          if [ ! -e "$ANDROID_HOME/tools" ]; then
+            ln -s "$ANDROID_HOME/cmdline-tools/latest" "$ANDROID_HOME/tools"
+          fi
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
           cat ~/.bubblewrap/config.json
-          echo "--- SDK klasörü ---"
+          echo "--- SDK klasoru ---"
           ls -la "$ANDROID_HOME"
+          ls -la "$ANDROID_HOME/tools/bin" || true
           ls -la "$ANDROID_HOME/build-tools" || true
-          ls -la "$ANDROID_HOME/cmdline-tools" || true
 
-      - name: İmza anahtarı üret
+      - name: Imza anahtari uret
         working-directory: android
         env:
           KS_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
-          if [ -z "$KS_PASS" ]; then echo "HATA: KEYSTORE_PASSWORD gizli anahtarı yok"; exit 1; fi
+          if [ -z "$KS_PASS" ]; then echo "HATA: KEYSTORE_PASSWORD gizli anahtari yok"; exit 1; fi
           keytool -genkeypair -v -keystore android.keystore -alias nobetarasi \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass "$KS_PASS" -keypass "$KS_PASS" \
             -dname "CN=Nobet Arasi, O=Nobet Arasi, C=TR"
 
-      - name: Projeyi üret ve derle
+      - name: Projeyi uret ve derle
         working-directory: android
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -58,7 +61,7 @@ jobs:
           keytool -list -v -keystore android.keystore -alias nobetarasi -storepass "$BUBBLEWRAP_KEYSTORE_PASSWORD" | grep -E "SHA1|SHA256" | tee sha.txt
           ls -la
 
-      - name: Çıktıları yükle
+      - name: Ciktilari yukle
         uses: actions/upload-artifact@v4
         with:
           name: nobet-arasi-android
