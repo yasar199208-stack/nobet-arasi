@@ -28,7 +28,7 @@
   "isChromeOSOnly": false,
   "isMetaQuest": false,
   "fullScopeUrl": "https://yasar199208-stack.github.io/nobet-arasi/",
-  "minSdkVersion": 21,
+  "minSdkVersion": 24,
   "features": {},
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli"
