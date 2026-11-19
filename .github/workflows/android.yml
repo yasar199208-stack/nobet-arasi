@@ -18,16 +18,23 @@ jobs:
         with:
           node-version: 20
 
+      - name: Android SDK kur
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools build-tools;35.0.0 platforms;android-35"
+
       - name: Bubblewrap kur
         run: npm install -g @bubblewrap/cli
 
       - name: Bubblewrap ayarı
         run: |
           mkdir -p ~/.bubblewrap
-          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
-          echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$SDK\"}" > ~/.bubblewrap/config.json
+          echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
           cat ~/.bubblewrap/config.json
-          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          echo "--- SDK klasörü ---"
+          ls -la "$ANDROID_HOME"
+          ls -la "$ANDROID_HOME/build-tools" || true
+          ls -la "$ANDROID_HOME/cmdline-tools" || true
 
       - name: İmza anahtarı üret
         working-directory: android
