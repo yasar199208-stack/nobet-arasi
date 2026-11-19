@@ -71,21 +71,41 @@ function audio() {
 document.addEventListener("pointerdown", audio, { once: true });
 let snd = true;
 try { snd = localStorage.getItem("snd") !== "0"; } catch (e) {}
+const TONES = {
+  bip: { n: "Bip", w: "square", v: 0.45, d: 0.16, s: [[880, 0], [1175, 0.16]] },
+  zil: { n: "Zil", w: "square", v: 0.4, d: 0.11, s: [[1319, 0], [1568, 0.13], [1319, 0.26], [1568, 0.39], [1319, 0.52], [1568, 0.65]] },
+  melodi: { n: "Melodi", w: "triangle", v: 0.9, d: 0.22, s: [[523, 0], [659, 0.2], [784, 0.4], [1047, 0.6], [784, 0.9], [1047, 1.1]] },
+  sesli: { n: "Sesli", w: "square", v: 0.4, d: 0.14, s: [[1175, 0], [1568, 0.15]], say: "Mesaj geldi, baksana" }
+};
+let tone = "zil";
+try { const k = localStorage.getItem("tone"); if (k && TONES[k]) tone = k; } catch (e) {}
 function ding(force) {
   if (!snd && !force) return;
-  try { if (navigator.vibrate) navigator.vibrate([120, 60, 120]); } catch (e) {}
+  try { if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]); } catch (e) {}
   try {
     audio();
     if (!ac) return;
-    const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
-    o.type = "sine";
-    o.frequency.setValueAtTime(880, t);
-    o.frequency.setValueAtTime(1175, t + 0.12);
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
-    o.connect(g); g.connect(ac.destination);
-    o.start(t); o.stop(t + 0.4);
+    const T = TONES[tone] || TONES.zil, t0 = ac.currentTime + 0.02;
+    T.s.forEach((nt) => {
+      const o = ac.createOscillator(), g = ac.createGain(), t = t0 + nt[1];
+      o.type = T.w;
+      o.frequency.setValueAtTime(nt[0], t);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(T.v, t + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + T.d);
+      o.connect(g); g.connect(ac.destination);
+      o.start(t); o.stop(t + T.d + 0.05);
+    });
+    if (T.say && "speechSynthesis" in window) {
+      setTimeout(() => {
+        try {
+          const u = new SpeechSynthesisUtterance(T.say);
+          u.lang = "tr-TR"; u.volume = 1; u.rate = 1;
+          speechSynthesis.cancel();
+          speechSynthesis.speak(u);
+        } catch (e) {}
+      }, 450);
+    }
   } catch (e) {}
 }
 
@@ -125,6 +145,18 @@ function sndBtn() {
     if (snd) ding(true);
   };
   out.parentNode.insertBefore(b, out);
+  const tb = document.createElement("button");
+  tb.id = "tone"; tb.type = "button";
+  const tl = () => { tb.textContent = "🎵 " + TONES[tone].n; };
+  tl();
+  tb.onclick = () => {
+    const ks = Object.keys(TONES);
+    tone = ks[(ks.indexOf(tone) + 1) % ks.length];
+    try { localStorage.setItem("tone", tone); } catch (e) {}
+    tl();
+    ding(true);
+  };
+  out.parentNode.insertBefore(tb, out);
 }
 sndBtn();
 
@@ -163,25 +195,3 @@ function start(u, tries) {
     s.docs.forEach((d) => {
       const x = d.data();
       const other = x.members[0] === uid ? x.members[1] : x.members[0];
-      next["dm_" + d.id] = { pairId: d.id, n: "@" + ((x.names && x.names[other]) || "arkadaş") };
-    });
-    Object.keys(subs).forEach((id) => {
-      if (!next[id]) { subs[id](); delete subs[id]; delete last[id]; }
-    });
-    rooms = next;
-    Object.keys(next).forEach((id) => { if (!subs[id]) watch(id, next[id].pairId); });
-    markOpen();
-    paint();
-  }, () => {
-    // Yeni kayıtta profil henüz yokken izin hatası olabilir; kısa süre sonra tekrar dene.
-    unF = null;
-    const n = (tries || 0) + 1;
-    if (n <= 5) setTimeout(() => { if (uid === u.uid && !unF) start(u, n); }, 3000);
-  });
-}
-
-onAuthStateChanged(auth, (u) => { stop(); if (u) start(u, 0); });
-
-if ($("rooms")) new MutationObserver(decorate).observe($("rooms"), { childList: true });
-if ($("rt")) new MutationObserver(() => { markOpen(); paint(); watchPublic(); }).observe($("rt"), { childList: true, characterData: true, subtree: true });
-document.addEventListener("visibilitychange", () => { markOpen(); paint(); });
