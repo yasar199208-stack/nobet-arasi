@@ -125,7 +125,7 @@
     ".mpanel .minfo{padding:4px 6px 10px;border-bottom:1px solid var(--line);margin-bottom:8px}" +
     ".mpanel .minfo b{display:block;font-size:16px}" +
     ".mpanel .minfo span{display:block;color:var(--mute);font-size:13px;margin-top:2px}" +
-    ".mpanel button{display:flex!important;align-items:center;gap:8px;width:100%;margin:0 0 6px!important;text-align:left;justify-content:flex-start;padding:11px 12px;font-size:16px}" +
+    ".mpanel button{display:flex!important;align-items:center;gap:8px;width:100%;margin:0 0 6px!important;text-align:left;justify-content:flex-start;padding:11px 12px;font-size:16px;cursor:pointer;background:rgba(127,150,180,.12)!important;color:var(--text)!important;border:1px solid var(--line)!important;border-radius:10px!important}" +
     ".mpanel button[hidden]{display:none!important}";
   document.head.appendChild(st);
 
