@@ -1,10 +1,11 @@
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, getDocs, deleteDoc, collection, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, getDoc, getDocs, deleteDoc, doc, writeBatch, collection, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { ROOMS } from "./rooms.js?v=2";
 
 // Menü'ye iki düğme ekler:
 // 1) Bu sohbeti bende temizle: mesajlar sadece bu telefonda gizlenir.
 // 2) Tüm mesajlarımı sil: kendi yazdığın mesajlar sunucudan silinir.
+// 3) Sadece yönetici: oda ya da özel mesajların hepsini siler.
 const auth = getAuth(), db = getFirestore();
 const $ = (i) => document.getElementById(i);
 let busy = false;
@@ -121,8 +122,73 @@ async function deleteMine() {
   toast(m, 8000);
 }
 
+/* ---------- 3) Yönetici: toplu silme ---------- */
+let adm = false;
+
+function currentRoom() {
+  const t = $("rt");
+  const n = t ? t.textContent.trim() : "";
+  return ROOMS.find((r) => (r.ic ? r.ic + " " : "") + r.n === n) || null;
+}
+
+async function wipeCol(ref) {
+  const s = await getDocs(ref);
+  for (let i = 0; i < s.docs.length; i += 400) {
+    const b = writeBatch(db);
+    s.docs.slice(i, i + 400).forEach((d) => b.delete(d.ref));
+    await b.commit();
+  }
+  return s.docs.length;
+}
+
+function sure(what) {
+  if (!confirm(what + " kalıcı olarak silinecek. Bu işlem geri alınamaz. Devam edilsin mi?")) return false;
+  const a = prompt("Onaylamak için SİL yaz:");
+  return !!a && a.trim().toLocaleUpperCase("tr") === "SİL";
+}
+
+async function adminRun(label, job) {
+  if (!adm || busy) return;
+  busy = true;
+  toast("Siliniyor, bekle…", 120000);
+  let n = 0, err = false;
+  try { n = await job(); } catch (e) { err = true; }
+  busy = false;
+  toast(err ? "Silme tamamlanamadı (" + n + " mesaj silindi). Tekrar dene." : label + ": " + n + " mesaj silindi.", 8000);
+}
+
+function adminRoom() {
+  const r = currentRoom();
+  if (!r) { toast("Önce bir oda aç."); return; }
+  if (!sure("\"" + r.n + "\" odasındaki tüm mesajlar")) return;
+  adminRun(r.n, () => wipeCol(collection(db, "rooms", r.id, "messages")));
+}
+
+function adminAllRooms() {
+  if (!sure("TÜM odalardaki tüm mesajlar")) return;
+  adminRun("Tüm odalar", async () => {
+    let n = 0;
+    for (let i = 0; i < ROOMS.length; i += 8) {
+      const part = await Promise.all(ROOMS.slice(i, i + 8).map((r) => wipeCol(collection(db, "rooms", r.id, "messages"))));
+      part.forEach((x) => { n += x; });
+    }
+    return n;
+  });
+}
+
+function adminAllDms() {
+  if (!sure("TÜM özel sohbetlerdeki tüm mesajlar")) return;
+  adminRun("Özel mesajlar", async () => {
+    let n = 0;
+    const fr = await getDocs(collection(db, "friendships"));
+    for (const f of fr.docs) n += await wipeCol(collection(db, "dms", f.id, "messages"));
+    return n;
+  });
+}
+
 /* ---------- Menü'ye ekle ---------- */
 let head = null, b1 = null, b2 = null;
+let ah = null, a1 = null, a2 = null, a3 = null;
 
 function build() {
   head = el("div", "", "Temizle");
@@ -134,19 +200,43 @@ function build() {
   b2.type = "button";
   b2.onclick = deleteMine;
   b2.style.setProperty("color", "var(--danger)", "important");
+
+  ah = el("div", "", "Yönetici");
+  ah.style.cssText = head.style.cssText;
+  a1 = el("button", "", "🧨 Bu odadaki tüm mesajları sil");
+  a1.type = "button";
+  a1.onclick = adminRoom;
+  a2 = el("button", "", "🧨 Tüm odalardaki mesajları sil");
+  a2.type = "button";
+  a2.onclick = adminAllRooms;
+  a3 = el("button", "", "🧨 Tüm özel mesajları sil");
+  a3.type = "button";
+  a3.onclick = adminAllDms;
+  [a1, a2, a3].forEach((b) => b.style.setProperty("color", "var(--danger)", "important"));
 }
 
 function attach() {
   const panel = document.querySelector(".mpanel");
   if (!panel) return;
   if (!head) build();
-  const last = panel.lastElementChild;
-  if (last !== b2 || head.parentNode !== panel) {
-    panel.appendChild(head);
-    panel.appendChild(b1);
-    panel.appendChild(b2);
+  const seq = adm ? [head, b1, b2, ah, a1, a2, a3] : [head, b1, b2];
+  if (!adm) [ah, a1, a2, a3].forEach((n) => { if (n.parentNode) n.parentNode.removeChild(n); });
+  if (panel.lastElementChild !== seq[seq.length - 1] || head.parentNode !== panel) {
+    seq.forEach((n) => panel.appendChild(n));
   }
+  if (adm) a1.hidden = !currentRoom();
 }
+
+onAuthStateChanged(auth, async (u) => {
+  adm = false;
+  if (u) {
+    try {
+      const s = await getDoc(doc(db, "config", "admin"));
+      adm = s.exists() && s.data().uid === u.uid;
+    } catch (e) {}
+  }
+  attach();
+});
 
 attach();
 new MutationObserver(attach).observe(document.body, { childList: true, subtree: true });
