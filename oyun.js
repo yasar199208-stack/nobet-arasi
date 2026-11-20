@@ -14,6 +14,7 @@ const PRIMARY = "background:var(--lamp)!important;color:var(--lamp-ink)!importan
 let user = null, pair = null, unsub = null, games = {}, tok = 0;
 let btn = null, panel = null, ui = null, view = { t: "hub" }, cleanup = null;
 let P = null, S = null;
+let allGames = {}, allUnsubs = [], watchAt = 0, firstLoad = {};
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);
@@ -40,6 +41,55 @@ function act(label, fn, css) {
   return b;
 }
 
+function pending() {
+  const out = [];
+  if (!user) return out;
+  Object.keys(allGames).forEach((pid) => {
+    const e = allGames[pid];
+    Object.keys(e.games).forEach((k) => {
+      const g = e.games[k], m = P && P[k];
+      if (!m) return;
+      if (g.status === "invite") { if (g.by !== user.uid) out.push({ pid: pid, other: e.other, name: e.name, kind: k, type: "invite" }); }
+      else if (g.status === "play" && m.needs(g, user.uid)) out.push({ pid: pid, other: e.other, name: e.name, kind: k, type: "turn" });
+    });
+  });
+  return out;
+}
+
+async function startWatch() {
+  if (!user) return;
+  watchAt = Date.now();
+  allUnsubs.forEach((u) => { try { u(); } catch (e) {} });
+  allUnsubs = []; allGames = {}; firstLoad = {};
+  const me = user.uid;
+  let snap;
+  try { snap = await getDocs(query(collection(db, "friendships"), where("members", "array-contains", me))); } catch (e) { return; }
+  if (!user || user.uid !== me) return;
+  snap.forEach((d) => {
+    const x = d.data(), o = (x.members || []).find((m) => m !== me);
+    if (!o) return;
+    const pid = d.id, name = (x.names && x.names[o]) || "Arkadaş";
+    allGames[pid] = { other: o, name: name, games: {} };
+    firstLoad[pid] = true;
+    allUnsubs.push(onSnapshot(collection(db, "dms", pid, "games"), (s) => {
+      const prev = allGames[pid] ? allGames[pid].games : {}, next = {};
+      s.forEach((g) => { next[g.id] = g.data(); });
+      allGames[pid] = { other: o, name: name, games: next };
+      if (!firstLoad[pid] && !(pair && pair.id === pid)) {
+        Object.keys(next).forEach((k) => {
+          const g = next[k], was = prev[k], m = P && P[k];
+          if (!m) return;
+          const isNew = g.status === "invite" ? g.by !== me && !(was && was.status === "invite") : g.status === "play" && m.needs(g, me) && !(was && was.status === "play" && m.needs(was, me));
+          if (isNew) toast(g.status === "invite" ? "🎮 " + name + " sana " + m.label + " daveti gönderdi." : "🎮 " + name + " · " + m.label + ": sıra sende.");
+        });
+      }
+      firstLoad[pid] = false;
+      render();
+    }, () => {}));
+  });
+  render();
+}
+
 function needs(kind) {
   const g = games[kind];
   if (!g || !user) return false;
@@ -47,12 +97,13 @@ function needs(kind) {
   return !!(P && P[kind] && P[kind].needs(g, user.uid));
 }
 
-function anyNeeds() { return KINDS.some(needs); }
+function anyNeeds() { return KINDS.some(needs) || pending().length > 0; }
 
 function refreshBtn() {
   if (!btn) return;
   btn.hidden = !user;
-  btn.textContent = anyNeeds() ? "🎮 🔴" : "🎮";
+  const n = pending().length;
+  btn.textContent = anyNeeds() ? "🎮 🔴" + (n > 1 ? n : "") : "🎮";
 }
 
 function stop() { if (cleanup) { try { cleanup(); } catch (e) {} cleanup = null; } }
@@ -142,6 +193,17 @@ function showHub() {
     });
     ui.body.appendChild(gr);
   });
+  const pend = pending();
+  if (pend.length) {
+    section("📩 Bekleyen oyun istekleri");
+    pend.forEach((p) => {
+      const m = P[p.kind];
+      listBtn(m.icon + " " + m.label + " · " + p.name, p.type === "invite" ? "davet var" : "sıra sende", () => {
+        if (!pair || pair.id !== p.pid) enter({ id: p.pid, other: p.other, name: p.name });
+        showPair(p.kind);
+      }, true);
+    });
+  }
   section(pair ? "Arkadaşınla: " + pair.name : "Arkadaşınla");
   if (!pair) {
     const p = el("p", "", "Arkadaşınla oynamak için Mesajlar sekmesinden bir özel sohbet (💌) aç, sonra 🎮'ye bas.");
@@ -245,6 +307,7 @@ function build() {
 function closePanel() { stop(); if (panel) panel.hidden = true; }
 
 function openPanel() {
+  if (Date.now() - watchAt > 60000) startWatch();
   if (!panel) build();
   panel.hidden = false;
   showHub();
@@ -268,7 +331,7 @@ function leave() {
 
 function enter(p) {
   if (unsub) { unsub(); unsub = null; }
-  pair = p; games = {};
+  pair = p; games = Object.assign({}, (allGames[p.id] || {}).games);
   unsub = onSnapshot(collection(db, "dms", p.id, "games"), (s) => {
     const prev = games, next = {};
     s.forEach((d) => { next[d.id] = d.data(); });
@@ -324,7 +387,7 @@ function init() {
   new MutationObserver(pick).observe(rt, { childList: true, characterData: true, subtree: true });
   onAuthStateChanged(auth, (u) => {
     user = u;
-    if (u) { refreshBtn(); pick(); } else { leave(); closePanel(); refreshBtn(); }
+    if (u) { refreshBtn(); pick(); startWatch(); } else { allUnsubs.forEach((f) => { try { f(); } catch (e) {} }); allUnsubs = []; allGames = {}; leave(); closePanel(); refreshBtn(); }
   });
 }
 
