@@ -34,6 +34,7 @@
   rooms.parentNode.insertBefore(empty, rooms.nextSibling);
 
   var tab = "rooms";
+  var collapsed = false;
 
   function isDmChip(el) {
     var b = el.querySelector("b");
@@ -62,8 +63,9 @@
       }
       el.style.display = ((tab === "dm") === dm) ? "" : "none";
     }
-    bRooms.textContent = "🏠 Odalar";
-    bDm.textContent = "💬 Mesajlar" + (count ? " (" + count + ")" : "");
+    var mark = function (on) { return on ? (collapsed ? " ▸" : " ▾") : ""; };
+    bRooms.textContent = "🏠 Odalar" + mark(tab === "rooms");
+    bDm.textContent = "💬 Mesajlar" + (count ? " (" + count + ")" : "") + mark(tab === "dm");
     if (unread) {
       var bd = document.createElement("span");
       bd.className = "mbadge";
@@ -74,11 +76,13 @@
     bRooms.setAttribute("aria-pressed", tab === "rooms");
     bDm.setAttribute("aria-pressed", tab === "dm");
     rooms.hidden = false;
-    empty.hidden = !(tab === "dm" && count === 0);
+    rooms.style.display = collapsed ? "none" : "";
+    empty.hidden = collapsed || !(tab === "dm" && count === 0);
   }
 
-  bRooms.onclick = function () { tab = "rooms"; apply(); };
-  bDm.onclick = function () { tab = "dm"; apply(); };
+  // Açık sekmeye tekrar basınca liste kapanır/açılır; diğer sekmeye basınca o sekme açılır
+  bRooms.onclick = function () { if (tab === "rooms") collapsed = !collapsed; else { tab = "rooms"; collapsed = false; } apply(); };
+  bDm.onclick = function () { if (tab === "dm") collapsed = !collapsed; else { tab = "dm"; collapsed = false; } apply(); };
 
   new MutationObserver(apply).observe(rooms, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["class"] });
 
