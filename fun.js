@@ -2,13 +2,72 @@ import { setAvatarData } from "./avatar.js?v=2";
 
 const $ = (i) => document.getElementById(i);
 
+// Kategoriler: [sekme simgesi, sekme adı, emojiler]
 const GROUPS = [
-  ["😀", "😀 😃 😄 😁 😆 😅 😂 🤣 🙂 😉 😊 😇 🥰 😍 😘 😋 😎 🤩 🥳 😏 😴 🤔 🫡 😬 🙄 😢 😭 😤 😡 🤯 😱 🤗"],
-  ["👍", "👍 👎 👏 🙌 🙏 💪 🤝 ✌️ 🤞 👌 👋 🫶 ❤️ 🧡 💛 💚 💙 💜 🖤 💯 ✅ ❌ ⚠️ ❓ ❗ 🔥 ⭐ ✨ 🎉 🎊 🏆"],
-  ["🛡️", "🛡️ 👮 🚓 🚨 🔦 🔑 🔒 📞 📱 🎧 📻 🕶️ 🧤 🥾 🏢 🚪 🅿️ 🚧 🧯 📹 🪪 ⏰ 🌙 ☀️"],
-  ["🐺", "🐺 🦅 🦁 🐻 🐯 🦊 🐼 🦉 🐶 🐱 🐴 🦄 🐢 🐍 🦈 🐬 🦋 🐝 🌲 🌊 🏔️ 🌧️ ⛈️ ❄️"],
-  ["☕", "☕ 🍵 🥤 🍔 🍕 🌭 🥪 🍳 🥙 🍞 🧀 🍎 🍌 🍇 🍪 🍫 🍰 🍉 🍊 🥛 🍿 🥜 🍬 🍦"],
-  ["⚽", "⚽ 🏀 🏈 🎮 🎲 🎵 🎸 🚗 ✈️ 🚌 🏠 📍 🗺️ 🕐 💼 💰 📚 💡 🔧 🧰 📅 ✉️ 🎁 🎂"]
+  ["🛡️", "Nöbet", "🛡️ 👮 🚓 🚨 🔦 🔑 🔒 📞 📱 🎧 📻 🕶️ 🧤 🥾 🏢 🚪 🅿️ 🚧 🧯 📹 🪪 ⏰ 🌙 ☀️ 🧿 🫡 ☕ 🍵 😴 🥶 🥵 🌧️ ❄️ 🇹🇷"],
+  ["😀", "Yüzler", "☠️ ☹️ ☺️ 👹 👺 👻 👽 👾 👿 💀 💩 😀 😁 😂 😃 😄 😅 😆 😇 😈 😉 😊 😋 😌 😍 😎 😏 😐 😑 😒 😓 😔 😕 😖 😗 😘 😙 😚 😛 😜 😝 😞 😟 😠 😡 😢 😣 😤 😥 😦 😧 😨 😩 😪 😫 😬 😭 😮 😯 😰 😱 😲 😳 😴 😵 😶 😷 😸 😹 😺 😻 😼 😽 😾 😿 🙀 🙁 🙂 🙃 🙄 🙈 🙉 🙊 🤐 🤑 🤒 🤓 🤔 🤕 🤖 🤗 🤠 🤡 🤢 🤣 🤤 🤥 🤧 🤨 🤩 🤪 🤫 🤬 🤭 🤮 🤯 🥰 🥱 🥲 🥳 🥴 🥵 🥶 🥺 🧐"],
+  ["👋", "İnsanlar", "☝️ ⛹️ ✊ ✋ ✌️ ✍️ 🎅 🏃 🏄 🏇 🏊 🏋️ 🏌️ 👀 👁️ 👂 👃 👄 👅 👆 👇 👈 👉 👊 👋 👌 👍 👎 👏 👐 👤 👥 👦 👧 👨 👩 👪 👫 👬 👭 👮 👯 👰 👱 👲 👳 👴 👵 👶 👷 👸 👼 💁 💂 💃 💄 💅 💆 💇 💏 💑 💪 🕴️ 🕵️ 🕺 🖐️ 🖕 🖖 🗣️ 🙅 🙆 🙇 🙋 🙌 🙍 🙎 🙏 🚴 🚵 🚶 🛀 🛌 🤌 🤏 🤘 🤙 🤚 🤛 🤜 🤝 🤞 🤟 🤦 🤰 🤱 🤲 🤳 🤴 🤵 🤶 🤷 🤸 🤹 🤺 🤼 🤽 🤾 🥷 🦰 🦱 🦲 🦳 🦴 🦵 🦶 🦷 🦸 🦹 🦻 🦼 🦽 🦾 🦿 🧍 🧎 🧏 🧑 🧒 🧓 🧔 🧕 🧖 🧗 🧘 🧙 🧚 🧛 🧜 🧝 🧞 🧟 🧠 🫀 🫁 🫂 ⛹️‍♀️ 🏃‍♀️ 🏄‍♀️ 🏊‍♀️ 🏋️‍♀️ 🏌️‍♀️ 👮‍♀️ 👯‍♀️ 👰‍♀️ 👱‍♀️ 👳‍♀️ 👷‍♀️ 💁‍♀️ 💂‍♀️ 💆‍♀️ 💇‍♀️ 🕵️‍♀️ 🙅‍♀️ 🙆‍♀️ 🙇‍♀️ 🙋‍♀️ 🙍‍♀️ 🙎‍♀️ 🚴‍♀️ 🚵‍♀️ 🚶‍♀️ 🤦‍♀️ 🤵‍♀️ 🤷‍♀️ 🤸‍♀️ 🤹‍♀️ 🤼‍♀️ 🤽‍♀️ 🤾‍♀️ 🦸‍♀️ 🦹‍♀️ 🧍‍♀️ 🧎‍♀️ 🧏‍♀️ 🧖‍♀️ 🧗‍♀️ 🧘‍♀️ 🧙‍♀️ 🧚‍♀️ 🧛‍♀️ 🧜‍♀️ 🧝‍♀️ 🧞‍♀️ 🧟‍♀️ ⛹️‍♂️ 🏃‍♂️ 🏄‍♂️ 🏊‍♂️ 🏋️‍♂️ 🏌️‍♂️ 👮‍♂️ 👯‍♂️ 👰‍♂️ 👱‍♂️ 👳‍♂️ 👷‍♂️ 💁‍♂️ 💂‍♂️ 💆‍♂️ 💇‍♂️ 🕵️‍♂️ 🙅‍♂️ 🙆‍♂️ 🙇‍♂️ 🙋‍♂️ 🙍‍♂️ 🙎‍♂️ 🚴‍♂️ 🚵‍♂️ 🚶‍♂️ 🤦‍♂️ 🤵‍♂️ 🤷‍♂️ 🤸‍♂️ 🤹‍♂️ 🤼‍♂️ 🤽‍♂️ 🤾‍♂️ 🦸‍♂️ 🦹‍♂️ 🧍‍♂️ 🧎‍♂️ 🧏‍♂️ 🧖‍♂️ 🧗‍♂️ 🧘‍♂️ 🧙‍♂️ 🧚‍♂️ 🧛‍♂️ 🧜‍♂️ 🧝‍♂️ 🧞‍♂️ 🧟‍♂️ 👨‍⚕️ 👩‍⚕️ 🧑‍⚕️ 👨‍⚖️ 👩‍⚖️ 🧑‍⚖️ 👨‍✈️ 👩‍✈️ 🧑‍✈️ 👨‍🌾 👩‍🌾 🧑‍🌾 👨‍🍳 👩‍🍳 🧑‍🍳 👨‍🍼 👩‍🍼 🧑‍🍼 🧑‍🎄 👨‍🎓 👩‍🎓 🧑‍🎓 👨‍🎤 👩‍🎤 🧑‍🎤 👨‍🎨 👩‍🎨 🧑‍🎨 👨‍🏫 👩‍🏫 🧑‍🏫 👨‍🏭 👩‍🏭 🧑‍🏭 👁️‍🗨️ 👨‍👦‍👦 👨‍👨‍👦‍👦 👩‍👦‍👦 👨‍👩‍👦‍👦 👩‍👩‍👦‍👦 👨‍👧‍👦 👨‍👨‍👧‍👦 👩‍👧‍👦 👨‍👩‍👧‍👦 👩‍👩‍👧‍👦 👨‍👦 👨‍👨‍👦 👩‍👦 👨‍👩‍👦 👩‍👩‍👦 👨‍👧‍👧 👨‍👨‍👧‍👧 👩‍👧‍👧 👨‍👩‍👧‍👧 👩‍👩‍👧‍👧 👨‍👧 👨‍👨‍👧 👩‍👧 👨‍👩‍👧 👩‍👩‍👧 👨‍❤️‍👨 👩‍❤️‍👨 👨‍❤️‍💋‍👨 👩‍❤️‍💋‍👨 👨‍💻 👨‍💼 👨‍🔧 👨‍🔬 👨‍🚀 👨‍🚒 👨‍🦯 👨‍🦰 👨‍🦱 👨‍🦲 👨‍🦳 👨‍🦼 👨‍🦽 👩‍❤️‍👩 👩‍❤️‍💋‍👩 👩‍💻 👩‍💼 👩‍🔧 👩‍🔬 👩‍🚀 👩‍🚒 👩‍🦯 👩‍🦰 👩‍🦱 👩‍🦲 👩‍🦳 👩‍🦼 👩‍🦽 🧑‍💻 🧑‍💼 🧑‍🔧 🧑‍🔬 🧑‍🚀 🧑‍🚒 🧑‍🦯 🧑‍🦰 🧑‍🦱 🧑‍🦲 🧑‍🦳 🧑‍🦼 🧑‍🦽 🧑‍🤝‍🧑"],
+  ["🐶", "Hayvanlar ve doğa", "☀️ ☁️ ☂️ ☃️ ☄️ ☔ ☘️ ⚡ ⛄ ⛅ ⛈️ ❄️ ⭐ 🌀 🌂 🌊 🌌 🌑 🌒 🌓 🌔 🌕 🌖 🌗 🌘 🌙 🌚 🌛 🌜 🌝 🌞 🌟 🌠 🌡️ 🌤️ 🌥️ 🌦️ 🌧️ 🌨️ 🌩️ 🌪️ 🌫️ 🌬️ 🌱 🌲 🌳 🌴 🌵 🌷 🌸 🌹 🌺 🌻 🌼 🌾 🌿 🍀 🍁 🍂 🍃 🍄 🏵️ 🐀 🐁 🐂 🐃 🐄 🐅 🐆 🐇 🐈 🐉 🐊 🐋 🐌 🐍 🐎 🐏 🐐 🐑 🐒 🐓 🐔 🐕 🐖 🐗 🐘 🐙 🐚 🐛 🐜 🐝 🐞 🐟 🐠 🐡 🐢 🐣 🐤 🐥 🐦 🐧 🐨 🐩 🐪 🐫 🐬 🐭 🐮 🐯 🐰 🐱 🐲 🐳 🐴 🐵 🐶 🐷 🐸 🐹 🐺 🐻 🐼 🐽 🐾 🐿️ 💐 💮 🔥 🕊️ 🕷️ 🕸️ 🥀 🦀 🦁 🦂 🦃 🦄 🦅 🦆 🦇 🦈 🦉 🦊 🦋 🦌 🦍 🦎 🦏 🦐 🦑 🦒 🦓 🦔 🦕 🦖 🦗 🦘 🦙 🦚 🦛 🦜 🦝 🦞 🦟 🦠 🦡 🦢 🦣 🦤 🦥 🦦 🦧 🦨 🦩 🦪 🦫 🦬 🦭 🪐 🪰 🪱 🪲 🪳 🪴 🪵 🪶 🐈‍⬛ 🐕‍🦺"],
+  ["🍔", "Yiyecek ve içecek", "☕ 🌭 🌮 🌯 🌰 🌶️ 🌽 🍅 🍆 🍇 🍈 🍉 🍊 🍋 🍌 🍍 🍎 🍏 🍐 🍑 🍒 🍓 🍔 🍕 🍖 🍗 🍘 🍙 🍚 🍛 🍜 🍝 🍞 🍟 🍠 🍡 🍢 🍣 🍤 🍥 🍦 🍧 🍨 🍩 🍪 🍫 🍬 🍭 🍮 🍯 🍰 🍱 🍲 🍳 🍴 🍵 🍶 🍷 🍸 🍹 🍺 🍻 🍼 🍽️ 🍾 🍿 🏺 🔪 🥂 🥃 🥄 🥐 🥑 🥒 🥓 🥔 🥕 🥖 🥗 🥘 🥙 🥚 🥛 🥜 🥝 🥞 🥟 🥠 🥡 🥢 🥣 🥤 🥥 🥦 🥧 🥨 🥩 🥪 🥫 🥬 🥭 🥮 🥯 🧀 🧁 🧂 🧃 🧄 🧅 🧆 🧇 🧈 🧉 🧊 🧋 🫐 🫑 🫒 🫓 🫔 🫕 🫖"],
+  ["⚽", "Etkinlik ve oyun", "♟️ ♠️ ♣️ ♥️ ♦️ ⚽ ⚾ ⛳ ⛷️ ⛸️ 🀄 🃏 🎀 🎁 🎂 🎃 🎄 🎆 🎇 🎈 🎉 🎊 🎋 🎍 🎎 🎏 🎐 🎑 🎒 🎓 🎖️ 🎗️ 🎞️ 🎟️ 🎠 🎡 🎢 🎣 🎨 🎩 🎪 🎫 🎬 🎭 🎮 🎯 🎰 🎱 🎲 🎳 🎴 🎽 🎾 🎿 🏀 🏂 🏅 🏆 🏈 🏉 🏏 🏐 🏑 🏒 🏓 🏸 🏹 🔮 🤿 🥅 🥇 🥈 🥉 🥊 🥋 🥌 🥍 🥎 🥏 🧩 🧸 🪀 🪁 🪂 🪃 🪄 🪅 🪆"],
+  ["🚗", "Yerler ve ulaşım", "⚓ ⛩️ ⛪ ⛰️ ⛱️ ⛲ ⛴️ ⛵ ⛺ ⛽ ✈️ 🌁 🌃 🌄 🌅 🌆 🌇 🌈 🌉 🌋 🌍 🌎 🌏 🌐 🏍️ 🏎️ 🏔️ 🏕️ 🏖️ 🏗️ 🏘️ 🏙️ 🏚️ 🏛️ 🏜️ 🏝️ 🏞️ 🏟️ 🏠 🏡 🏢 🏣 🏤 🏥 🏦 🏧 🏨 🏩 🏪 🏫 🏬 🏭 🏮 🏯 🏰 💒 🕋 🕌 🕍 🗺️ 🗻 🗼 🗽 🗾 🗿 🚀 🚁 🚂 🚃 🚄 🚅 🚆 🚇 🚈 🚉 🚊 🚋 🚌 🚍 🚎 🚏 🚐 🚑 🚒 🚓 🚔 🚕 🚖 🚗 🚘 🚙 🚚 🚛 🚜 🚝 🚞 🚟 🚠 🚡 🚢 🚣 🚤 🚥 🚦 🚧 🚨 🚲 🚳 🛕 🛖 🛗 🛢️ 🛣️ 🛤️ 🛥️ 🛩️ 🛫 🛬 🛰️ 🛳️ 🛴 🛵 🛶 🛷 🛸 🛹 🛺 🛻 🛼 🚣‍♀️ 🚣‍♂️"],
+  ["💡", "Nesneler", "⌚ ⌛ ⌨️ ⏰ ⏱️ ⏲️ ⏳ ☎️ ⚒️ ⚔️ ⚙️ ⛏️ ⛑️ ⛓️ ✂️ ✉️ ✏️ ✒️ 🎙️ 🎚️ 🎛️ 🎤 🎥 🎦 🎧 🎵 🎶 🎷 🎸 🎹 🎺 🎻 🎼 🏷️ 👑 👒 👓 👔 👕 👖 👗 👘 👙 👚 👛 👜 👝 👞 👟 👠 👡 👢 👣 💈 💉 💊 💍 💎 💡 💣 💰 💱 💲 💳 💴 💵 💶 💷 💸 💺 💻 💼 💽 💾 💿 📀 📁 📂 📃 📄 📅 📆 📇 📈 📉 📊 📋 📌 📍 📎 📏 📐 📑 📒 📓 📔 📕 📖 📗 📘 📙 📚 📛 📜 📝 📞 📟 📠 📡 📢 📣 📤 📥 📦 📧 📨 📩 📪 📫 📬 📭 📮 📯 📰 📱 📲 📷 📸 📹 📺 📻 📼 📽️ 📿 🔋 🔌 🔍 🔎 🔏 🔐 🔑 🔒 🔓 🔔 🔕 🔖 🔗 🔦 🔧 🔨 🔩 🔫 🔬 🔭 🔯 🕐 🕑 🕒 🕓 🕔 🕕 🕖 🕗 🕘 🕙 🕚 🕛 🕜 🕝 🕞 🕟 🕠 🕡 🕢 🕣 🕤 🕥 🕦 🕧 🕯️ 🕰️ 🕳️ 🕶️ 🕹️ 🖇️ 🖊️ 🖋️ 🖌️ 🖍️ 🖥️ 🖨️ 🖱️ 🖲️ 🖼️ 🗂️ 🗃️ 🗄️ 🗑️ 🗒️ 🗓️ 🗜️ 🗝️ 🗞️ 🗡️ 🗳️ 🚪 🚽 🚿 🛁 🛋️ 🛍️ 🛎️ 🛏️ 🛒 🛠️ 🛡️ 🥁 🥻 🥼 🥽 🥾 🥿 🦯 🦺 🧢 🧣 🧤 🧥 🧦 🧧 🧨 🧪 🧫 🧬 🧭 🧮 🧯 🧰 🧱 🧲 🧳 🧴 🧵 🧶 🧷 🧹 🧺 🧻 🧼 🧽 🧾 🧿 🩰 🩱 🩲 🩳 🩴 🩸 🩹 🩺 🪑 🪒 🪓 🪔 🪕 🪖 🪗 🪘 🪙 🪚 🪛 🪜 🪝 🪞 🪟 🪠 🪡 🪢 🪣 🪤 🪥 🪦 🪧 🪨"],
+  ["❤️", "Semboller", "‼️ ⁉️ ™️ ℹ️ ↔️ ↕️ ↖️ ↗️ ↘️ ↙️ ↩️ ↪️ ⏏️ ⏩ ⏪ ⏫ ⏬ ⏭️ ⏮️ ⏯️ ⏸️ ⏹️ ⏺️ Ⓜ️ ▪️ ▫️ ▶️ ◀️ ◻️ ◼️ ◽ ◾ ☑️ ☢️ ☣️ ☦️ ☪️ ☮️ ☯️ ☸️ ♀️ ♂️ ♈ ♉ ♊ ♋ ♌ ♍ ♎ ♏ ♐ ♑ ♒ ♓ ♨️ ♻️ ♾️ ♿ ⚕️ ⚖️ ⚗️ ⚛️ ⚜️ ⚠️ ⚧️ ⚪ ⚫ ⚰️ ⚱️ ⛎ ⛔ ✅ ✔️ ✖️ ✝️ ✡️ ✨ ✳️ ✴️ ❇️ ❌ ❎ ❓ ❔ ❕ ❗ ❣️ ❤️ ➕ ➖ ➗ ➡️ ➰ ➿ ⤴️ ⤵️ ⬅️ ⬆️ ⬇️ ⬛ ⬜ ⭕ 〰️ 〽️ ㊗️ ㊙️ 🅰️ 🅱️ 🅾️ 🅿️ 🆎 🆑 🆒 🆓 🆔 🆕 🆖 🆗 🆘 🆙 🆚 🈁 🈂️ 🈚 🈯 🈲 🈳 🈴 🈵 🈶 🈷️ 🈸 🈹 🈺 🉐 🉑 💋 💌 💓 💔 💕 💖 💗 💘 💙 💚 💛 💜 💝 💞 💟 💠 💢 💤 💥 💦 💧 💨 💫 💬 💭 💯 💹 📳 📴 📵 📶 🔀 🔁 🔂 🔃 🔄 🔅 🔆 🔇 🔈 🔉 🔊 🔘 🔙 🔚 🔛 🔜 🔝 🔞 🔟 🔠 🔡 🔢 🔣 🔤 🔰 🔱 🔲 🔳 🔴 🔵 🔶 🔷 🔸 🔹 🔺 🔻 🔼 🔽 🕉️ 🕎 🖤 🗨️ 🗯️ 🚫 🚬 🚭 🚮 🚯 🚰 🚱 🚷 🚸 🚹 🚺 🚻 🚼 🚾 🛂 🛃 🛄 🛅 🛐 🛑 🟠 🟡 🟢 🟣 🟤 🟥 🟦 🟧 🟨 🟩 🟪 🟫 🤍 🤎 🦮 🧡"],
+  ["🏁", "Bayraklar", "🇹🇷 🎌 🏁 🏳️ 🏴 🚩 🏴‍☠️ 🏳️‍⚧️ 🇦🇨 🇨🇦 🇦🇩 🇦🇪 🇪🇦 🇦🇫 🇦🇬 🇬🇦 🇦🇮 🇦🇱 🇱🇦 🇦🇲 🇲🇦 🇦🇴 🇦🇶 🇶🇦 🇦🇷 🇦🇸 🇸🇦 🇦🇹 🇹🇦 🇦🇺 🇺🇦 🇦🇼 🇦🇽 🇦🇿 🇿🇦 🇧🇦 🇧🇧 🇧🇩 🇧🇪 🇧🇫 🇧🇬 🇬🇧 🇧🇭 🇧🇮 🇧🇯 🇧🇱 🇱🇧 🇧🇲 🇧🇳 🇧🇴 🇧🇶 🇧🇷 🇧🇸 🇸🇧 🇧🇹 🇧🇻 🇧🇼 🇧🇾 🇧🇿 🇨🇨 🇨🇩 🇨🇫 🇨🇬 🇨🇭 🇨🇮 🇮🇨 🇨🇰 🇨🇱 🇱🇨 🇨🇲 🇲🇨 🇨🇳 🇳🇨 🇨🇴 🇨🇵 🇨🇶 🇨🇷 🇨🇺 🇨🇻 🇻🇨 🇨🇼 🇨🇽 🇨🇾 🇨🇿 🇩🇪 🇩🇬 🇬🇩 🇩🇯 🇩🇰 🇩🇲 🇲🇩 🇩🇴 🇩🇿 🇪🇨 🇪🇪 🇪🇬 🇬🇪 🇪🇭 🇪🇷 🇷🇪 🇪🇸 🇸🇪 🇪🇹 🇪🇺 🇫🇮 🇫🇯 🇫🇰 🇫🇲 🇲🇫 🇫🇴 🇫🇷 🇬🇫 🇬🇬 🇬🇭 🇬🇮 🇬🇱 🇬🇲 🇲🇬 🇬🇳 🇳🇬 🇬🇵 🇵🇬 🇬🇶 🇬🇷 🇬🇸 🇸🇬 🇬🇹 🇹🇬 🇬🇺 🇺🇬 🇬🇼 🇬🇾 🇭🇰 🇰🇭 🇭🇲 🇲🇭 🇭🇳 🇭🇷 🇭🇹 🇹🇭 🇭🇺 🇮🇩 🇮🇪 🇮🇱 🇱🇮 🇮🇲 🇮🇳 🇳🇮 🇮🇴 🇮🇶 🇮🇷 🇮🇸 🇸🇮 🇮🇹 🇯🇪 🇯🇲 🇯🇴 🇯🇵 🇰🇪 🇰🇬 🇰🇮 🇰🇲 🇲🇰 🇰🇳 🇰🇵 🇵🇰 🇰🇷 🇰🇼 🇰🇾 🇰🇿 🇱🇰 🇱🇷 🇱🇸 🇸🇱 🇱🇹 🇹🇱 🇱🇺 🇱🇻 🇱🇾 🇲🇪 🇲🇱 🇲🇲 🇲🇳 🇲🇴 🇴🇲 🇲🇵 🇵🇲 🇲🇶 🇲🇷 🇲🇸 🇸🇲 🇲🇹 🇹🇲 🇲🇺 🇺🇲 🇲🇻 🇲🇼 🇲🇽 🇲🇾 🇲🇿 🇿🇲 🇳🇦 🇳🇪 🇳🇫 🇳🇱 🇳🇴 🇳🇵 🇵🇳 🇳🇷 🇳🇺 🇺🇳 🇳🇿 🇵🇦 🇵🇪 🇵🇫 🇵🇭 🇵🇱 🇵🇷 🇵🇸 🇵🇹 🇵🇼 🇵🇾 🇷🇴 🇷🇸 🇸🇷 🇷🇺 🇷🇼 🇸🇨 🇸🇩 🇸🇭 🇸🇯 🇸🇰 🇸🇳 🇸🇴 🇸🇸 🇸🇹 🇸🇻 🇸🇽 🇸🇾 🇸🇿 🇹🇨 🇹🇩 🇹🇫 🇹🇯 🇹🇰 🇹🇳 🇹🇴 🇹🇹 🇹🇻 🇹🇼 🇹🇿 🇺🇸 🇺🇾 🇺🇿 🇻🇦 🇻🇪 🇻🇬 🇻🇮 🇻🇳 🇻🇺 🇼🇫 🇼🇸 🇽🇰 🇾🇪 🇾🇹 🇿🇼 🏳️‍🌈"]
+];
+
+// Türkçe arama: anahtar kelimeler -> emojiler
+const SEARCH = [
+  ["nöbet güvenlik bekçi", "🛡️ 👮 🚓 🚨 🔦 🔑 🔒 📻 🧿"],
+  ["gece", "🌙 🌃 🌌 ⭐ 😴 🦉 🌠"],
+  ["gündüz güneş", "☀️ 🌞 🌤️ 😎"],
+  ["uyku uykusuz yorgun", "😴 🥱 💤 🛌 😪 😩 😫"],
+  ["kahve", "☕ 🫖"],
+  ["çay", "🍵 ☕ 🫖"],
+  ["yemek", "🍔 🍕 🍳 🥪 🍜 🍲 🥗 🍛"],
+  ["su", "💧 🚰 🥤 🌊"],
+  ["soğuk", "🥶 ❄️ ⛄ 🧊 🧤 🧣"],
+  ["sıcak", "🥵 ☀️ 🔥"],
+  ["yağmur", "🌧️ ☔ ⛈️"],
+  ["kar", "❄️ ⛄ 🌨️"],
+  ["gülmek komik kahkaha", "😂 🤣 😆 😹"],
+  ["ağla üzgün", "😢 😭 🥺 😞"],
+  ["kızgın sinir", "😡 😤 🤬 😠"],
+  ["kalp aşk sevgi", "❤️ 💕 😍 🥰 💘 💖"],
+  ["tamam evet onay", "👍 ✅ 👌 🆗 ✔️"],
+  ["hayır", "👎 ❌ 🚫"],
+  ["teşekkür sağ ol", "🙏 🤝 ❤️"],
+  ["selam merhaba", "👋 🙋 🤝"],
+  ["alkış bravo", "👏 🙌 🎉"],
+  ["kutlama parti", "🎉 🎊 🥳 🎈 🎂"],
+  ["para maaş", "💰 💵 💸 💳 🤑"],
+  ["iş çalışma mesai", "💼 ⏰ 🏢 🛠️ 💪"],
+  ["telefon ara", "📞 📱 ☎️"],
+  ["saat zaman", "⏰ ⌚ 🕐 ⏳"],
+  ["araba yol", "🚗 🚕 🚓 🛣️"],
+  ["ev", "🏠 🏡 🛏️ 🛋️"],
+  ["futbol maç top", "⚽ 🥅 🏆 🥇"],
+  ["müzik", "🎵 🎶 🎧 🎸 🎤"],
+  ["oyun", "🎮 🎲 🧩 🎯"],
+  ["dikkat uyarı", "⚠️ 🚨 ❗ 🔔"],
+  ["yardım", "🆘 🤝 🙏 🚑"],
+  ["ateş yangın", "🔥 🧯 🚒"],
+  ["bayrak türk türkiye", "🇹🇷 🚩 🎌"],
+  ["hayvan kedi", "🐱 😺 🐈"],
+  ["köpek", "🐶 🐕 🐩"],
+  ["göz", "👀 👁️ 🕶️"],
+  ["güç kuvvet", "💪 🦾 🏋️"],
+  ["korku", "😱 😨 👻 😰"],
+  ["şaşırma", "😲 😮 🤯 😳"],
+  ["düşünme", "🤔 🧐 💭"],
+  ["sessiz", "🤫 🤐 🔇"],
+  ["yıldız", "⭐ 🌟 ✨ 💫"],
+  ["kamera video", "📹 📷 🎥"],
+  ["kitap", "📚 📖 📕"],
+  ["ilaç sağlık", "💊 🩺 🏥 🤒 😷"],
+  ["hasta", "🤒 🤕 🤧 😷"],
+  ["dua", "🙏"],
+  ["mutlu", "😊 😀 😄 🥳"]
 ];
 
 const AVATARS = [
@@ -25,8 +84,8 @@ let toast = null, picker = null;
 // Sadece emojiden oluşan kısa mesajlar büyük gösterilir
 export function isBigEmoji(t) {
   return !!t && t.length <= 24
-    && /^(?:\p{Extended_Pictographic}|\p{Emoji_Modifier}|\u200d|\ufe0f|\s)+$/u.test(t)
-    && /\p{Extended_Pictographic}/u.test(t);
+    && /^(?:\p{Extended_Pictographic}|\p{Regional_Indicator}|\p{Emoji_Modifier}|\u200d|\ufe0f|\s)+$/u.test(t)
+    && /[\p{Extended_Pictographic}\p{Regional_Indicator}]/u.test(t);
 }
 
 function insert(e) {
@@ -82,35 +141,98 @@ export function openAvatarPicker(uid) {
   p.hidden = false;
 }
 
+/* ---------- Son kullanılan emojiler ---------- */
+const RKEY = "na_recent_emoji";
+function getRecent() {
+  try {
+    const v = JSON.parse(localStorage.getItem(RKEY) || "[]");
+    return Array.isArray(v) ? v : [];
+  } catch (e) { return []; }
+}
+function addRecent(e) {
+  try {
+    const v = getRecent().filter((x) => x !== e);
+    v.unshift(e);
+    localStorage.setItem(RKEY, JSON.stringify(v.slice(0, 32)));
+  } catch (e2) { /* sorun değil */ }
+}
+
 function buildPicker() {
   const p = document.createElement("div");
   p.className = "epick"; p.hidden = true;
+  const sr = document.createElement("input");
+  sr.type = "search"; sr.className = "esearch"; sr.autocomplete = "off";
+  sr.placeholder = "Ara: çay, gece, nöbet, kalp…";
+  sr.setAttribute("aria-label", "Emoji ara");
   const tabs = document.createElement("div"); tabs.className = "etabs";
   const grid = document.createElement("div"); grid.className = "egrid";
-  p.appendChild(tabs); p.appendChild(grid);
-  function show(idx) {
-    grid.innerHTML = "";
-    GROUPS[idx][1].split(" ").forEach((e) => {
-      const b = document.createElement("button");
-      b.type = "button"; b.textContent = e; b.onclick = () => insert(e);
-      grid.appendChild(b);
-    });
-    Array.from(tabs.children).forEach((t, i) => t.classList.toggle("on", i === idx));
+  p.appendChild(sr); p.appendChild(tabs); p.appendChild(grid);
+
+  let cur = 0;
+  function fillGrid(list, emptyText) {
+    if (!list.length) {
+      grid.innerHTML = "";
+      const d = document.createElement("div");
+      d.className = "eempty"; d.textContent = emptyText;
+      grid.appendChild(d);
+      return;
+    }
+    grid.innerHTML = list.map((e) => '<button type="button">' + e + "</button>").join("");
   }
+  function show(idx) {
+    cur = idx;
+    sr.value = "";
+    const tbs = Array.from(tabs.children);
+    tbs.forEach((t, i) => t.classList.toggle("on", i === idx));
+    if (idx === 0) {
+      fillGrid(getRecent(), "Henüz kullandığın emoji yok. Bir emoji seçince burada görünür.");
+    } else {
+      fillGrid(GROUPS[idx - 1][2].split(" "), "");
+    }
+    grid.scrollTop = 0;
+  }
+  function search(q) {
+    const w = q.trim().toLocaleLowerCase("tr");
+    if (!w) { show(cur); return; }
+    Array.from(tabs.children).forEach((t) => t.classList.remove("on"));
+    const found = [];
+    SEARCH.forEach((s) => {
+      if (s[0].split(" ").some((k) => k.indexOf(w) === 0)) {
+        s[1].split(" ").forEach((e) => { if (found.indexOf(e) < 0) found.push(e); });
+      }
+    });
+    fillGrid(found, "Sonuç yok. Başka bir kelime dene.");
+  }
+
+  const rt = document.createElement("button");
+  rt.type = "button"; rt.textContent = "🕘"; rt.title = "Son kullanılanlar";
+  rt.onclick = () => show(0);
+  tabs.appendChild(rt);
   GROUPS.forEach((g, i) => {
     const t = document.createElement("button");
-    t.type = "button"; t.textContent = g[0]; t.onclick = () => show(i);
+    t.type = "button"; t.textContent = g[0]; t.title = g[1];
+    t.onclick = () => show(i + 1);
     tabs.appendChild(t);
   });
+  grid.onclick = (ev) => {
+    const b = ev.target.closest("button");
+    if (!b) return;
+    const e = b.textContent;
+    insert(e);
+    addRecent(e);
+  };
+  sr.oninput = () => search(sr.value);
+
   document.body.appendChild(p);
-  show(0);
+  p.show = () => { const r = getRecent(); show(r.length ? 0 : 1); };
+  p.show();
   return p;
 }
 
 export function initFun(ctx) {
   toast = ctx.toast;
   const st = document.createElement("style");
-  st.textContent = ".epick{position:fixed;left:8px;right:8px;bottom:calc(74px + env(safe-area-inset-bottom,0px));background:var(--panel);border:1px solid var(--lamp);border-radius:14px;padding:8px;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.45)}.etabs{display:flex;gap:4px;margin-bottom:6px;overflow-x:auto}.etabs button,.egrid button{background:none;border:0;cursor:pointer;border-radius:8px;color:inherit}.etabs button{font-size:22px;padding:4px 10px}.etabs button.on{background:rgba(240,194,75,.25)}.egrid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;max-height:32vh;overflow:auto}.egrid button{font-size:26px;padding:4px 0}.egrid button:active{background:rgba(127,150,180,.25)}.ebtn{background:none;border:1px solid var(--line);border-radius:10px;padding:0 12px;cursor:pointer;font-size:20px}.agrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.sheet .ao{aspect-ratio:1;border-radius:50%;border:2px solid var(--line);font-size:34px;padding:0;cursor:pointer;display:grid;place-items:center}.sheet .ao:active{transform:scale(.93)}.msg p.big{font-size:40px;line-height:1.1}.row.mine .av{box-shadow:0 0 0 2px var(--lamp)}";
+  st.textContent = ".epick{position:fixed;left:8px;right:8px;bottom:calc(74px + env(safe-area-inset-bottom,0px));background:var(--panel);border:1px solid var(--lamp);border-radius:14px;padding:8px;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.45)}.esearch{width:100%;margin-bottom:6px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:15px}.etabs{display:flex;gap:2px;margin-bottom:6px;overflow-x:auto}.etabs button,.egrid button{background:none;border:0;cursor:pointer;border-radius:8px;color:inherit}.etabs button{font-size:22px;padding:4px 9px;flex:none}.etabs button.on{background:rgba(240,194,75,.25)}.egrid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;max-height:32vh;overflow:auto}.egrid button{font-size:26px;padding:4px 0}.egrid button:active{background:rgba(127,150,180,.25)}.eempty{grid-column:1/-1;color:var(--mute);font-size:14px;padding:10px 6px}.ebtn{background:none;border:1px solid var(--line);border-radius:10px;padding:0 12px;cursor:pointer;font-size:20px}.agrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.sheet .ao{aspect-ratio:1;border-radius:50%;border:2px solid var(--line);font-size:34px;padding:0;cursor:pointer;display:grid;place-items:center}.sheet .ao:active{transform:scale(.93)}.msg p.big{font-size:40px;line-height:1.1}.row.mine .av{box-shadow:0 0 0 2px var(--lamp)}";
   document.head.appendChild(st);
 
   const labels = { out: "🚪 Çıkış yap", unb: "🚫 Engelleri kaldır", cb: "📞 Görüntülü ara" };
@@ -122,7 +244,10 @@ export function initFun(ctx) {
   eb.type = "button"; eb.className = "ebtn"; eb.textContent = "😊"; eb.title = "Emoji";
   const inp = $("in");
   inp.parentNode.insertBefore(eb, inp.nextSibling);
-  eb.onclick = () => { picker.hidden = !picker.hidden; };
+  eb.onclick = () => {
+    picker.hidden = !picker.hidden;
+    if (!picker.hidden) picker.show();
+  };
   document.addEventListener("click", (e) => {
     if (!picker.hidden && !picker.contains(e.target) && e.target !== eb) picker.hidden = true;
   });
