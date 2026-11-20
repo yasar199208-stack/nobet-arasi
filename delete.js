@@ -121,7 +121,13 @@ function open() {
     const go = el("button", "", "Hesabımı kalıcı olarak sil");
     go.type = "button";
     go.style.cssText = "width:100%;background:var(--danger);color:#fff;border:0;font-weight:700;padding:10px";
-    go.onclick = () => run(pw.value, msg, go);
+    go.onclick = () => {
+      if (!pw.value) { msg.textContent = "Şifreni yaz."; return; }
+      if (!confirm("Hesabın ve tüm verilerin kalıcı olarak silinecek. Bu işlem geri alınamaz. Emin misin?")) return;
+      const a = prompt("Onaylamak için SİL yaz:");
+      if (!a || a.trim().toLocaleUpperCase("tr") !== "SİL") { msg.textContent = "Onay verilmedi, hesap silinmedi."; return; }
+      run(pw.value, msg, go);
+    };
     sheet.appendChild(go);
     panel.appendChild(sheet);
     panel.onclick = (e) => { if (e.target === panel && !busy) panel.hidden = true; };
