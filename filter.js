@@ -1,6 +1,6 @@
 // Ek modüller: biri yüklenemezse (dosya yoksa) filtre yine de çalışır.
 import("./legal.js?v=1").catch(() => {});
-import("./delete.js?v=1").catch(() => {});
+import("./delete.js?v=2").catch(() => {});
 
 // Küfür filtresi: uygunsuz ifade içeren mesaj gönderilmeden önce engellenir.
 const $ = (i) => document.getElementById(i);
