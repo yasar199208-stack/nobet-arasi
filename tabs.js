@@ -131,7 +131,8 @@
     ".mpanel .minfo b{display:block;font-size:16px}" +
     ".mpanel .minfo span{display:block;color:var(--mute);font-size:13px;margin-top:2px}" +
     ".mpanel button{display:flex!important;align-items:center;gap:8px;width:100%;margin:0 0 6px!important;text-align:left;justify-content:flex-start;padding:9px 12px;font-size:16px;cursor:pointer;background:rgba(127,150,180,.12)!important;color:var(--text)!important;border:1px solid var(--line)!important;border-radius:10px!important}" +
-    ".mpanel button[hidden]{display:none!important}";
+    ".mpanel button[hidden]{display:none!important}" +
+    ".mxbtn{font-size:20px!important;line-height:1;padding:8px 16px!important;min-width:0}";
   document.head.appendChild(st);
 
   var panel = document.createElement("div");
@@ -220,11 +221,29 @@
       place(b, rk);
     }
     if (descEl && descEl.style.display !== "none") descEl.style.display = "none";
+    shrinkClose();
     // Sohbet kapalıyken "Sen / Görüntülü ara / Menü" satırını gizle
     if (row) {
       var closed = chatClosed();
       var want = closed ? "none" : "";
       if (row.style.display !== want) row.style.display = want;
+    }
+  }
+  // Başlığın yanındaki "✕ Kapat" düğmesini sadece "✕" yapar
+  function shrinkClose() {
+    var t = document.getElementById("rt");
+    if (!t) return;
+    var box = t, k;
+    for (k = 0; k < 3 && box.parentElement; k++) box = box.parentElement;
+    var bs = box.querySelectorAll("button");
+    for (var i = 0; i < bs.length; i++) {
+      var b = bs[i];
+      if (panel.contains(b) || b === menuBtn) continue;
+      if (fold(b.textContent) !== "kapat") continue;
+      b.textContent = "✕";
+      b.classList.add("mxbtn");
+      b.setAttribute("aria-label", "Kapat");
+      b.title = "Kapat";
     }
   }
   // Öğe gerçekten görünüyor mu (display, visibility, opacity, hidden)
