@@ -220,6 +220,13 @@
       place(b, rk);
     }
     if (descEl && descEl.style.display !== "none") descEl.style.display = "none";
+    // Sohbet kapalıyken (başlık yok) "Sen / Görüntülü ara / Menü" satırını gizle
+    if (row) {
+      var t = document.getElementById("rt");
+      var closed = !t || !t.textContent.trim() || t.getClientRects().length === 0;
+      var want = closed ? "none" : "";
+      if (row.style.display !== want) row.style.display = want;
+    }
   }
   function later() {
     if (busy) return;
@@ -228,5 +235,5 @@
   }
 
   scan();
-  new MutationObserver(later).observe(document.body, { childList: true, subtree: true });
+  new MutationObserver(later).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["style", "hidden", "class"] });
 })();
