@@ -8,7 +8,7 @@
   var st = document.createElement("style");
   st.textContent =
     ".top h2{margin-right:auto}" +
-    "#nb,#cb{flex:none;background:none;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:14px}" +
+    "#nb,#cx,#cb{flex:none;background:none;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:14px}" +
     "body:not(.chat-closed) #cc{display:none}" +
     "body.chat-closed #cc{display:flex;flex:1;align-items:center;justify-content:center;text-align:center;padding:24px;color:var(--mute);font-size:16px}" +
     "body.chat-closed .log,body.chat-closed form.send,body.chat-closed .desc,body.chat-closed #rt{display:none}";
@@ -22,7 +22,7 @@
   top.insertBefore(nb, top.firstChild);
 
   var cb = document.createElement("button");
-  cb.id = "cb";
+  cb.id = "cx";
   cb.type = "button";
   cb.textContent = "✕ Kapat";
   cb.hidden = true;
