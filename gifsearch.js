@@ -53,7 +53,7 @@ async function load(reset) {
       const i = el("img"); i.loading = "lazy"; i.alt = g.title || "GIF";
       i.src = im.fixed_width_small.url;
       b.appendChild(i);
-      b.onclick = () => pick(im.fixed_width.url);
+      b.onclick = () => pick(((im.downsized_medium || im.downsized || im.fixed_width) || {}).url || im.fixed_width.url);
       grid.appendChild(b); n++;
     });
     offset += list.length;
