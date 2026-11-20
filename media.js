@@ -1,4 +1,5 @@
 import { doc, collection, addDoc, setDoc, updateDoc, deleteDoc, getDocs, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { shrinkGif } from "./gifenc.js?v=1";
 
 const IMG_RE = /^data:image\/(?:jpeg|gif);base64,[A-Za-z0-9+\/=]+$/;
 // Görüntülü konuşma için STUN sunucuları. Bazı mobil ağlarda TURN de gerekir:
@@ -37,7 +38,7 @@ export function initMedia(ctx) {
   const fb = document.getElementById("fb");
   fb.parentNode.insertBefore(btnCall, fb);
   btnCall.onclick = startCall;
-  import("./gifsearch.js?v=1").catch(() => {});
+  import("./gifsearch.js?v=2").catch(() => {});
 }
 
 export function setDmUi(r) {
@@ -75,7 +76,7 @@ async function onPhoto() {
   try {
     let data = null;
     if (f.type === "image/gif") {
-      try { data = await shrinkGif(f, 85000); } catch (e) { data = null; }
+      try { data = await shrinkGif(f, 200000); } catch (e) { data = null; }
       if (data === "big") { C.toast("Bu GIF çok büyük, küçültülemedi. Daha kısa bir GIF dene."); return; }
       if (data) C.toast("GIF küçültüldü ve gönderiliyor…");
       else C.toast("GIF hareketli gönderilemedi, resim olarak gönderiliyor.");
@@ -99,140 +100,6 @@ export function addPhoto(parent, src) {
     document.body.appendChild(v);
   };
   parent.appendChild(i);
-}
-
-/* ---------- GIF: küçültüp hareketli olarak gönder ---------- */
-// Palet: 6x6x6 renk küpü (216 renk), 255 = saydam
-function gifPalette() {
-  const p = new Uint8Array(768);
-  for (let r = 0; r < 6; r++) for (let g = 0; g < 6; g++) for (let b = 0; b < 6; b++) {
-    const i = (36 * r + 6 * g + b) * 3;
-    p[i] = r * 51; p[i + 1] = g * 51; p[i + 2] = b * 51;
-  }
-  return p;
-}
-
-function lzwEncode(px) {
-  const out = [];
-  let cur = 0, bits = 0, size = 9, next = 258;
-  const dict = new Map();
-  function emit(c) {
-    cur |= c << bits; bits += size;
-    while (bits >= 8) { out.push(cur & 255); cur >>>= 8; bits -= 8; }
-  }
-  emit(256);
-  let prefix = px[0];
-  for (let i = 1; i < px.length; i++) {
-    const k = px[i], key = prefix * 256 + k, code = dict.get(key);
-    if (code !== undefined) { prefix = code; continue; }
-    emit(prefix);
-    if (next < 4096) {
-      dict.set(key, next++);
-      if (next - 1 > (1 << size) - 1 + 0 && size < 12) size++;
-    } else {
-      emit(256); dict.clear(); next = 258; size = 9;
-    }
-    prefix = k;
-  }
-  emit(prefix);
-  emit(257);
-  if (bits > 0) out.push(cur & 255);
-  return out;
-}
-
-function gifBytes(frames, w, h) {
-  const o = [];
-  const w16 = (n) => { o.push(n & 255, (n >> 8) & 255); };
-  "GIF89a".split("").forEach((c) => o.push(c.charCodeAt(0)));
-  w16(w); w16(h); o.push(0xf7, 0, 0);
-  const pal = gifPalette();
-  for (let i = 0; i < 768; i++) o.push(pal[i]);
-  o.push(0x21, 0xff, 0x0b);
-  "NETSCAPE2.0".split("").forEach((c) => o.push(c.charCodeAt(0)));
-  o.push(3, 1, 0, 0, 0);
-  frames.forEach((f) => {
-    o.push(0x21, 0xf9, 4, 0x09); w16(f.delay); o.push(255, 0);
-    o.push(0x2c); w16(0); w16(0); w16(w); w16(h); o.push(0);
-    o.push(8);
-    const d = lzwEncode(f.px);
-    for (let i = 0; i < d.length; i += 255) {
-      const n = Math.min(255, d.length - i);
-      o.push(n);
-      for (let j = 0; j < n; j++) o.push(d[i + j]);
-    }
-    o.push(0);
-  });
-  o.push(0x3b);
-  return new Uint8Array(o);
-}
-
-function toB64(u8) {
-  let s = "";
-  for (let i = 0; i < u8.length; i += 8192) s += String.fromCharCode.apply(null, u8.subarray(i, i + 8192));
-  return btoa(s);
-}
-
-async function gifFrames(file) {
-  const dec = new ImageDecoder({ data: await file.arrayBuffer(), type: "image/gif" });
-  await dec.tracks.ready;
-  const n = dec.tracks.selectedTrack.frameCount;
-  if (n < 2) return null;
-  const take = Math.min(n, 30), list = [];
-  for (let j = 0; j < take; j++) {
-    const idx = Math.floor((j * n) / take);
-    const r = await dec.decode({ frameIndex: idx });
-    const im = r.image;
-    const k = Math.min(1, 200 / Math.max(im.displayWidth, im.displayHeight));
-    const w = Math.max(1, Math.round(im.displayWidth * k)), h = Math.max(1, Math.round(im.displayHeight * k));
-    const c = document.createElement("canvas");
-    c.width = w; c.height = h;
-    c.getContext("2d").drawImage(im, 0, 0, w, h);
-    const dur = im.duration ? im.duration / 10000 : 10; // 1/100 sn
-    im.close();
-    list.push({ c: c, w: w, h: h, d: Math.max(2, Math.round(dur * (n / take))) });
-  }
-  try { dec.close(); } catch (e) {}
-  return list;
-}
-
-function gifBuild(list, dim, count) {
-  const base = list[0];
-  const k = Math.min(1, dim / Math.max(base.w, base.h));
-  const w = Math.max(1, Math.round(base.w * k)), h = Math.max(1, Math.round(base.h * k));
-  const cv = document.createElement("canvas");
-  cv.width = w; cv.height = h;
-  const g = cv.getContext("2d", { willReadFrequently: true });
-  const frames = [];
-  for (let j = 0; j < count; j++) {
-    const a = Math.floor((j * list.length) / count);
-    const b = Math.floor(((j + 1) * list.length) / count);
-    let delay = 0;
-    for (let i = a; i < Math.max(b, a + 1); i++) delay += list[i].d;
-    g.clearRect(0, 0, w, h);
-    g.drawImage(list[a].c, 0, 0, w, h);
-    const d = g.getImageData(0, 0, w, h).data;
-    const px = new Uint8Array(w * h);
-    for (let i = 0, p = 0; i < px.length; i++, p += 4) {
-      if (d[p + 3] < 128) px[i] = 255;
-      else px[i] = 36 * Math.round(d[p] / 51) + 6 * Math.round(d[p + 1] / 51) + Math.round(d[p + 2] / 51);
-    }
-    frames.push({ px: px, delay: Math.min(500, Math.max(2, delay)) });
-  }
-  return gifBytes(frames, w, h);
-}
-
-// Hareketli GIF'i Firestore sınırına sığacak kadar küçültür; sığmazsa null
-async function shrinkGif(file, limitChars) {
-  if (typeof ImageDecoder === "undefined") return null;
-  const list = await gifFrames(file);
-  if (!list) return null;
-  const tries = [[200, 30], [160, 24], [140, 18], [120, 14], [100, 10], [90, 8], [80, 6]];
-  for (let i = 0; i < tries.length; i++) {
-    const cnt = Math.min(tries[i][1], list.length);
-    const d = "data:image/gif;base64," + toB64(gifBuild(list, tries[i][0], cnt));
-    if (d.length <= limitChars) return d;
-  }
-  return "big";
 }
 
 /* ---------- Görüntülü konuşma (WebRTC, sinyal Firestore üzerinden) ---------- */
@@ -416,4 +283,4 @@ export function stopCalls() {
   if (unsubCalls) { unsubCalls(); unsubCalls = null; }
   hideRing();
   if (call) hangup("");
-       }
+}
