@@ -238,12 +238,11 @@
     // Sohbet kapalıyken mesaj alanını tamamen kaldır (telefon ekranında liste tüm ekranı kaplar)
     document.body.classList.toggle("mclosed", logClosed());
   }
-  // "Özel mesaj kapalı. Yukarıdan bir oda…" yazısı kayıt alanında mı (gizli olsa da yazıya bakar)
+  // Sohbet kapalı mı: back.js kapatınca body'ye "chat-closed" ekler, yazıyı #cc içinde gösterir
   function logClosed() {
     var t = document.getElementById("rt");
-    var lg = document.getElementById("log");
-    if (!t || !t.textContent.trim()) return true;
-    return !!lg && lg.textContent.indexOf("kapalı. Yukarıdan") >= 0 && lg.textContent.length < 200;
+    if (document.body.classList.contains("chat-closed")) return true;
+    return !t || !t.textContent.trim();
   }
   // Başlığın yanındaki "✕ Kapat" düğmesini sadece "✕" yapar
   function shrinkClose() {
