@@ -15,7 +15,14 @@
     ".mbadge{display:inline-block;min-width:20px;padding:1px 6px;margin-left:6px;border-radius:10px;background:#e5484d;color:#fff;font-size:13px;font-weight:700;line-height:18px;text-align:center}" +
     "@keyframes mpulse{0%,100%{box-shadow:0 0 0 2px rgba(229,72,77,.35)}50%{box-shadow:0 0 0 5px rgba(229,72,77,.15)}}" +
     "#mempty{padding:14px 16px;color:var(--mute);font-size:14px}" +
-    "body.mcol #rooms,body.mcol #rooms .room,body.mcol #mempty{display:none!important}";
+    "body.mcol #rooms,body.mcol #rooms .room,body.mcol #mempty{display:none!important}" +
+    "@media (max-width:760px){" +
+    "body.mclosed .app{grid-template-rows:minmax(0,1fr)!important}" +
+    "body.mclosed main{display:none!important}" +
+    "body.mclosed aside{min-height:0;border-bottom:0}" +
+    "body.mclosed aside .rooms{flex:1 1 auto;flex-direction:column;overflow-y:auto;overflow-x:hidden;align-content:flex-start}" +
+    "body.mclosed aside .room{width:100%;border-radius:12px;padding:12px 14px;text-align:left}" +
+    "}";
   document.head.appendChild(st);
 
   var wrap = document.createElement("div");
@@ -228,6 +235,15 @@
       var want = closed ? "none" : "";
       if (row.style.display !== want) row.style.display = want;
     }
+    // Sohbet kapalıyken mesaj alanını tamamen kaldır (telefon ekranında liste tüm ekranı kaplar)
+    document.body.classList.toggle("mclosed", logClosed());
+  }
+  // "Özel mesaj kapalı. Yukarıdan bir oda…" yazısı kayıt alanında mı (gizli olsa da yazıya bakar)
+  function logClosed() {
+    var t = document.getElementById("rt");
+    var lg = document.getElementById("log");
+    if (!t || !t.textContent.trim()) return true;
+    return !!lg && lg.textContent.indexOf("kapalı. Yukarıdan") >= 0 && lg.textContent.length < 200;
   }
   // Başlığın yanındaki "✕ Kapat" düğmesini sadece "✕" yapar
   function shrinkClose() {
