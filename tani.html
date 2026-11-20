@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dosya kontrolü</title>
+<style>
+body{background:#0e1726;color:#e6edf7;font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}
+h1{font-size:20px;margin:0 0 12px}
+.r{border:1px solid #2a3d57;border-radius:10px;padding:10px 12px;margin:8px 0;word-break:break-word}
+.ok{border-color:#3fb06a}.bad{border-color:#e5484d;background:#2a1418}
+small{color:#9fb0c8;display:block}
+b{font-size:17px}
+</style></head><body>
+<h1>Dosya kontrolü</h1>
+<div id="o">Kontrol ediliyor…</div>
+<script>
+var FILES = ["app.js","fun.js","media.js","avatar.js","unread.js","filter.js","forgot.js","voice.js","ban.js","rooms.js","admin.js","back.js","tabs.js"];
+var out = document.getElementById("o");
+out.textContent = "";
+function add(cls, name, line1, line2) {
+  var d = document.createElement("div"); d.className = "r " + cls;
+  var b = document.createElement("b"); b.textContent = name + "  " + line1; d.appendChild(b);
+  if (line2) { var s = document.createElement("small"); s.textContent = line2; d.appendChild(s); }
+  out.appendChild(d);
+}
+FILES.forEach(function (f) {
+  fetch(f + "?t=" + Date.now(), { cache: "no-store" }).then(function (r) {
+    if (!r.ok) { add("bad", f, "BULUNAMADI (" + r.status + ")", ""); return; }
+    return r.text().then(function (t) {
+      var code = t.replace(/^import\s[^;]*;\s*$/gm, "").replace(/^export\s+/gm, "");
+      var tail = t.trim().slice(-40).replace(/\n/g, " ⏎ ");
+      try {
+        new Function(code);
+        add("ok", f, "TAMAM", t.length + " karakter · son: " + tail);
+      } catch (e) {
+        add("bad", f, "HATALI", e.name + ": " + e.message + " · " + t.length + " karakter · son: " + tail);
+      }
+    });
+  }).catch(function (e) { add("bad", f, "İNDİRİLEMEDİ", String(e)); });
+});
+</script></body></html>
