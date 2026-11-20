@@ -11,6 +11,9 @@
     ".mtabs button{flex:1;background:none;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:7px 8px;cursor:pointer;font-size:15px}" +
     ".mtabs button[aria-pressed=\"true\"]{border-color:var(--lamp);background:rgba(127,150,180,.15);font-weight:600}" +
     ".mtabs button:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}" +
+    ".mtabs button.mnew{border-color:#e5484d;box-shadow:0 0 0 2px rgba(229,72,77,.35);animation:mpulse 1.4s ease-in-out infinite}" +
+    ".mbadge{display:inline-block;min-width:20px;padding:1px 6px;margin-left:6px;border-radius:10px;background:#e5484d;color:#fff;font-size:13px;font-weight:700;line-height:18px;text-align:center}" +
+    "@keyframes mpulse{0%,100%{box-shadow:0 0 0 2px rgba(229,72,77,.35)}50%{box-shadow:0 0 0 5px rgba(229,72,77,.15)}}" +
     "#mempty{padding:14px 16px;color:var(--mute);font-size:14px}";
   document.head.appendChild(st);
 
@@ -37,27 +40,37 @@
     return !!b && b.textContent.indexOf("💌") === 0;
   }
 
+  // unread.js okunmamış sohbetin başlığına .ud (🔴) ekler
   function hasUnread(el) {
-    var b = el.querySelector("b");
-    var clean = /^💌 @[\p{L}0-9_]+$/u.test(b.textContent.trim());
-    return !clean || el.className.trim() !== "room" || el.children.length > 2;
+    return !!el.querySelector(".ud");
   }
 
   function apply() {
     var list = rooms.querySelectorAll(".room");
     var count = 0;
-    var unread = false;
+    var unread = 0;
     for (var i = 0; i < list.length; i++) {
       var el = list[i];
       var dm = isDmChip(el);
       if (dm) {
         count++;
-        if (hasUnread(el)) unread = true;
+        var u = hasUnread(el);
+        if (u) unread++;
+        el.style.borderColor = u ? "#e5484d" : "";
+        var b = el.querySelector("b");
+        if (b) b.style.fontWeight = u ? "800" : "";
       }
       el.style.display = ((tab === "dm") === dm) ? "" : "none";
     }
     bRooms.textContent = "🏠 Odalar";
-    bDm.textContent = "💬 Mesajlar" + (count ? " (" + count + ")" : "") + (unread ? " ●" : "");
+    bDm.textContent = "💬 Mesajlar" + (count ? " (" + count + ")" : "");
+    if (unread) {
+      var bd = document.createElement("span");
+      bd.className = "mbadge";
+      bd.textContent = unread;
+      bDm.appendChild(bd);
+    }
+    bDm.classList.toggle("mnew", unread > 0 && tab !== "dm");
     bRooms.setAttribute("aria-pressed", tab === "rooms");
     bDm.setAttribute("aria-pressed", tab === "dm");
     rooms.hidden = false;
