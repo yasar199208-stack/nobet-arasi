@@ -14,7 +14,8 @@
     ".mtabs button.mnew{border-color:#e5484d;box-shadow:0 0 0 2px rgba(229,72,77,.35);animation:mpulse 1.4s ease-in-out infinite}" +
     ".mbadge{display:inline-block;min-width:20px;padding:1px 6px;margin-left:6px;border-radius:10px;background:#e5484d;color:#fff;font-size:13px;font-weight:700;line-height:18px;text-align:center}" +
     "@keyframes mpulse{0%,100%{box-shadow:0 0 0 2px rgba(229,72,77,.35)}50%{box-shadow:0 0 0 5px rgba(229,72,77,.15)}}" +
-    "#mempty{padding:14px 16px;color:var(--mute);font-size:14px}";
+    "#mempty{padding:14px 16px;color:var(--mute);font-size:14px}" +
+    "body.mcol #rooms,body.mcol #rooms .room,body.mcol #mempty{display:none!important}";
   document.head.appendChild(st);
 
   var wrap = document.createElement("div");
@@ -76,7 +77,7 @@
     bRooms.setAttribute("aria-pressed", tab === "rooms");
     bDm.setAttribute("aria-pressed", tab === "dm");
     rooms.hidden = false;
-    rooms.style.display = collapsed ? "none" : "";
+    document.body.classList.toggle("mcol", collapsed);
     empty.hidden = collapsed || !(tab === "dm" && count === 0);
   }
 
