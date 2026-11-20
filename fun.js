@@ -7,7 +7,8 @@ const GROUPS = [
   ["🛡️", "Nöbet", "🛡️ 👮 🚓 🚨 🔦 🔑 🔒 📞 📱 🎧 📻 🕶️ 🧤 🥾 🏢 🚪 🅿️ 🚧 🧯 📹 🪪 ⏰ 🌙 ☀️ 🧿 🫡 ☕ 🍵 😴 🥶 🥵 🌧️ ❄️ 🇹🇷"],
   ["😀", "Yüzler", "☠️ ☹️ ☺️ 👹 👺 👻 👽 👾 👿 💀 💩 😀 😁 😂 😃 😄 😅 😆 😇 😈 😉 😊 😋 😌 😍 😎 😏 😐 😑 😒 😓 😔 😕 😖 😗 😘 😙 😚 😛 😜 😝 😞 😟 😠 😡 😢 😣 😤 😥 😦 😧 😨 😩 😪 😫 😬 😭 😮 😯 😰 😱 😲 😳 😴 😵 😶 😷 😸 😹 😺 😻 😼 😽 😾 😿 🙀 🙁 🙂 🙃 🙄 🙈 🙉 🙊 🤐 🤑 🤒 🤓 🤔 🤕 🤖 🤗 🤠 🤡 🤢 🤣 🤤 🤥 🤧 🤨 🤩 🤪 🤫 🤬 🤭 🤮 🤯 🥰 🥱 🥲 🥳 🥴 🥵 🥶 🥺 🧐"],
   ["👋", "İnsanlar", "☝️ ⛹️ ✊ ✋ ✌️ ✍️ 🎅 🏃 🏄 🏇 🏊 🏋️ 🏌️ 👀 👁️ 👂 👃 👄 👅 👆 👇 👈 👉 👊 👋 👌 👍 👎 👏 👐 👤 👥 👦 👧 👨 👩 👪 👫 👬 👭 👮 👯 👰 👱 👲 👳 👴 👵 👶 👷 👸 👼 💁 💂 💃 💄 💅 💆 💇 💏 💑 💪 🕴️ 🕵️ 🕺 🖐️ 🖕 🖖 🗣️ 🙅 🙆 🙇 🙋 🙌 🙍 🙎 🙏 🚴 🚵 🚶 🛀 🛌 🤌 🤏 🤘 🤙 🤚 🤛 🤜 🤝 🤞 🤟 🤦 🤰 🤱 🤲 🤳 🤴 🤵 🤶 🤷 🤸 🤹 🤺 🤼 🤽 🤾 🥷 🦰 🦱 🦲 🦳 🦴 🦵 🦶 🦷 🦸 🦹 🦻 🦼 🦽 🦾 🦿 🧍 🧎 🧏 🧑 🧒 🧓 🧔 🧕 🧖 🧗 🧘 🧙 🧚 🧛 🧜 🧝 🧞 🧟 🧠 🫀 🫁 🫂 ⛹️‍♀️ 🏃‍♀️ 🏄‍♀️ 🏊‍♀️ 🏋️‍♀️ 🏌️‍♀️ 👮‍♀️ 👯‍♀️ 👰‍♀️ 👱‍♀️ 👳‍♀️ 👷‍♀️ 💁‍♀️ 💂‍♀️ 💆‍♀️ 💇‍♀️ 🕵️‍♀️ 🙅‍♀️ 🙆‍♀️ 🙇‍♀️ 🙋‍♀️ 🙍‍♀️ 🙎‍♀️ 🚴‍♀️ 🚵‍♀️ 🚶‍♀️ 🤦‍♀️ 🤵‍♀️ 🤷‍♀️ 🤸‍♀️ 🤹‍♀️ 🤼‍♀️ 🤽‍♀️ 🤾‍♀️ 🦸‍♀️ 🦹‍♀️ 🧍‍♀️ 🧎‍♀️ 🧏‍♀️ 🧖‍♀️ 🧗‍♀️ 🧘‍♀️ 🧙‍♀️ 🧚‍♀️ 🧛‍♀️ 🧜‍♀️ 🧝‍♀️ 🧞‍♀️ 🧟‍♀️ ⛹️‍♂️ 🏃‍♂️ 🏄‍♂️ 🏊‍♂️ 🏋️‍♂️ 🏌️‍♂️ 👮‍♂️ 👯‍♂️ 👰‍♂️ 👱‍♂️ 👳‍♂️ 👷‍♂️ 💁‍♂️ 💂‍♂️ 💆‍♂️ 💇‍♂️ 🕵️‍♂️ 🙅‍♂️ 🙆‍♂️ 🙇‍♂️ 🙋‍♂️ 🙍‍♂️ 🙎‍♂️ 🚴‍♂️ 🚵‍♂️ 🚶‍♂️ 🤦‍♂️ 🤵‍♂️ 🤷‍♂️ 🤸‍♂️ 🤹‍♂️ 🤼‍♂️ 🤽‍♂️ 🤾‍♂️ 🦸‍♂️ 🦹‍♂️ 🧍‍♂️ 🧎‍♂️ 🧏‍♂️ 🧖‍♂️ 🧗‍♂️ 🧘‍♂️ 🧙‍♂️ 🧚‍♂️ 🧛‍♂️ 🧜‍♂️ 🧝‍♂️ 🧞‍♂️ 🧟‍♂️ 👨‍⚕️ 👩‍⚕️ 🧑‍⚕️ 👨‍⚖️ 👩‍⚖️ 🧑‍⚖️ 👨‍✈️ 👩‍✈️ 🧑‍✈️ 👨‍🌾 👩‍🌾 🧑‍🌾 👨‍🍳 👩‍🍳 🧑‍🍳 👨‍🍼 👩‍🍼 🧑‍🍼 🧑‍🎄 👨‍🎓 👩‍🎓 🧑‍🎓 👨‍🎤 👩‍🎤 🧑‍🎤 👨‍🎨 👩‍🎨 🧑‍🎨 👨‍🏫 👩‍🏫 🧑‍🏫 👨‍🏭 👩‍🏭 🧑‍🏭 👁️‍🗨️ 👨‍👦‍👦 👨‍👨‍👦‍👦 👩‍👦‍👦 👨‍👩‍👦‍👦 👩‍👩‍👦‍👦 👨‍👧‍👦 👨‍👨‍👧‍👦 👩‍👧‍👦 👨‍👩‍👧‍👦 👩‍👩‍👧‍👦 👨‍👦 👨‍👨‍👦 👩‍👦 👨‍👩‍👦 👩‍👩‍👦 👨‍👧‍👧 👨‍👨‍👧‍👧 👩‍👧‍👧 👨‍👩‍👧‍👧 👩‍👩‍👧‍👧 👨‍👧 👨‍👨‍👧 👩‍👧 👨‍👩‍👧 👩‍👩‍👧 👨‍❤️‍👨 👩‍❤️‍👨 👨‍❤️‍💋‍👨 👩‍❤️‍💋‍👨 👨‍💻 👨‍💼 👨‍🔧 👨‍🔬 👨‍🚀 👨‍🚒 👨‍🦯 👨‍🦰 👨‍🦱 👨‍🦲 👨‍🦳 👨‍🦼 👨‍🦽 👩‍❤️‍👩 👩‍❤️‍💋‍👩 👩‍💻 👩‍💼 👩‍🔧 👩‍🔬 👩‍🚀 👩‍🚒 👩‍🦯 👩‍🦰 👩‍🦱 👩‍🦲 👩‍🦳 👩‍🦼 👩‍🦽 🧑‍💻 🧑‍💼 🧑‍🔧 🧑‍🔬 🧑‍🚀 🧑‍🚒 🧑‍🦯 🧑‍🦰 🧑‍🦱 🧑‍🦲 🧑‍🦳 🧑‍🦼 🧑‍🦽 🧑‍🤝‍🧑"],
-  ["🐶", "Hayvanlar ve doğa", "☀️ ☁️ ☂️ ☃️ ☄️ ☔ ☘️ ⚡ ⛄ ⛅ ⛈️ ❄️ ⭐ 🌀 🌂 🌊 🌌 🌑 🌒 🌓 🌔 🌕 🌖 🌗 🌘 🌙 🌚 🌛 🌜 🌝 🌞 🌟 🌠 🌡️ 🌤️ 🌥️ 🌦️ 🌧️ 🌨️ 🌩️ 🌪️ 🌫️ 🌬️ 🌱 🌲 🌳 🌴 🌵 🌷 🌸 🌹 🌺 🌻 🌼 🌾 🌿 🍀 🍁 🍂 🍃 🍄 🏵️ 🐀 🐁 🐂 🐃 🐄 🐅 🐆 🐇 🐈 🐉 🐊 🐋 🐌 🐍 🐎 🐏 🐐 🐑 🐒 🐓 🐔 🐕 🐖 🐗 🐘 🐙 🐚 🐛 🐜 🐝 🐞 🐟 🐠 🐡 🐢 🐣 🐤 🐥 🐦 🐧 🐨 🐩 🐪 🐫 🐬 🐭 🐮 🐯 🐰 🐱 🐲 🐳 🐴 🐵 🐶 🐷 🐸 🐹 🐺 🐻 🐼 🐽 🐾 🐿️ 💐 💮 🔥 🕊️ 🕷️ 🕸️ 🥀 🦀 🦁 🦂 🦃 🦄 🦅 🦆 🦇 🦈 🦉 🦊 🦋 🦌 🦍 🦎 🦏 🦐 🦑 🦒 🦓 🦔 🦕 🦖 🦗 🦘 🦙 🦚 🦛 🦜 🦝 🦞 🦟 🦠 🦡 🦢 🦣 🦤 🦥 🦦 🦧 🦨 🦩 🦪 🦫 🦬 🦭 🪐 🪰 🪱 🪲 🪳 🪴 🪵 🪶 🐈‍⬛ 🐕‍🦺"],
+  ["🐶", "Hayvanlar", "🐀 🐁 🐂 🐃 🐄 🐅 🐆 🐇 🐈 🐉 🐊 🐋 🐌 🐍 🐎 🐏 🐐 🐑 🐒 🐓 🐔 🐕 🐖 🐗 🐘 🐙 🐚 🐛 🐜 🐝 🐞 🐟 🐠 🐡 🐢 🐣 🐤 🐥 🐦 🐧 🐨 🐩 🐪 🐫 🐬 🐭 🐮 🐯 🐰 🐱 🐲 🐳 🐴 🐵 🐶 🐷 🐸 🐹 🐺 🐻 🐼 🐽 🐾 🐿️ 🕊️ 🕷️ 🕸️ 🦀 🦁 🦂 🦃 🦄 🦅 🦆 🦇 🦈 🦉 🦊 🦋 🦌 🦍 🦎 🦏 🦐 🦑 🦒 🦓 🦔 🦕 🦖 🦗 🦘 🦙 🦚 🦛 🦜 🦝 🦞 🦟 🦡 🦢 🦣 🦤 🦥 🦦 🦧 🦨 🦩 🦪 🦫 🦬 🦭 🪰 🪱 🪲 🪳 🐈‍⬛ 🐕‍🦺"],
+  ["🌿", "Doğa ve hava", "☀️ ☁️ ☂️ ☃️ ☄️ ☔ ☘️ ⚡ ⛄ ⛅ ⛈️ ❄️ ⭐ 🌀 🌂 🌊 🌌 🌑 🌒 🌓 🌔 🌕 🌖 🌗 🌘 🌙 🌚 🌛 🌜 🌝 🌞 🌟 🌠 🌡️ 🌤️ 🌥️ 🌦️ 🌧️ 🌨️ 🌩️ 🌪️ 🌫️ 🌬️ 🌱 🌲 🌳 🌴 🌵 🌷 🌸 🌹 🌺 🌻 🌼 🌾 🌿 🍀 🍁 🍂 🍃 🍄 🏵️ 💐 💮 🔥 🥀 🦠 🪐 🪴 🪵 🪶"],
   ["🍔", "Yiyecek ve içecek", "☕ 🌭 🌮 🌯 🌰 🌶️ 🌽 🍅 🍆 🍇 🍈 🍉 🍊 🍋 🍌 🍍 🍎 🍏 🍐 🍑 🍒 🍓 🍔 🍕 🍖 🍗 🍘 🍙 🍚 🍛 🍜 🍝 🍞 🍟 🍠 🍡 🍢 🍣 🍤 🍥 🍦 🍧 🍨 🍩 🍪 🍫 🍬 🍭 🍮 🍯 🍰 🍱 🍲 🍳 🍴 🍵 🍶 🍷 🍸 🍹 🍺 🍻 🍼 🍽️ 🍾 🍿 🏺 🔪 🥂 🥃 🥄 🥐 🥑 🥒 🥓 🥔 🥕 🥖 🥗 🥘 🥙 🥚 🥛 🥜 🥝 🥞 🥟 🥠 🥡 🥢 🥣 🥤 🥥 🥦 🥧 🥨 🥩 🥪 🥫 🥬 🥭 🥮 🥯 🧀 🧁 🧂 🧃 🧄 🧅 🧆 🧇 🧈 🧉 🧊 🧋 🫐 🫑 🫒 🫓 🫔 🫕 🫖"],
   ["⚽", "Etkinlik ve oyun", "♟️ ♠️ ♣️ ♥️ ♦️ ⚽ ⚾ ⛳ ⛷️ ⛸️ 🀄 🃏 🎀 🎁 🎂 🎃 🎄 🎆 🎇 🎈 🎉 🎊 🎋 🎍 🎎 🎏 🎐 🎑 🎒 🎓 🎖️ 🎗️ 🎞️ 🎟️ 🎠 🎡 🎢 🎣 🎨 🎩 🎪 🎫 🎬 🎭 🎮 🎯 🎰 🎱 🎲 🎳 🎴 🎽 🎾 🎿 🏀 🏂 🏅 🏆 🏈 🏉 🏏 🏐 🏑 🏒 🏓 🏸 🏹 🔮 🤿 🥅 🥇 🥈 🥉 🥊 🥋 🥌 🥍 🥎 🥏 🧩 🧸 🪀 🪁 🪂 🪃 🪄 🪅 🪆"],
   ["🚗", "Yerler ve ulaşım", "⚓ ⛩️ ⛪ ⛰️ ⛱️ ⛲ ⛴️ ⛵ ⛺ ⛽ ✈️ 🌁 🌃 🌄 🌅 🌆 🌇 🌈 🌉 🌋 🌍 🌎 🌏 🌐 🏍️ 🏎️ 🏔️ 🏕️ 🏖️ 🏗️ 🏘️ 🏙️ 🏚️ 🏛️ 🏜️ 🏝️ 🏞️ 🏟️ 🏠 🏡 🏢 🏣 🏤 🏥 🏦 🏧 🏨 🏩 🏪 🏫 🏬 🏭 🏮 🏯 🏰 💒 🕋 🕌 🕍 🗺️ 🗻 🗼 🗽 🗾 🗿 🚀 🚁 🚂 🚃 🚄 🚅 🚆 🚇 🚈 🚉 🚊 🚋 🚌 🚍 🚎 🚏 🚐 🚑 🚒 🚓 🚔 🚕 🚖 🚗 🚘 🚙 🚚 🚛 🚜 🚝 🚞 🚟 🚠 🚡 🚢 🚣 🚤 🚥 🚦 🚧 🚨 🚲 🚳 🛕 🛖 🛗 🛢️ 🛣️ 🛤️ 🛥️ 🛩️ 🛫 🛬 🛰️ 🛳️ 🛴 🛵 🛶 🛷 🛸 🛹 🛺 🛻 🛼 🚣‍♀️ 🚣‍♂️"],
@@ -16,59 +17,267 @@ const GROUPS = [
   ["🏁", "Bayraklar", "🇹🇷 🎌 🏁 🏳️ 🏴 🚩 🏴‍☠️ 🏳️‍⚧️ 🇦🇨 🇨🇦 🇦🇩 🇦🇪 🇪🇦 🇦🇫 🇦🇬 🇬🇦 🇦🇮 🇦🇱 🇱🇦 🇦🇲 🇲🇦 🇦🇴 🇦🇶 🇶🇦 🇦🇷 🇦🇸 🇸🇦 🇦🇹 🇹🇦 🇦🇺 🇺🇦 🇦🇼 🇦🇽 🇦🇿 🇿🇦 🇧🇦 🇧🇧 🇧🇩 🇧🇪 🇧🇫 🇧🇬 🇬🇧 🇧🇭 🇧🇮 🇧🇯 🇧🇱 🇱🇧 🇧🇲 🇧🇳 🇧🇴 🇧🇶 🇧🇷 🇧🇸 🇸🇧 🇧🇹 🇧🇻 🇧🇼 🇧🇾 🇧🇿 🇨🇨 🇨🇩 🇨🇫 🇨🇬 🇨🇭 🇨🇮 🇮🇨 🇨🇰 🇨🇱 🇱🇨 🇨🇲 🇲🇨 🇨🇳 🇳🇨 🇨🇴 🇨🇵 🇨🇶 🇨🇷 🇨🇺 🇨🇻 🇻🇨 🇨🇼 🇨🇽 🇨🇾 🇨🇿 🇩🇪 🇩🇬 🇬🇩 🇩🇯 🇩🇰 🇩🇲 🇲🇩 🇩🇴 🇩🇿 🇪🇨 🇪🇪 🇪🇬 🇬🇪 🇪🇭 🇪🇷 🇷🇪 🇪🇸 🇸🇪 🇪🇹 🇪🇺 🇫🇮 🇫🇯 🇫🇰 🇫🇲 🇲🇫 🇫🇴 🇫🇷 🇬🇫 🇬🇬 🇬🇭 🇬🇮 🇬🇱 🇬🇲 🇲🇬 🇬🇳 🇳🇬 🇬🇵 🇵🇬 🇬🇶 🇬🇷 🇬🇸 🇸🇬 🇬🇹 🇹🇬 🇬🇺 🇺🇬 🇬🇼 🇬🇾 🇭🇰 🇰🇭 🇭🇲 🇲🇭 🇭🇳 🇭🇷 🇭🇹 🇹🇭 🇭🇺 🇮🇩 🇮🇪 🇮🇱 🇱🇮 🇮🇲 🇮🇳 🇳🇮 🇮🇴 🇮🇶 🇮🇷 🇮🇸 🇸🇮 🇮🇹 🇯🇪 🇯🇲 🇯🇴 🇯🇵 🇰🇪 🇰🇬 🇰🇮 🇰🇲 🇲🇰 🇰🇳 🇰🇵 🇵🇰 🇰🇷 🇰🇼 🇰🇾 🇰🇿 🇱🇰 🇱🇷 🇱🇸 🇸🇱 🇱🇹 🇹🇱 🇱🇺 🇱🇻 🇱🇾 🇲🇪 🇲🇱 🇲🇲 🇲🇳 🇲🇴 🇴🇲 🇲🇵 🇵🇲 🇲🇶 🇲🇷 🇲🇸 🇸🇲 🇲🇹 🇹🇲 🇲🇺 🇺🇲 🇲🇻 🇲🇼 🇲🇽 🇲🇾 🇲🇿 🇿🇲 🇳🇦 🇳🇪 🇳🇫 🇳🇱 🇳🇴 🇳🇵 🇵🇳 🇳🇷 🇳🇺 🇺🇳 🇳🇿 🇵🇦 🇵🇪 🇵🇫 🇵🇭 🇵🇱 🇵🇷 🇵🇸 🇵🇹 🇵🇼 🇵🇾 🇷🇴 🇷🇸 🇸🇷 🇷🇺 🇷🇼 🇸🇨 🇸🇩 🇸🇭 🇸🇯 🇸🇰 🇸🇳 🇸🇴 🇸🇸 🇸🇹 🇸🇻 🇸🇽 🇸🇾 🇸🇿 🇹🇨 🇹🇩 🇹🇫 🇹🇯 🇹🇰 🇹🇳 🇹🇴 🇹🇹 🇹🇻 🇹🇼 🇹🇿 🇺🇸 🇺🇾 🇺🇿 🇻🇦 🇻🇪 🇻🇬 🇻🇮 🇻🇳 🇻🇺 🇼🇫 🇼🇸 🇽🇰 🇾🇪 🇾🇹 🇿🇼 🏳️‍🌈"]
 ];
 
-// Türkçe arama: anahtar kelimeler -> emojiler
+// Türkçe arama: anahtar kelimeler -> emojiler (ç/ğ/ı/ö/ş/ü yazmasan da bulur)
 const SEARCH = [
   ["nöbet güvenlik bekçi", "🛡️ 👮 🚓 🚨 🔦 🔑 🔒 📻 🧿"],
+  ["polis jandarma", "👮 🚓 🚔 🚨"],
+  ["asker", "💂 🪖 🇹🇷 🫡"],
+  ["alarm siren", "🚨 🔔 📢"],
   ["gece", "🌙 🌃 🌌 ⭐ 😴 🦉 🌠"],
+  ["iyi geceler", "🌙 😴 💤 🌃 🛌"],
   ["gündüz güneş", "☀️ 🌞 🌤️ 😎"],
+  ["sabah günaydın", "🌅 🌄 ☀️ ☕ 😊"],
+  ["akşam", "🌆 🌇 🌙"],
   ["uyku uykusuz yorgun", "😴 🥱 💤 🛌 😪 😩 😫"],
+  ["esneme", "🥱 😪 😴"],
   ["kahve", "☕ 🫖"],
   ["çay", "🍵 ☕ 🫖"],
   ["yemek", "🍔 🍕 🍳 🥪 🍜 🍲 🥗 🍛"],
-  ["su", "💧 🚰 🥤 🌊"],
+  ["ekmek", "🍞 🥖 🥐"],
+  ["simit", "🥨 🍩"],
+  ["pizza", "🍕"],
+  ["hamburger", "🍔 🍟"],
+  ["tavuk", "🍗 🐔 🐓"],
+  ["et kebap", "🥩 🍖 🌯"],
+  ["pilav", "🍚 🍛"],
+  ["çorba", "🍲 🍜"],
+  ["makarna", "🍝 🍜"],
+  ["tatlı", "🍰 🍩 🍪 🍫 🍬 🍮 🍯"],
+  ["dondurma", "🍦 🍨 🍧"],
+  ["meyve", "🍎 🍌 🍇 🍉 🍓 🍊 🍒 🍑"],
+  ["elma", "🍎 🍏"],
+  ["muz", "🍌"],
+  ["karpuz", "🍉"],
+  ["sebze", "🥕 🥦 🥒 🍅 🥬 🌽"],
+  ["yumurta", "🥚 🍳"],
+  ["süt", "🥛 🍼"],
+  ["bira içki", "🍺 🍻 🍷 🍸"],
+  ["sigara", "🚬 🚭"],
+  ["su damla", "💧 🚰 🥤 🌊 💦"],
   ["soğuk", "🥶 ❄️ ⛄ 🧊 🧤 🧣"],
   ["sıcak", "🥵 ☀️ 🔥"],
-  ["yağmur", "🌧️ ☔ ⛈️"],
+  ["terleme", "😓 😅 💦 🥵"],
+  ["yağmur", "🌧️ ☔ ⛈️ 🌂"],
   ["kar", "❄️ ⛄ 🌨️"],
-  ["gülmek komik kahkaha", "😂 🤣 😆 😹"],
-  ["ağla üzgün", "😢 😭 🥺 😞"],
-  ["kızgın sinir", "😡 😤 🤬 😠"],
-  ["kalp aşk sevgi", "❤️ 💕 😍 🥰 💘 💖"],
+  ["bulut", "☁️ ⛅ 🌥️"],
+  ["rüzgar fırtına", "🌬️ 🌪️ ⛈️"],
+  ["şimşek yıldırım", "⚡ ⛈️ 🌩️"],
+  ["gökkuşağı", "🌈 🏳️‍🌈"],
+  ["gülmek gülümseme", "🙂 😊 😀 😄 😁"],
+  ["komik kahkaha", "😂 🤣 😆 😹"],
+  ["göz kırpma", "😉 😏"],
+  ["dil çıkarma şaka", "😛 😜 😝 🤪 🤡"],
+  ["öpücük öpmek", "😘 😗 😙 😚 💋 💏 😽"],
+  ["sarılmak", "🤗 🫂 🥰"],
+  ["kalp aşk sevgi sevmek", "❤️ 💕 😍 🥰 💘 💖 💗 💓 💞 💝 🧡 💛 💚 💙 💜 🖤 🤍 🤎"],
+  ["kırık", "💔"],
+  ["sevimli", "🥰 😻 🐱 🐶"],
+  ["ağlamak gözyaşı üzgün", "😢 😭 🥺 😞 😔 😿"],
+  ["kızgın sinir öfke", "😡 😤 🤬 😠 👿"],
+  ["küfür", "🤬 😡"],
+  ["korku", "😱 😨 👻 😰"],
+  ["şaşırma şaşkın", "😲 😮 🤯 😳 😯"],
+  ["utanma mahcup", "😳 🙈 😅 🥴"],
+  ["düşünme", "🤔 🧐 💭"],
+  ["sessiz şşş", "🤫 🤐 🔇"],
+  ["havalı cool", "😎 🕶️ 😏"],
+  ["zengin", "🤑 💰 💵 💎"],
+  ["inek akıllı", "🤓 🧠"],
+  ["sarhoş", "🥴 🍺 🍷"],
+  ["hasta grip öksürük", "🤒 🤧 😷 🤕"],
+  ["ateş yangın", "🔥 🧯 🚒"],
+  ["ölüm", "💀 ☠️ ⚰️"],
+  ["hayalet", "👻"],
+  ["şeytan", "😈 👿"],
+  ["melek", "😇 👼"],
+  ["palyaço", "🤡"],
+  ["robot", "🤖"],
+  ["uzaylı", "👽 👾 🛸"],
+  ["kaka", "💩"],
+  ["selam merhaba", "👋 🙋 🤝"],
+  ["el sıkışmak anlaşma", "🤝"],
+  ["alkış bravo", "👏 🙌 🎉"],
+  ["dua", "🙏"],
+  ["teşekkür sağ ol", "🙏 🤝 ❤️"],
   ["tamam evet onay", "👍 ✅ 👌 🆗 ✔️"],
   ["hayır", "👎 ❌ 🚫"],
-  ["teşekkür sağ ol", "🙏 🤝 ❤️"],
-  ["selam merhaba", "👋 🙋 🤝"],
-  ["alkış bravo", "👏 🙌 🎉"],
-  ["kutlama parti", "🎉 🎊 🥳 🎈 🎂"],
-  ["para maaş", "💰 💵 💸 💳 🤑"],
-  ["iş çalışma mesai", "💼 ⏰ 🏢 🛠️ 💪"],
-  ["telefon ara", "📞 📱 ☎️"],
-  ["saat zaman", "⏰ ⌚ 🕐 ⏳"],
-  ["araba yol", "🚗 🚕 🚓 🛣️"],
-  ["ev", "🏠 🏡 🛏️ 🛋️"],
+  ["başparmak", "👍 👎"],
+  ["işaret parmak", "👆 👇 👈 👉 ☝️"],
+  ["zafer barış", "✌️ 🕊️"],
+  ["yumruk", "👊 ✊"],
+  ["güç kuvvet", "💪 🦾 🏋️"],
+  ["el", "🖐️ ✋ 👋 🤚 👐"],
+  ["bacak ayak", "🦵 🦶 👣"],
+  ["beyin akıl", "🧠"],
+  ["kulak", "👂"],
+  ["burun", "👃"],
+  ["göz", "👀 👁️ 🕶️"],
+  ["dudak ağız", "👄 💋"],
+  ["dil", "👅"],
+  ["çocuk", "👦 👧 🧒 👶"],
+  ["bebek", "👶 🍼"],
+  ["anne", "👩 🤱"],
+  ["baba", "👨"],
+  ["aile", "👪 👨‍👩‍👧‍👦"],
+  ["doktor", "👨‍⚕️ 👩‍⚕️ 🩺"],
+  ["tamirci usta", "👨‍🔧 🔧 🛠️"],
+  ["aşçı", "👨‍🍳 👩‍🍳"],
+  ["öğretmen", "👨‍🏫 👩‍🏫"],
+  ["pilot", "👨‍✈️ ✈️"],
+  ["itfaiye", "👨‍🚒 🚒 🧯"],
+  ["hayvan", "🐶 🐱 🐭 🐰 🦊 🐻 🐼 🐯 🦁"],
+  ["kedi", "🐱 😺 🐈"],
+  ["köpek", "🐶 🐕 🐩"],
+  ["kuş", "🐦 🕊️ 🦅 🦉"],
+  ["balık", "🐟 🐠 🎣"],
+  ["at", "🐴 🏇"],
+  ["inek", "🐄 🐮"],
+  ["koyun", "🐑"],
+  ["aslan", "🦁"],
+  ["kaplan", "🐯"],
+  ["ayı", "🐻"],
+  ["kurt", "🐺"],
+  ["tilki", "🦊"],
+  ["fare", "🐭 🐁"],
+  ["tavşan", "🐰 🐇"],
+  ["maymun", "🐵 🙈 🙉 🙊"],
+  ["yılan", "🐍"],
+  ["kelebek", "🦋"],
+  ["arı", "🐝"],
+  ["böcek", "🐛 🐞 🐜"],
+  ["kaplumbağa", "🐢"],
+  ["çiçek", "🌹 🌷 🌸 🌺 🌻 🌼"],
+  ["ağaç", "🌲 🌳 🌴"],
+  ["deniz", "🌊 🏖️ ⛵ 🐬"],
+  ["dağ", "⛰️ 🏔️"],
+  ["ay yıldız", "🌙 🌕 ⭐ 🌟 ✨ 💫"],
   ["futbol maç top", "⚽ 🥅 🏆 🥇"],
-  ["müzik", "🎵 🎶 🎧 🎸 🎤"],
+  ["basketbol", "🏀"],
+  ["voleybol", "🏐"],
+  ["tenis", "🎾"],
+  ["spor", "🏋️ 🏃 ⚽ 🏀 🥊"],
+  ["koşu", "🏃 👟"],
+  ["yüzme", "🏊"],
+  ["bisiklet", "🚴 🚲"],
+  ["kupa şampiyon madalya", "🏆 🥇 🥈 🥉 🏅"],
   ["oyun", "🎮 🎲 🧩 🎯"],
+  ["müzik", "🎵 🎶 🎧 🎸 🎤"],
+  ["gitar", "🎸"],
+  ["piyano", "🎹"],
+  ["davul", "🥁"],
+  ["mikrofon", "🎤"],
+  ["kulaklık", "🎧"],
+  ["araba yol", "🚗 🚕 🚓 🛣️"],
+  ["otobüs", "🚌 🚍"],
+  ["tren", "🚆 🚂"],
+  ["uçak", "✈️ 🛫 🛬"],
+  ["gemi", "🚢 ⛴️"],
+  ["motor", "🏍️"],
+  ["taksi", "🚕"],
+  ["ambulans yardım", "🚑 🆘"],
+  ["kamyon", "🚚 🚛"],
+  ["trafik ışık", "🚦 🚥 🚧"],
+  ["benzin", "⛽"],
+  ["ev", "🏠 🏡 🛏️ 🛋️"],
+  ["bina", "🏢 🏭 🏬"],
+  ["okul", "🏫 🎓"],
+  ["hastane", "🏥"],
+  ["cami", "🕌"],
+  ["otel", "🏨"],
+  ["market", "🏪 🛒"],
+  ["banka", "🏦"],
+  ["fabrika", "🏭"],
+  ["telefon ara", "📞 📱 ☎️"],
+  ["bilgisayar", "💻 🖥️"],
+  ["pil şarj", "🔋 🔌"],
+  ["fener", "🔦"],
+  ["radyo", "📻"],
+  ["televizyon", "📺"],
+  ["kamera video", "📹 📷 🎥"],
+  ["saat zaman", "⏰ ⌚ 🕐 ⏳"],
+  ["takvim", "📅 📆"],
+  ["not yazı", "📝 ✏️ 📓"],
+  ["mektup posta", "✉️ 📧 📨 💌"],
+  ["bildirim zil", "🔔 📣"],
+  ["kilit anahtar", "🔒 🔑 🔓"],
+  ["çanta", "💼 🎒 👜"],
+  ["gözlük", "👓 🕶️"],
+  ["şapka", "🧢 🎩 👒"],
+  ["ayakkabı bot", "👟 🥾 👞"],
+  ["elbise", "👗 👔 👕"],
+  ["mont", "🧥"],
+  ["eldiven", "🧤"],
+  ["atkı", "🧣"],
+  ["para maaş", "💰 💵 💸 💳 🤑"],
+  ["altın", "🥇 💰 ✨"],
+  ["kredi kart", "💳"],
+  ["elmas", "💎"],
+  ["iş çalışma mesai", "💼 ⏰ 🏢 🛠️ 💪"],
+  ["hediye", "🎁"],
+  ["doğum günü", "🎂 🎈 🎁 🎉"],
+  ["yılbaşı", "🎄 🎅 🎆"],
+  ["balon", "🎈"],
+  ["havai fişek", "🎆 🎇"],
+  ["kutlama parti konfeti", "🎉 🎊 🥳 🎈 🎂"],
+  ["ok yön", "➡️ ⬅️ ⬆️ ⬇️"],
+  ["doğru yanlış", "✅ ❌"],
+  ["soru", "❓ ❔"],
+  ["ünlem", "❗ ‼️"],
+  ["artı eksi", "➕ ➖"],
+  ["rakam sayı", "🔢 💯 🔟"],
+  ["yüz puan", "💯"],
+  ["yeni", "🆕"],
+  ["ücretsiz bedava", "🆓"],
+  ["yasak", "🚫 ⛔"],
   ["dikkat uyarı", "⚠️ 🚨 ❗ 🔔"],
   ["yardım", "🆘 🤝 🙏 🚑"],
-  ["ateş yangın", "🔥 🧯 🚒"],
-  ["bayrak türk türkiye", "🇹🇷 🚩 🎌"],
-  ["hayvan kedi", "🐱 😺 🐈"],
-  ["köpek", "🐶 🐕 🐩"],
-  ["göz", "👀 👁️ 🕶️"],
-  ["güç kuvvet", "💪 🦾 🏋️"],
-  ["korku", "😱 😨 👻 😰"],
-  ["şaşırma", "😲 😮 🤯 😳"],
-  ["düşünme", "🤔 🧐 💭"],
-  ["sessiz", "🤫 🤐 🔇"],
-  ["yıldız", "⭐ 🌟 ✨ 💫"],
-  ["kamera video", "📹 📷 🎥"],
-  ["kitap", "📚 📖 📕"],
-  ["ilaç sağlık", "💊 🩺 🏥 🤒 😷"],
-  ["hasta", "🤒 🤕 🤧 😷"],
-  ["dua", "🙏"],
+  ["ilaç aşı", "💊 💉 🩺 🏥"],
+  ["bomba", "💣 🧨"],
+  ["bayrak", "🇹🇷 🚩 🎌 🏁 🏳️ 🏴"],
+  ["türkiye türk", "🇹🇷 🚩 🎌"],
+  ["azerbaycan", "🇦🇿"],
+  ["almanya", "🇩🇪"],
+  ["amerika abd", "🇺🇸"],
+  ["ingiltere", "🇬🇧"],
+  ["fransa", "🇫🇷"],
+  ["italya", "🇮🇹"],
+  ["ispanya", "🇪🇸"],
+  ["rusya", "🇷🇺"],
+  ["japonya", "🇯🇵"],
+  ["çin", "🇨🇳"],
+  ["suudi arabistan", "🇸🇦"],
+  ["irak", "🇮🇶"],
+  ["suriye", "🇸🇾"],
+  ["pakistan", "🇵🇰"],
+  ["kıbrıs", "🇨🇾"],
+  ["gürcistan", "🇬🇪"],
+  ["bulgaristan", "🇧🇬"],
+  ["yunanistan", "🇬🇷"],
+  ["ukrayna", "🇺🇦"],
+  ["brezilya", "🇧🇷"],
+  ["arjantin", "🇦🇷"],
+  ["hollanda", "🇳🇱"],
+  ["belçika", "🇧🇪"],
+  ["isviçre", "🇨🇭"],
+  ["avusturya", "🇦🇹"],
+  ["kanada", "🇨🇦"],
+  ["mısır", "🇪🇬"],
+  ["iran", "🇮🇷"],
+  ["hindistan", "🇮🇳"],
+  ["kore", "🇰🇷 🇰🇵"],
+  ["portekiz", "🇵🇹"],
+  ["polonya", "🇵🇱"],
+  ["isveç", "🇸🇪"],
+  ["norveç", "🇳🇴"],
   ["mutlu", "😊 😀 😄 🥳"]
 ];
+
+function fold(s) {
+  return s.toLocaleLowerCase("tr")
+    .replace(/ç/g, "c").replace(/ğ/g, "g").replace(/ı/g, "i")
+    .replace(/ö/g, "o").replace(/ş/g, "s").replace(/ü/g, "u")
+    .replace(/â/g, "a").replace(/î/g, "i").replace(/û/g, "u");
+}
 
 const AVATARS = [
   ["🛡️", "#c99a12"], ["👮", "#2f6fb0"], ["🚓", "#c0392b"], ["🔦", "#d9822b"],
@@ -192,12 +401,12 @@ function buildPicker() {
     grid.scrollTop = 0;
   }
   function search(q) {
-    const w = q.trim().toLocaleLowerCase("tr");
+    const w = fold(q.trim());
     if (!w) { show(cur); return; }
     Array.from(tabs.children).forEach((t) => t.classList.remove("on"));
     const found = [];
     SEARCH.forEach((s) => {
-      if (s[0].split(" ").some((k) => k.indexOf(w) === 0)) {
+      if (fold(s[0]).split(" ").some((k) => k.indexOf(w) === 0)) {
         s[1].split(" ").forEach((e) => { if (found.indexOf(e) < 0) found.push(e); });
       }
     });
@@ -216,39 +425,4 @@ function buildPicker() {
   });
   grid.onclick = (ev) => {
     const b = ev.target.closest("button");
-    if (!b) return;
-    const e = b.textContent;
-    insert(e);
-    addRecent(e);
-  };
-  sr.oninput = () => search(sr.value);
-
-  document.body.appendChild(p);
-  p.show = () => { const r = getRecent(); show(r.length ? 0 : 1); };
-  p.show();
-  return p;
-}
-
-export function initFun(ctx) {
-  toast = ctx.toast;
-  const st = document.createElement("style");
-  st.textContent = ".epick{position:fixed;left:8px;right:8px;bottom:calc(74px + env(safe-area-inset-bottom,0px));background:var(--panel);border:1px solid var(--lamp);border-radius:14px;padding:8px;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.45)}.esearch{width:100%;margin-bottom:6px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:15px}.etabs{display:flex;gap:2px;margin-bottom:6px;overflow-x:auto}.etabs button,.egrid button{background:none;border:0;cursor:pointer;border-radius:8px;color:inherit}.etabs button{font-size:22px;padding:4px 9px;flex:none}.etabs button.on{background:rgba(240,194,75,.25)}.egrid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;max-height:32vh;overflow:auto}.egrid button{font-size:26px;padding:4px 0}.egrid button:active{background:rgba(127,150,180,.25)}.eempty{grid-column:1/-1;color:var(--mute);font-size:14px;padding:10px 6px}.ebtn{background:none;border:1px solid var(--line);border-radius:10px;padding:0 12px;cursor:pointer;font-size:20px}.agrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.sheet .ao{aspect-ratio:1;border-radius:50%;border:2px solid var(--line);font-size:34px;padding:0;cursor:pointer;display:grid;place-items:center}.sheet .ao:active{transform:scale(.93)}.msg p.big{font-size:40px;line-height:1.1}.row.mine .av{box-shadow:0 0 0 2px var(--lamp)}";
-  document.head.appendChild(st);
-
-  const labels = { out: "🚪 Çıkış yap", unb: "🚫 Engelleri kaldır", cb: "📞 Görüntülü ara" };
-  Object.keys(labels).forEach((k) => { if ($(k)) $(k).textContent = labels[k]; });
-  $("q").placeholder = "🔎 İl veya oda ara…";
-
-  picker = buildPicker();
-  const eb = document.createElement("button");
-  eb.type = "button"; eb.className = "ebtn"; eb.textContent = "😊"; eb.title = "Emoji";
-  const inp = $("in");
-  inp.parentNode.insertBefore(eb, inp.nextSibling);
-  eb.onclick = () => {
-    picker.hidden = !picker.hidden;
-    if (!picker.hidden) picker.show();
-  };
-  document.addEventListener("click", (e) => {
-    if (!picker.hidden && !picker.contains(e.target) && e.target !== eb) picker.hidden = true;
-  });
-}
+  
