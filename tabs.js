@@ -220,14 +220,34 @@
       place(b, rk);
     }
     if (descEl && descEl.style.display !== "none") descEl.style.display = "none";
-    // Sohbet kapalıyken (başlık yok ya da yazı kutusu gizli) "Sen / Görüntülü ara / Menü" satırını gizle
+    // Sohbet kapalıyken "Sen / Görüntülü ara / Menü" satırını gizle
     if (row) {
-      var t = document.getElementById("rt");
-      var sf = document.getElementById("sf");
-      var closed = !t || !t.textContent.trim() || t.getClientRects().length === 0 || (sf && sf.getClientRects().length === 0);
+      var closed = chatClosed();
       var want = closed ? "none" : "";
       if (row.style.display !== want) row.style.display = want;
     }
+  }
+  // Öğe gerçekten görünüyor mu (display, visibility, opacity, hidden)
+  function shown(el) {
+    if (!el || el.hidden || el.getClientRects().length === 0) return false;
+    var cs = getComputedStyle(el);
+    return cs.visibility !== "hidden" && cs.display !== "none" && cs.opacity !== "0";
+  }
+  // "Özel mesaj kapalı. Yukarıdan bir oda…" yazısı ekranda mı
+  function emptyTextShown() {
+    var els = document.querySelectorAll("div,p,span,li,section,main");
+    for (var i = 0; i < els.length; i++) {
+      var tx = els[i].textContent;
+      if (tx.length < 200 && tx.indexOf("kapalı. Yukarıdan") >= 0 && shown(els[i])) return true;
+    }
+    return false;
+  }
+  function chatClosed() {
+    var t = document.getElementById("rt");
+    var sf = document.getElementById("sf");
+    if (!t || !t.textContent.trim() || !shown(t)) return true;
+    if (sf && !shown(sf)) return true;
+    return emptyTextShown();
   }
   function later() {
     if (busy) return;
