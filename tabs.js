@@ -15,7 +15,8 @@
     ".mbadge{display:inline-block;min-width:20px;padding:1px 6px;margin-left:6px;border-radius:10px;background:#e5484d;color:#fff;font-size:13px;font-weight:700;line-height:18px;text-align:center}" +
     "@keyframes mpulse{0%,100%{box-shadow:0 0 0 2px rgba(229,72,77,.35)}50%{box-shadow:0 0 0 5px rgba(229,72,77,.15)}}" +
     "#mempty{padding:14px 16px;color:var(--mute);font-size:14px}" +
-    "body.mcol #rooms,body.mcol #rooms .room,body.mcol #mempty{display:none!important}" +
+    "#mmore{display:block;width:calc(100% - 20px);margin:0 10px 10px;background:none;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px;cursor:pointer;font-size:15px}" +
+    "body.mcol #rooms,body.mcol #rooms .room,body.mcol #mempty,body.mcol #mmore{display:none!important}" +
     "@media (max-width:760px){" +
     "body.mclosed .app{grid-template-rows:minmax(0,1fr)!important}" +
     "body.mclosed main{display:none!important}" +
@@ -41,8 +42,15 @@
   empty.textContent = "Henüz özel mesajın yok. Arkadaş ekleyince konuşmalar burada görünür.";
   rooms.parentNode.insertBefore(empty, rooms.nextSibling);
 
+  var more = document.createElement("button");
+  more.id = "mmore";
+  more.type = "button";
+  more.hidden = true;
+  rooms.parentNode.insertBefore(more, empty.nextSibling);
+
   var tab = "rooms";
   var collapsed = false;
+  var showAll = false;
 
   function isDmChip(el) {
     var b = el.querySelector("b");
@@ -58,9 +66,11 @@
     var list = rooms.querySelectorAll(".room");
     var count = 0;
     var unread = 0;
+    var vis = 0;
     for (var i = 0; i < list.length; i++) {
       var el = list[i];
       var dm = isDmChip(el);
+      var show = (tab === "dm") === dm;
       if (dm) {
         count++;
         var u = hasUnread(el);
@@ -68,12 +78,17 @@
         el.style.borderColor = u ? "#e5484d" : "";
         var b = el.querySelector("b");
         if (b) b.style.fontWeight = u ? "800" : "";
+        // Mesajlar sekmesinde sadece yeni mesajı olan ya da açık olan konuşmalar görünür
+        if (show) {
+          show = showAll || u || el.getAttribute("aria-current") === "true";
+          if (show) vis++;
+        }
       }
-      el.style.display = ((tab === "dm") === dm) ? "" : "none";
+      el.style.display = show ? "" : "none";
     }
     var mark = function (on) { return on ? (collapsed ? " ▸" : " ▾") : ""; };
     bRooms.textContent = "🏠 Odalar" + mark(tab === "rooms");
-    bDm.textContent = "💬 Mesajlar" + (count ? " (" + count + ")" : "") + mark(tab === "dm");
+    bDm.textContent = "💬 Mesajlar" + mark(tab === "dm");
     if (unread) {
       var bd = document.createElement("span");
       bd.className = "mbadge";
@@ -85,8 +100,17 @@
     bDm.setAttribute("aria-pressed", tab === "dm");
     rooms.hidden = false;
     document.body.classList.toggle("mcol", collapsed);
-    empty.hidden = collapsed || !(tab === "dm" && count === 0);
+    var dmTab = tab === "dm" && !collapsed;
+    empty.textContent = count === 0
+      ? "Henüz özel mesajın yok. Arkadaş ekleyince konuşmalar burada görünür."
+      : "Yeni mesajın yok. Eski konuşmaların silinmedi, aşağıdan açabilirsin.";
+    empty.hidden = !(dmTab && (count === 0 || (vis === 0 && !showAll)));
+    var hidden = count - unread;
+    more.textContent = showAll ? "Sadece yeni mesajları göster" : "Tüm konuşmaları göster (" + hidden + ")";
+    more.hidden = !(dmTab && count > 0 && hidden > 0);
   }
+
+  more.onclick = function () { showAll = !showAll; apply(); };
 
   // Açık sekmeye tekrar basınca liste kapanır/açılır; diğer sekmeye basınca o sekme açılır
   bRooms.onclick = function () { if (tab === "rooms") collapsed = !collapsed; else { tab = "rooms"; collapsed = false; } apply(); };
@@ -99,13 +123,14 @@
     apply();
   }).observe(title, { childList: true, characterData: true, subtree: true });
 
-  // Sohbet ✕ ile kapanınca liste de gizlenir; sekmeye dokununca liste açılır. Sohbet açılınca liste geri gelir.
+  // Sohbet ✕ ile kapanınca Odalar listesi tüm ekranı doldurur (boş yer kalmaz). Mesajlar sekmesinde konuşmalar durur.
   var wasClosed = document.body.classList.contains("chat-closed");
   new MutationObserver(function () {
     var now = document.body.classList.contains("chat-closed");
     if (now === wasClosed) return;
     wasClosed = now;
-    collapsed = now;
+    if (now) tab = "rooms";
+    collapsed = false;
     apply();
   }).observe(document.body, { attributes: true, attributeFilter: ["class"] });
 
