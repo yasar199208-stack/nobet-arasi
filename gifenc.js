@@ -37,8 +37,8 @@ function gifBytes(frames, w, h, pal) {
   "NETSCAPE2.0".split("").forEach((c) => o.push(c.charCodeAt(0)));
   o.push(3, 1, 0, 0, 0);
   frames.forEach((f) => {
-    o.push(0x21, 0xf9, 4, 0x09); w16(f.delay); o.push(255, 0);
-    o.push(0x2c); w16(0); w16(0); w16(w); w16(h); o.push(0);
+    o.push(0x21, 0xf9, 4, f.flag); w16(f.delay); o.push(255, 0);
+    o.push(0x2c); w16(f.x); w16(f.y); w16(f.w); w16(f.h); o.push(0);
     o.push(8);
     const d = lzwEncode(f.px);
     for (let i = 0; i < d.length; i += 255) {
@@ -50,6 +50,47 @@ function gifBytes(frames, w, h, pal) {
   });
   o.push(0x3b);
   return new Uint8Array(o);
+}
+
+// Kare farkı: yalnızca değişen dikdörtgeni yazar, değişmeyen pikseller saydam (255)
+function deltaFrames(full, w, h, pal) {
+  const out = [];
+  let prev = null;
+  full.forEach((f) => {
+    if (!prev) {
+      out.push({ px: f.px, x: 0, y: 0, w: w, h: h, delay: f.delay, flag: 0x04 });
+      prev = Uint8Array.from(f.px);
+      return;
+    }
+    const keep = new Uint8Array(w * h);
+    let x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for (let y = 0, i = 0; y < h; y++) for (let x = 0; x < w; x++, i++) {
+      const a = f.px[i], b = prev[i];
+      let same = a === b;
+      if (!same) {
+        const dr = pal[a * 3] - pal[b * 3], dg = pal[a * 3 + 1] - pal[b * 3 + 1], db = pal[a * 3 + 2] - pal[b * 3 + 2];
+        same = 2 * dr * dr + 4 * dg * dg + 3 * db * db < 260;
+      }
+      if (same) { keep[i] = 1; continue; }
+      if (x < x0) x0 = x; if (x > x1) x1 = x;
+      if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }
+    if (x1 < 0) {
+      // değişiklik yok: önceki kareyi uzat
+      const last = out[out.length - 1];
+      last.delay = Math.min(500, last.delay + f.delay);
+      return;
+    }
+    const rw = x1 - x0 + 1, rh = y1 - y0 + 1;
+    const px = new Uint8Array(rw * rh);
+    for (let y = 0; y < rh; y++) for (let x = 0; x < rw; x++) {
+      const i = (y0 + y) * w + (x0 + x);
+      if (keep[i]) px[y * rw + x] = 255;
+      else { px[y * rw + x] = f.px[i]; prev[i] = f.px[i]; }
+    }
+    out.push({ px: px, x: x0, y: y0, w: rw, h: rh, delay: f.delay, flag: 0x05 });
+  });
+  return out;
 }
 
 function toB64(u8) {
@@ -150,6 +191,20 @@ async function gifFrames(file, maxDim, maxFrames) {
   return list;
 }
 
+// Renkleri canlandırır: doygunluk +%30, hafif kontrast
+function boost(d) {
+  for (let p = 0; p < d.length; p += 4) {
+    const r = d[p], g = d[p + 1], b = d[p + 2];
+    const l = 0.299 * r + 0.587 * g + 0.114 * b;
+    const v = [r, g, b];
+    for (let c = 0; c < 3; c++) {
+      let x = l + (v[c] - l) * 1.3;
+      x = (x - 128) * 1.06 + 128;
+      d[p + c] = x < 0 ? 0 : x > 255 ? 255 : x;
+    }
+  }
+}
+
 function gifBuild(list, dim, count) {
   const base = list[0];
   const k = Math.min(1, dim / Math.max(base.w, base.h));
@@ -169,6 +224,7 @@ function gifBuild(list, dim, count) {
     g.clearRect(0, 0, w, h);
     g.drawImage(list[a].c, 0, 0, w, h);
     const d = g.getImageData(0, 0, w, h).data;
+    boost(d);
     raws.push(d); delays.push(delay);
     for (let p = 0; p < d.length; p += 4) {
       if (d[p + 3] < 128) continue;
@@ -182,25 +238,32 @@ function gifBuild(list, dim, count) {
     for (let y = 0, i = 0; y < h; y++) for (let x = 0; x < w; x++, i++) {
       const p = i * 4;
       if (d[p + 3] < 128) { px[i] = 255; continue; }
-      const t = (BAYER[(y & 3) * 4 + (x & 3)] - 7.5) * 1.1;
+      const t = (BAYER[(y & 3) * 4 + (x & 3)] - 7.5) * 0.6;
       const cl = (v) => v + t < 0 ? 0 : v + t > 255 ? 255 : (v + t) | 0;
       px[i] = near(cl(d[p]), cl(d[p + 1]), cl(d[p + 2]));
     }
     return { px: px, delay: Math.min(500, Math.max(2, delays[j])) };
   });
-  return gifBytes(frames, w, h, pal);
+  let hasAlpha = false;
+  for (let j = 0; j < frames.length && !hasAlpha; j++) if (frames[j].px.indexOf(255) >= 0) hasAlpha = true;
+  if (hasAlpha) {
+    return gifBytes(frames.map((f) => ({ px: f.px, x: 0, y: 0, w: w, h: h, delay: f.delay, flag: 0x09 })), w, h, pal);
+  }
+  const fullB = gifBytes(frames.map((f) => ({ px: f.px, x: 0, y: 0, w: w, h: h, delay: f.delay, flag: 0x04 })), w, h, pal);
+  const deltaB = gifBytes(deltaFrames(frames, w, h, pal), w, h, pal);
+  return deltaB.length < fullB.length ? deltaB : fullB;
 }
 
 // Sığmazsa "big", desteklenmiyorsa null
 export async function shrinkGif(file, limitChars) {
   if (typeof ImageDecoder === "undefined") return null;
-  const list = await gifFrames(file, 360, 40);
+  const list = await gifFrames(file, 360, 60);
   if (!list) return null;
-  const tries = [[360, 40], [320, 36], [280, 32], [240, 30], [200, 26], [170, 20], [140, 14], [110, 10], [90, 7]];
+  const tries = [[360, 60], [360, 45], [320, 45], [320, 36], [280, 36], [240, 30], [200, 26], [170, 20], [140, 14], [110, 10], [90, 7]];
   for (let i = 0; i < tries.length; i++) {
     const cnt = Math.min(tries[i][1], list.length);
     const d = "data:image/gif;base64," + toB64(gifBuild(list, tries[i][0], cnt));
     if (d.length <= limitChars) return d;
   }
   return "big";
-}
+                                                                            }
