@@ -3,7 +3,7 @@ import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWith
 import { ROOMS } from "./rooms.js?v=2";
 import { initAdmin, loadAdmin, resetAdmin, isAdmin, addAdminDelete } from "./admin.js?v=1";
 import { initFun, openAvatarPicker, isBigEmoji } from "./fun.js?v=1";
-import { initMedia, setDmUi, addPhoto, startCalls, stopCalls } from "./media.js?v=1";
+import { initMedia, setDmUi, addPhoto, startCalls, stopCalls } from "./media.js?v=2";
 import { initAvatars, paintAv, loadAv, hasAv, pickPhoto, removePhoto } from "./avatar.js?v=2";
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, runTransaction, collection, addDoc, getDocs, query, orderBy, limit, onSnapshot, serverTimestamp, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
