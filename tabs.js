@@ -99,6 +99,16 @@
     apply();
   }).observe(title, { childList: true, characterData: true, subtree: true });
 
+  // Sohbet ✕ ile kapanınca liste de gizlenir; sekmeye dokununca liste açılır. Sohbet açılınca liste geri gelir.
+  var wasClosed = document.body.classList.contains("chat-closed");
+  new MutationObserver(function () {
+    var now = document.body.classList.contains("chat-closed");
+    if (now === wasClosed) return;
+    wasClosed = now;
+    collapsed = now;
+    apply();
+  }).observe(document.body, { attributes: true, attributeFilter: ["class"] });
+
   apply();
 })();
 
