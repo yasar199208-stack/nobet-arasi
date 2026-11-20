@@ -121,11 +121,11 @@
     ".mmenu{background:none;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:8px 14px;cursor:pointer;font-size:15px;font-weight:600}" +
     ".mmenu[aria-expanded=\"true\"]{border-color:var(--lamp);background:rgba(127,150,180,.15)}" +
     ".mback{position:fixed;left:0;top:0;right:0;bottom:0;z-index:40;background:rgba(0,0,0,.35)}" +
-    ".mpanel{position:fixed;left:12px;right:12px;z-index:41;max-width:340px;margin-left:auto;background:var(--panel);border:1px solid var(--lamp);border-radius:14px;padding:10px;box-shadow:0 10px 28px rgba(0,0,0,.5);max-height:80vh;overflow:auto}" +
+    ".mpanel{position:fixed;left:12px;right:12px;z-index:41;max-width:340px;margin-left:auto;background:var(--panel);border:1px solid var(--lamp);border-radius:14px;padding:10px;box-shadow:0 10px 28px rgba(0,0,0,.5);overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}" +
     ".mpanel .minfo{padding:4px 6px 10px;border-bottom:1px solid var(--line);margin-bottom:8px}" +
     ".mpanel .minfo b{display:block;font-size:16px}" +
     ".mpanel .minfo span{display:block;color:var(--mute);font-size:13px;margin-top:2px}" +
-    ".mpanel button{display:flex!important;align-items:center;gap:8px;width:100%;margin:0 0 6px!important;text-align:left;justify-content:flex-start;padding:11px 12px;font-size:16px;cursor:pointer;background:rgba(127,150,180,.12)!important;color:var(--text)!important;border:1px solid var(--line)!important;border-radius:10px!important}" +
+    ".mpanel button{display:flex!important;align-items:center;gap:8px;width:100%;margin:0 0 6px!important;text-align:left;justify-content:flex-start;padding:9px 12px;font-size:16px;cursor:pointer;background:rgba(127,150,180,.12)!important;color:var(--text)!important;border:1px solid var(--line)!important;border-radius:10px!important}" +
     ".mpanel button[hidden]{display:none!important}";
   document.head.appendChild(st);
 
@@ -166,7 +166,9 @@
     infoD.textContent = descEl ? descEl.textContent.trim() : "";
     infoD.hidden = !infoD.textContent;
     var r = menuBtn.getBoundingClientRect();
-    panel.style.top = Math.min(r.bottom + 8, window.innerHeight - 120) + "px";
+    var top = Math.min(r.bottom + 8, window.innerHeight - 200);
+    panel.style.top = top + "px";
+    panel.style.maxHeight = Math.max(160, window.innerHeight - top - 28) + "px";
     panel.hidden = false;
     back.hidden = false;
     menuBtn.setAttribute("aria-expanded", "true");
