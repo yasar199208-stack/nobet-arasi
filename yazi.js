@@ -68,14 +68,21 @@ let panel = null, list = null, btn = null;
 function apply(fn) {
   const inp = $("in");
   if (!inp) return;
-  const v = fn(inp.value);
-  if (inp.maxLength > 0 && v.length > inp.maxLength) { toast("Yazı çok uzun, kısalt ve tekrar dene."); return; }
   const old = inp.value;
-  inp.blur();
-  inp.value = v;
-  inp.dispatchEvent(new Event("input", { bubbles: true }));
+  const v = fn(old);
+  if (inp.maxLength > 0 && v.length > inp.maxLength) { toast("Yazı çok uzun, kısalt ve tekrar dene."); return; }
   panel.hidden = true;
-  setTimeout(() => { if (inp.value === old) inp.value = v; inp.focus(); try { inp.setSelectionRange(v.length, v.length); } catch (e) {} }, 120);
+  // Telefon klavyesiyle uyumlu olması için önce yazma yoluyla değiştirmeyi dene
+  let ok = false;
+  try { inp.focus(); inp.select(); ok = document.execCommand("insertText", false, v); } catch (e) {}
+  if (!ok || inp.value !== v) {
+    inp.value = v;
+    inp.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  setTimeout(() => {
+    if (inp.value === old) inp.value = v;
+    try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch (e) {}
+  }, 150);
 }
 
 function open() {
