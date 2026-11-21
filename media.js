@@ -135,8 +135,9 @@ function openCallUi(c, title) {
   const lv = el("video", "lv"); lv.autoplay = true; lv.playsInline = true; lv.muted = true; lv.srcObject = c.stream;
   const t = el("div", "ctitle", title);
   const bar = el("div", "cbar");
-  const mic = el("button", "", "🎤"), cam = el("button", "", "📷"), end = el("button", "end", "📞");
-  mic.type = "button"; cam.type = "button"; end.type = "button";
+  const mic = el("button", "", "🎤"), cam = el("button", "", "📷"), flip = el("button", "", "🔄"), end = el("button", "end", "📞");
+  mic.type = "button"; cam.type = "button"; flip.type = "button"; end.type = "button";
+  flip.title = "Ön / arka kamera";
   mic.onclick = () => {
     const tr = c.stream.getAudioTracks(); if (!tr.length) return;
     const on = !tr[0].enabled; tr.forEach((x) => { x.enabled = on; }); mic.textContent = on ? "🎤" : "🔇";
@@ -145,8 +146,29 @@ function openCallUi(c, title) {
     const tr = c.stream.getVideoTracks(); if (!tr.length) return;
     const on = !tr[0].enabled; tr.forEach((x) => { x.enabled = on; }); cam.textContent = on ? "📷" : "🚫";
   };
+  flip.onclick = async () => {
+    if (c.flipping) return;
+    c.flipping = true;
+    try {
+      const want = c.facing === "environment" ? "user" : "environment";
+      let ns = null;
+      try { ns = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: want } }, audio: false }); }
+      catch (e) { ns = await navigator.mediaDevices.getUserMedia({ video: { facingMode: want }, audio: false }); }
+      const nt = ns.getVideoTracks()[0];
+      const old = c.stream.getVideoTracks()[0];
+      nt.enabled = old ? old.enabled : true;
+      const sender = c.pc.getSenders().find((x) => x.track && x.track.kind === "video");
+      if (sender) await sender.replaceTrack(nt);
+      if (old) { c.stream.removeTrack(old); old.stop(); }
+      c.stream.addTrack(nt);
+      c.facing = want;
+      lv.srcObject = c.stream;
+      lv.style.transform = want === "user" ? "scaleX(-1)" : "none";
+    } catch (e) { C.toast("Kamera değiştirilemedi."); }
+    c.flipping = false;
+  };
   end.onclick = () => hangup("");
-  bar.appendChild(mic); bar.appendChild(cam); bar.appendChild(end);
+  bar.appendChild(mic); bar.appendChild(cam); bar.appendChild(flip); bar.appendChild(end);
   o.appendChild(rv); o.appendChild(lv); o.appendChild(t); o.appendChild(bar);
   document.body.appendChild(o);
   c.ui = { o: o, rv: rv, t: t };
