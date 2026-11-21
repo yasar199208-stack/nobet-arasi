@@ -1,6 +1,7 @@
 // Ek modüller: biri yüklenemezse (dosya yoksa) filtre yine de çalışır.
 import("./legal.js?v=1").catch(() => {});
 import("./silme.js?v=1").catch(() => {});
+import("./yazi.js?v=1").catch(() => {});
 
 // Küfür filtresi: uygunsuz ifade içeren mesaj gönderilmeden önce engellenir.
 const $ = (i) => document.getElementById(i);
@@ -11,7 +12,7 @@ const EXACT = ["am", "amk", "aq", "amq", "sik", "sikim", "siktir", "got", "gotun
 const PREFIX = ["orospu", "yarrak", "yarak", "pezevenk", "siktir", "sikeyim", "sikerim", "sikik", "amcik", "amina", "aminako", "gotveren", "ibne", "anani", "kahpe", "pust", "gavat", "surtuk"];
 
 function norm(s) {
-  let t = s.toLocaleLowerCase("tr");
+  let t = s.normalize("NFKC").replace(/[̀-ͯ]/g, "").toLocaleLowerCase("tr");
   const map = { "ç": "c", "ğ": "g", "ı": "i", "ö": "o", "ş": "s", "ü": "u", "â": "a", "î": "i", "û": "u", "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s" };
   t = t.replace(/[çğıöşüâîû0134 57@$]/g, (c) => map[c] || c);
   t = t.replace(/[^a-z]+/g, " ");
