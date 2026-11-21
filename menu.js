@@ -1,7 +1,7 @@
 (function () {
   var KEYS = [
     ["sikayetler", 0], ["profil resmim", 1], ["banlilar", 2], ["engelleri", 3],
-    ["arkadaslar", 4], ["ses", 5], ["sesli", 6], ["cikis", 7]
+    ["arkadaslar", 4], ["ses", 5], ["sesli", 6], ["cikis", 7], ["hesabimi sil", 8]
   ];
 
   function fold(s) {
