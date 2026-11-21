@@ -20,7 +20,7 @@ function el(tag, cls, txt) {
 export function initMedia(ctx) {
   C = ctx;
   const st = document.createElement("style");
-  st.textContent = ".phb{background:none;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:0 12px;cursor:pointer;font-size:20px}.mimg{display:block;max-width:100%;max-height:260px;border-radius:8px;margin-top:4px;cursor:zoom-in}.mimg.chk{filter:blur(22px);pointer-events:none}.chkb{display:block;margin-top:6px;background:none;border:1px solid var(--lamp);color:var(--lamp);border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer}.view{position:fixed;inset:0;background:rgba(0,0,0,.92);display:grid;place-items:center;z-index:30}.view img{max-width:96vw;max-height:90vh;border-radius:8px}.call{position:fixed;inset:0;background:#05090f;z-index:40;display:flex;flex-direction:column}.call video{background:#000}.rv{flex:1;min-height:0;width:100%;object-fit:cover}.lv{position:absolute;right:12px;top:calc(12px + env(safe-area-inset-top,0px));width:96px;height:128px;object-fit:cover;border-radius:10px;border:2px solid var(--lamp);transform:scaleX(-1)}.ctitle{position:absolute;left:0;right:0;top:calc(14px + env(safe-area-inset-top,0px));text-align:center;color:#fff;font:600 18px var(--body);text-shadow:0 1px 3px #000;pointer-events:none}.cbar{display:flex;justify-content:center;gap:14px;padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px))}.cbar button{border:0;border-radius:999px;width:56px;height:56px;font-size:22px;cursor:pointer;background:#2a3d57;color:#fff}.cbar .end{background:#d9534f}.ring{position:fixed;left:12px;right:12px;top:calc(12px + env(safe-area-inset-top,0px));z-index:50;background:var(--panel);color:var(--text);border:1px solid var(--lamp);border-radius:12px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:10px}.ring div{display:flex;gap:8px}.ring button{border:0;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600;color:#fff}.ring .ok{background:#3fb06a}.ring .no{background:#d9534f}";
+  st.textContent = ".phb{background:none;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:0 12px;cursor:pointer;font-size:20px}.mimg{display:block;max-width:100%;max-height:260px;border-radius:8px;margin-top:4px;cursor:zoom-in}.mimg.chk{filter:blur(22px);pointer-events:none}.chkb{display:block;margin-top:6px;background:none;border:1px solid var(--lamp);color:var(--lamp);border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer}.view{position:fixed;inset:0;background:rgba(0,0,0,.92);display:grid;place-items:center;z-index:30}.view img{max-width:96vw;max-height:90vh;border-radius:8px}.call{position:fixed;inset:0;background:#05090f;z-index:40;display:flex;flex-direction:column}.call video{background:#000}.rv{flex:1;min-height:0;width:100%;object-fit:cover}.lv{position:absolute;right:12px;top:calc(12px + env(safe-area-inset-top,0px));width:96px;height:128px;object-fit:cover;border-radius:10px;border:2px solid var(--lamp);transform:scaleX(-1)}.ctitle{position:absolute;left:0;right:0;top:calc(14px + env(safe-area-inset-top,0px));text-align:center;color:#fff;font:600 18px var(--body);text-shadow:0 1px 3px #000;pointer-events:none}.cbar{display:flex;justify-content:center;gap:14px;padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px))}.cbar button{border:0;border-radius:999px;width:56px;height:56px;font-size:22px;cursor:pointer;background:#2a3d57;color:#fff}.cbar .end{background:#d9534f}.call .cmin{position:absolute;left:12px;top:calc(12px + env(safe-area-inset-top,0px));z-index:2;width:44px;height:44px;border:0;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;font-size:20px;cursor:pointer}.call .mend{display:none}.call.mini{inset:auto;top:calc(80px + env(safe-area-inset-top,0px));right:10px;width:112px;height:150px;border-radius:14px;border:2px solid var(--lamp);overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.5);touch-action:none}.call.mini .lv,.call.mini .ctitle,.call.mini .cbar,.call.mini .cmin{display:none}.call.mini .mend{display:grid;place-items:center;position:absolute;right:4px;bottom:4px;width:34px;height:34px;border:0;border-radius:50%;background:#d9534f;color:#fff;font-size:16px;cursor:pointer}.ring{position:fixed;left:12px;right:12px;top:calc(12px + env(safe-area-inset-top,0px));z-index:50;background:var(--panel);color:var(--text);border:1px solid var(--lamp);border-radius:12px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:10px}.ring div{display:flex;gap:8px}.ring button{border:0;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600;color:#fff}.ring .ok{background:#3fb06a}.ring .no{background:#d9534f}";
   document.head.appendChild(st);
 
   fileEl = document.createElement("input");
@@ -169,7 +169,32 @@ function openCallUi(c, title) {
   };
   end.onclick = () => hangup("");
   bar.appendChild(mic); bar.appendChild(cam); bar.appendChild(flip); bar.appendChild(end);
-  o.appendChild(rv); o.appendChild(lv); o.appendChild(t); o.appendChild(bar);
+  // Küçült: arama küçük bir pencereye iner, uygulamada gezebilirsin. Pencereye dokununca büyür, sürükleyince taşınır.
+  const cmin = el("button", "cmin", "🗕"); cmin.type = "button"; cmin.title = "Küçült";
+  const mend = el("button", "mend", "📞"); mend.type = "button"; mend.title = "Aramayı bitir";
+  const expand = () => { o.classList.remove("mini"); o.style.left = o.style.top = o.style.right = o.style.bottom = ""; };
+  cmin.onclick = () => { o.classList.add("mini"); };
+  mend.onpointerdown = (e) => e.stopPropagation();
+  mend.onclick = (e) => { e.stopPropagation(); hangup(""); };
+  let drag = false, moved = false, sx = 0, sy = 0, ox = 0, oy = 0;
+  o.addEventListener("pointerdown", (e) => {
+    if (!o.classList.contains("mini") || e.target === mend) return;
+    drag = true; moved = false; sx = e.clientX; sy = e.clientY;
+    const r = o.getBoundingClientRect(); ox = r.left; oy = r.top;
+    try { o.setPointerCapture(e.pointerId); } catch (x) {}
+  });
+  o.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (!moved && Math.abs(dx) + Math.abs(dy) < 8) return;
+    moved = true;
+    const x = Math.min(Math.max(0, ox + dx), window.innerWidth - o.offsetWidth);
+    const y = Math.min(Math.max(0, oy + dy), window.innerHeight - o.offsetHeight);
+    o.style.left = x + "px"; o.style.top = y + "px"; o.style.right = "auto"; o.style.bottom = "auto";
+  });
+  o.addEventListener("pointerup", () => { if (!drag) return; drag = false; if (!moved) expand(); });
+  o.addEventListener("pointercancel", () => { drag = false; });
+  o.appendChild(rv); o.appendChild(lv); o.appendChild(t); o.appendChild(bar); o.appendChild(cmin); o.appendChild(mend);
   document.body.appendChild(o);
   c.ui = { o: o, rv: rv, t: t };
 }
