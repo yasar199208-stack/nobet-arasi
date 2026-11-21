@@ -2,13 +2,13 @@ import { getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, collection, query, where, getDocs, onSnapshot, setDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// 🎮 Oyunlar: tek başına oyunlar (solo, action, puzzle dosyaları) ve özel mesajda arkadaşla oyunlar (gpair.js ... gpair6.js).
+// 🎮 Oyunlar: tek başına oyunlar (solo, action, puzzle dosyaları) ve özel mesajda arkadaşla oyunlar (gpair.js ... gpair7.js).
 // Arkadaşla oyunlar tek belgede tutulur: dms/<çift>/games/<oyun>
 for (let i = 0; i < 150 && !getApps().length; i++) await new Promise((r) => setTimeout(r, 200));
 const auth = getAuth(), db = getFirestore();
 const $ = (i) => document.getElementById(i);
-const KINDS = ["xox", "rps", "c4", "hang", "ships", "reversi", "mancala", "dama", "chess", "hex", "dots", "mill", "wduel", "gomoku", "speed", "dart", "draw"];
-const MODS = ["solo.js?v=2", "action.js?v=1", "puzzle.js?v=1", "puzzle2.js?v=1", "puzzle3.js?v=1", "puzzle4.js?v=1", "action2.js?v=1", "action3.js?v=1", "action4.js?v=1", "action5.js?v=1", "puzzle5.js?v=1", "action6.js?v=1", "action7.js?v=1", "mix1.js?v=1", "action8.js?v=1", "match3.js?v=1", "bubble.js?v=1", "rider.js?v=1", "robot.js?v=1", "jump3d.js?v=1", "snake3d.js?v=1", "candy3d.js?v=1", "chess3d.js?v=1"];
+const KINDS = ["xox", "rps", "c4", "hang", "ships", "reversi", "mancala", "dama", "chess", "hex", "dots", "mill", "wduel", "gomoku", "speed", "dart", "draw", "bike"];
+const MODS = ["solo.js?v=2", "action.js?v=1", "puzzle.js?v=1", "puzzle2.js?v=1", "puzzle3.js?v=1", "puzzle4.js?v=1", "action2.js?v=1", "action3.js?v=1", "action4.js?v=1", "action5.js?v=1", "puzzle5.js?v=1", "action6.js?v=1", "action7.js?v=1", "mix1.js?v=1", "action8.js?v=1", "match3.js?v=1", "bubble.js?v=1", "rider.js?v=1", "robot.js?v=1", "jump3d.js?v=1", "snake3d.js?v=1", "candy3d.js?v=1", "chess3d.js?v=1", "bike3d.js?v=1"];
 const PRIMARY = "background:var(--lamp)!important;color:var(--lamp-ink)!important;border:0!important";
 
 let user = null, pair = null, unsub = null, games = {}, tok = 0;
@@ -383,7 +383,7 @@ function init() {
   const send = bs[bs.length - 1];
   send.parentNode.insertBefore(btn, send);
   btn.onclick = openPanel;
-  Promise.all(["./gpair.js?v=1", "./gpair2.js?v=1", "./gpair3.js?v=1", "./gpair4.js?v=1", "./gpair5.js?v=1", "./gpair6.js?v=1"].map((f) => import(f).then((m) => m.PAIR).catch(() => ({})))).then((rs) => { P = Object.assign({}, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5]); render(); });
+  Promise.all(["./gpair.js?v=1", "./gpair2.js?v=1", "./gpair3.js?v=1", "./gpair4.js?v=1", "./gpair5.js?v=1", "./gpair6.js?v=1", "./gpair7.js?v=1"].map((f) => import(f).then((m) => m.PAIR).catch(() => ({})))).then((rs) => { P = Object.assign({}, rs[0], rs[1], rs[2], rs[3], rs[4], rs[5], rs[6]); render(); });
   new MutationObserver(pick).observe(rt, { childList: true, characterData: true, subtree: true });
   onAuthStateChanged(auth, (u) => {
     user = u;
