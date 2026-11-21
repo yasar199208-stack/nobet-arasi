@@ -1,8 +1,9 @@
+import { getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // Belediye Güvenlik bölümü: yalnızca doğru kodu bilenler girer. Denetimi Firestore kuralları yapar.
-const auth = getAuth(), db = getFirestore();
+let auth, db;
 const $ = (i) => document.getElementById(i);
 let user = null, nick = "", isAdm = false, btn = null, panel = null, unsub = null, last = 0;
 
@@ -162,4 +163,11 @@ function init() {
     start(u);
   });
 }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
+
+// Uygulama Firebase'i başlatana kadar bekle, sonra başla
+function boot() {
+  if (!getApps().length) { setTimeout(boot, 200); return; }
+  auth = getAuth(); db = getFirestore();
+  init();
+}
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
