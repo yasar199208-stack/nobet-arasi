@@ -12,6 +12,8 @@ const PROV = [
     th: (m) => "https://www.dailymotion.com/thumbnail/video/" + m[1], ar: "16/9", open: (m) => "https://www.dailymotion.com/video/" + m[1] },
   { n: "TikTok", re: new RegExp("(?:https?:\\/\\/)?(?:www\\.)?tiktok\\.com\\/@[A-Za-z0-9._-]+\\/video\\/(\\d{8,25})(?!\\d)" + U, "i"),
     src: (m) => "https://www.tiktok.com/embed/v2/" + m[1], ar: "9/16", tall: 1, open: (m) => "https://www.tiktok.com/video/" + m[1] },
+  { n: "TikTok", re: new RegExp("(?:https?:\\/\\/)?(?:(?:vt|vm)\\.tiktok\\.com\\/|(?:www\\.)?tiktok\\.com\\/t\\/)[A-Za-z0-9_-]{6,15}\\/?(?![A-Za-z0-9_@.-])" + U, "i"),
+    short: 1, ar: "9/16", tall: 1, open: (m) => norm(m[0]) },
   { n: "Instagram", re: new RegExp("(?:https?:\\/\\/)?(?:www\\.)?instagram\\.com\\/(p|reel|reels|tv)\\/([A-Za-z0-9_-]{5,20})" + U, "i"),
     src: (m) => "https://www.instagram.com/" + (m[1] === "reels" ? "reel" : m[1]) + "/" + m[2] + "/embed", ar: "9/14", tall: 1,
     open: (m) => "https://www.instagram.com/" + (m[1] === "reels" ? "reel" : m[1]) + "/" + m[2] + "/" },
@@ -37,68 +39,19 @@ document.head.appendChild(st);
 function card(pv, m) {
   const w = document.createElement("div");
   w.className = "vcard" + (pv.tall ? " tall" : "");
-  const play = () => {
+  const play = async () => {
     let f;
-    if (pv.file) {
-      f = document.createElement("video");
-      f.src = m[0]; f.controls = true; f.autoplay = true; f.playsInline = true; f.preload = "metadata";
-      f.style.aspectRatio = pv.ar;
-    } else {
+    if (pv.short) {
+      let id = "";
+      try {
+        const r = await fetch("https://www.tiktok.com/oembed?url=" + encodeURIComponent(norm(m[0])));
+        const j = await r.json();
+        id = String(j.embed_product_id || (/\/video\/(\d+)/.exec(j.html || "") || [])[1] || "");
+      } catch (e) {}
+      if (!/^\d{8,25}$/.test(id)) { window.open(norm(m[0]), "_blank", "noopener"); return; }
       f = document.createElement("iframe");
-      f.src = pv.src(m);
+      f.src = "https://www.tiktok.com/embed/v2/" + id;
       f.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
       f.allowFullscreen = true;
-      f.referrerPolicy = "strict-origin-when-cross-origin";
       f.style.aspectRatio = pv.ar;
-    }
-    w.replaceChild(f, b);
-  };
-  const b = document.createElement("button");
-  b.type = "button";
-  b.className = "vb";
-  b.style.aspectRatio = pv.ar;
-  b.setAttribute("aria-label", "Videoyu oynat");
-  if (pv.th) {
-    const im = document.createElement("img");
-    im.loading = "lazy"; im.alt = "Video"; im.src = pv.th(m);
-    im.onerror = () => im.remove();
-    b.appendChild(im);
-  }
-  const nm = document.createElement("span");
-  nm.className = "vn"; nm.textContent = pv.n;
-  const pl = document.createElement("span");
-  pl.className = "vp"; pl.textContent = "▶";
-  b.appendChild(nm); b.appendChild(pl);
-  b.onclick = play;
-  w.appendChild(b);
-  const a = document.createElement("a");
-  a.className = "vl";
-  a.href = pv.open(m);
-  a.target = "_blank";
-  a.rel = "noopener noreferrer";
-  a.textContent = pv.n + "'da aç";
-  w.appendChild(a);
-  return w;
-}
-
-function scan() {
-  document.querySelectorAll(".msg p:not([data-v])").forEach((p) => {
-    p.setAttribute("data-v", "1");
-    const t = p.textContent || "";
-    for (const pv of PROV) {
-      const m = pv.re.exec(t);
-      if (!m) continue;
-      const log = p.closest(".log");
-      const near = log ? log.scrollHeight - log.scrollTop - log.clientHeight < 160 : false;
-      if (t.trim() === m[0].trim()) p.classList.add("vonly");
-      p.after(card(pv, m));
-      if (near && log) { log.scrollTop = log.scrollHeight; setTimeout(() => { log.scrollTop = log.scrollHeight; }, 400); }
-      return;
-    }
-  });
-}
-
-let tm = 0;
-new MutationObserver(() => { clearTimeout(tm); tm = setTimeout(scan, 60); })
-  .observe(document.body, { childList: true, subtree: true });
-scan();
+    } else if (pv.file) {
