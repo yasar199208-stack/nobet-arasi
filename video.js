@@ -26,7 +26,36 @@ function norm(u) { return /^https?:\/\//i.test(u) ? u : "https://" + u; }
 const st = document.createElement("style");
 st.textContent =
   ".vcard{margin-top:6px;width:100%;max-width:300px}" +
-        f = document.createElement("video");
+  ".vcard .vb{position:relative;display:block;width:100%;padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#101820;cursor:pointer}" +
+  ".vcard .vb img{width:100%;height:100%;object-fit:cover;display:block}" +
+  ".vcard .vn{position:absolute;left:10px;top:8px;font:700 14px var(--head);color:#fff;background:rgba(0,0,0,.55);border-radius:6px;padding:2px 8px}" +
+  ".vcard .vp{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:54px;height:38px;border-radius:10px;background:rgba(224,40,40,.92);color:#fff;font-size:20px;display:grid;place-items:center}" +
+  ".vcard iframe,.vcard video{width:100%;border:0;border-radius:10px;display:block;background:#000}" +
+  ".vcard.tall{max-width:260px}" +
+  ".vcard .vl{display:inline-block;margin-top:4px;font-size:13px;color:var(--mute)}" +
+  ".msg p.vonly{display:none}";
+document.head.appendChild(st);
+
+function card(pv, m) {
+  const w = document.createElement("div");
+  w.className = "vcard" + (pv.tall ? " tall" : "");
+  const play = async () => {
+    let f;
+    if (pv.short) {
+      let id = "";
+      try {
+        const r = await fetch("https://www.tiktok.com/oembed?url=" + encodeURIComponent(norm(m[0])));
+        const j = await r.json();
+        id = String(j.embed_product_id || (/\/video\/(\d+)/.exec(j.html || "") || [])[1] || "");
+      } catch (e) {}
+      if (!/^\d{8,25}$/.test(id)) { window.open(norm(m[0]), "_blank", "noopener"); return; }
+      f = document.createElement("iframe");
+      f.src = "https://www.tiktok.com/embed/v2/" + id;
+      f.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+      f.allowFullscreen = true;
+      f.style.aspectRatio = pv.ar;
+    } else if (pv.file) {
+      f = document.createElement("video");
       f.src = m[0]; f.controls = true; f.autoplay = true; f.playsInline = true; f.preload = "metadata";
       f.style.aspectRatio = pv.ar;
     } else {
@@ -88,32 +117,3 @@ let tm = 0;
 new MutationObserver(() => { clearTimeout(tm); tm = setTimeout(scan, 60); })
   .observe(document.body, { childList: true, subtree: true });
 scan();
-  ".vcard .vb{position:relative;display:block;width:100%;padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#101820;cursor:pointer}" +
-  ".vcard .vb img{width:100%;height:100%;object-fit:cover;display:block}" +
-  ".vcard .vn{position:absolute;left:10px;top:8px;font:700 14px var(--head);color:#fff;background:rgba(0,0,0,.55);border-radius:6px;padding:2px 8px}" +
-  ".vcard .vp{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:54px;height:38px;border-radius:10px;background:rgba(224,40,40,.92);color:#fff;font-size:20px;display:grid;place-items:center}" +
-  ".vcard iframe,.vcard video{width:100%;border:0;border-radius:10px;display:block;background:#000}" +
-  ".vcard.tall{max-width:260px}" +
-  ".vcard .vl{display:inline-block;margin-top:4px;font-size:13px;color:var(--mute)}" +
-  ".msg p.vonly{display:none}";
-document.head.appendChild(st);
-
-function card(pv, m) {
-  const w = document.createElement("div");
-  w.className = "vcard" + (pv.tall ? " tall" : "");
-  const play = async () => {
-    let f;
-    if (pv.short) {
-      let id = "";
-      try {
-        const r = await fetch("https://www.tiktok.com/oembed?url=" + encodeURIComponent(norm(m[0])));
-        const j = await r.json();
-        id = String(j.embed_product_id || (/\/video\/(\d+)/.exec(j.html || "") || [])[1] || "");
-      } catch (e) {}
-      if (!/^\d{8,25}$/.test(id)) { window.open(norm(m[0]), "_blank", "noopener"); return; }
-      f = document.createElement("iframe");
-      f.src = "https://www.tiktok.com/embed/v2/" + id;
-      f.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
-      f.allowFullscreen = true;
-      f.style.aspectRatio = pv.ar;
-    } else if (pv.file) {
