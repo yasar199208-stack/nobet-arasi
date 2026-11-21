@@ -1,6 +1,6 @@
 import { getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, collection, getDocs, query, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { ROOMS } from "./rooms.js?v=2";
 
 // Belediye Güvenlik bölümü: yalnızca doğru kodu bilenler görür. Denetimi Firestore kuralları yapar.
@@ -13,14 +13,8 @@ const MUNI = [
   { id: "bel_maas", ic: "🏛️", n: "Belediye Maaş ve haklar", d: "Belediye güvenliği: maaş, fazla mesai, izin, sözleşme" },
   { id: "bel_moral", ic: "🏛️", n: "Belediye Moral köşesi", d: "Belediye güvenliği: dertleş, rahatla, destek ol" }
 ];
-let user = null, nick = "", isAdm = false, member = false, btn = null, panel = null;
+let user = null, nick = "", isAdm = false, member = false, btn = null;
 
-function el(tag, cls, txt) {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (txt) e.textContent = txt;
-  return e;
-}
 function toast(m) {
   const t = $("toast");
   if (!t) return;
@@ -28,11 +22,6 @@ function toast(m) {
   clearTimeout(toast.t);
   toast.t = setTimeout(() => { t.hidden = true; }, 4000);
 }
-
-const st = el("style");
-st.textContent = ".room.muni{border-left-color:var(--lamp);flex:none}.mnp{position:fixed;left:0;right:0;top:0;height:100dvh;background:var(--bg);color:var(--text);z-index:35;display:flex;flex-direction:column}.mnh{display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 10px;border-bottom:3px solid var(--lamp);background:var(--panel)}.mnh h2{flex:1;margin:0;font:700 20px var(--head);color:var(--lamp)}.mnh button{background:none;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:16px}.mnb{flex:1;min-height:0;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px}.mnb p{margin:0;color:var(--mute)}.mnr{display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--lamp);color:var(--text);border-radius:10px;padding:12px;cursor:pointer;font-size:16px}.mnr b{display:block}.mnr span{color:var(--mute);font-size:14px}.mng{margin:auto 0;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center}.mng input{width:100%;max-width:320px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:16px}.mng button{background:var(--lamp);color:var(--lamp-ink);border:0;border-radius:10px;padding:10px 22px;font:700 18px var(--head);cursor:pointer}.mng p{max-width:320px}.mna{padding:10px 12px;background:var(--panel);border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px}.mna div{display:flex;gap:8px}.mna input{flex:1;min-width:0;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px}.mna button{background:var(--lamp);color:var(--lamp-ink);border:0;border-radius:8px;padding:0 14px;font-weight:700;cursor:pointer}.mna span{color:var(--mute);font-size:13px}";
-document.head.appendChild(st);
-
 function rerender() { const q = $("q"); if (q) q.dispatchEvent(new Event("input")); }
 
 // Üye olunca Belediye odaları ana oda listesine eklenir (genel odaların hemen arkasına)
@@ -45,39 +34,65 @@ function disable() {
   for (let i = ROOMS.length - 1; i >= 0; i--) if (/^bel_/.test(ROOMS[i].id)) ROOMS.splice(i, 1);
   rerender();
 }
-
 async function probe() {
   try { await getDocs(query(collection(db, "rooms", "bel_genel", "messages"), limit(1))); return true; }
   catch (e) { return false; }
+}
+async function join() {
+  member = await probe();
+  if (member) enable();
+  return member;
+}
+
+function openRoom(r) {
+  const want = r.ic + " " + r.n;
+  const b = Array.from(document.querySelectorAll("#rooms .room b")).find((x) => x.textContent === want);
+  if (b && b.parentNode) b.parentNode.click();
+}
+
+async function open() {
+  try {
+    const m = await import("./belediye-ui.js?v=1");
+    m.openPanel({ db: db, rooms: MUNI, toast: toast, join: join, openRoom: openRoom,
+      isAdm: () => isAdm, member: () => member, uid: () => user.uid, nick: () => nick });
+  } catch (e) { toast("Bölüm açılamadı. Sayfayı yenile."); }
 }
 
 function mount() {
   const h = $("rooms");
   if (!h || !user) return;
   if (!btn) {
-    btn = el("button", "room muni");
-    btn.type = "button";
-    btn.appendChild(el("b", "", "🏛️ Belediye Güvenlik"));
-    btn.appendChild(el("span", "", "Sadece belediye çalışanı güvenlikler"));
-    btn.onclick = openPanel;
+    btn = document.createElement("button");
+    btn.className = "room muni"; btn.type = "button";
+    const b = document.createElement("b"); b.textContent = "🏛️ Belediye Güvenlik";
+    const s = document.createElement("span"); s.textContent = "Sadece belediye çalışanı güvenlikler";
+    btn.appendChild(b); btn.appendChild(s);
+    btn.onclick = open;
   }
   if (h.firstChild !== btn) h.insertBefore(btn, h.firstChild);
 }
 
-function closePanel() { if (panel) { panel.remove(); panel = null; } }
-
-function openRoomById(r) {
-  closePanel();
-  const want = r.ic + " " + r.n;
-  const b = Array.from(document.querySelectorAll("#rooms .room b")).find((x) => x.textContent === want);
-  if (b && b.parentNode) b.parentNode.click();
+async function start(u) {
+  user = u;
+  try { const s = await getDoc(doc(db, "users", u.uid)); nick = s.exists() ? s.data().nick : ""; } catch (e) {}
+  try { const s = await getDoc(doc(db, "config", "admin")); isAdm = s.exists() && s.data().uid === u.uid; } catch (e) { isAdm = false; }
+  mount();
+  if (!(await join())) disable();
 }
 
-function openPanel() {
-  closePanel();
-  panel = el("div", "mnp");
-  const head = el("div", "mnh");
-  const back = el("button", "", "←"); back.type = "button"; back.onclick = closePanel;
-  head.appendChild(back);
-  head.appendChild(el("h2", "", "🏛️ Belediye Güvenlik"));
-  const adm = el("div",
+function init() {
+  const h = $("rooms");
+  if (h) new MutationObserver(mount).observe(h, { childList: true });
+  onAuthStateChanged(auth, (u) => {
+    if (!u) { user = null; nick = ""; isAdm = false; member = false; disable(); if (btn) btn.remove(); return; }
+    start(u);
+  });
+}
+
+// Uygulama Firebase'i başlatana kadar bekle, sonra başla
+function boot() {
+  if (!getApps().length) { setTimeout(boot, 200); return; }
+  auth = getAuth(); db = getFirestore();
+  init();
+}
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
