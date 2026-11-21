@@ -1,5 +1,6 @@
 import { doc, collection, addDoc, setDoc, updateDoc, deleteDoc, getDocs, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { shrinkGif } from "./gifenc.js?v=1";
+import { verdict, thumb } from "./nsfw.js?v=1";
 
 const IMG_RE = /^data:image\/(?:jpeg|gif);base64,[A-Za-z0-9+\/=]+$/;
 // Görüntülü konuşma için STUN sunucuları. Bazı mobil ağlarda TURN de gerekir:
@@ -19,7 +20,7 @@ function el(tag, cls, txt) {
 export function initMedia(ctx) {
   C = ctx;
   const st = document.createElement("style");
-  st.textContent = ".phb{background:none;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:0 12px;cursor:pointer;font-size:20px}.mimg{display:block;max-width:100%;max-height:260px;border-radius:8px;margin-top:4px;cursor:zoom-in}.view{position:fixed;inset:0;background:rgba(0,0,0,.92);display:grid;place-items:center;z-index:30}.view img{max-width:96vw;max-height:90vh;border-radius:8px}.call{position:fixed;inset:0;background:#05090f;z-index:40;display:flex;flex-direction:column}.call video{background:#000}.rv{flex:1;min-height:0;width:100%;object-fit:cover}.lv{position:absolute;right:12px;top:calc(12px + env(safe-area-inset-top,0px));width:96px;height:128px;object-fit:cover;border-radius:10px;border:2px solid var(--lamp);transform:scaleX(-1)}.ctitle{position:absolute;left:0;right:0;top:calc(14px + env(safe-area-inset-top,0px));text-align:center;color:#fff;font:600 18px var(--body);text-shadow:0 1px 3px #000;pointer-events:none}.cbar{display:flex;justify-content:center;gap:14px;padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px))}.cbar button{border:0;border-radius:999px;width:56px;height:56px;font-size:22px;cursor:pointer;background:#2a3d57;color:#fff}.cbar .end{background:#d9534f}.ring{position:fixed;left:12px;right:12px;top:calc(12px + env(safe-area-inset-top,0px));z-index:50;background:var(--panel);color:var(--text);border:1px solid var(--lamp);border-radius:12px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:10px}.ring div{display:flex;gap:8px}.ring button{border:0;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600;color:#fff}.ring .ok{background:#3fb06a}.ring .no{background:#d9534f}";
+  st.textContent = ".phb{background:none;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:0 12px;cursor:pointer;font-size:20px}.mimg{display:block;max-width:100%;max-height:260px;border-radius:8px;margin-top:4px;cursor:zoom-in}.mimg.chk{filter:blur(22px);pointer-events:none}.chkb{display:block;margin-top:6px;background:none;border:1px solid var(--lamp);color:var(--lamp);border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer}.view{position:fixed;inset:0;background:rgba(0,0,0,.92);display:grid;place-items:center;z-index:30}.view img{max-width:96vw;max-height:90vh;border-radius:8px}.call{position:fixed;inset:0;background:#05090f;z-index:40;display:flex;flex-direction:column}.call video{background:#000}.rv{flex:1;min-height:0;width:100%;object-fit:cover}.lv{position:absolute;right:12px;top:calc(12px + env(safe-area-inset-top,0px));width:96px;height:128px;object-fit:cover;border-radius:10px;border:2px solid var(--lamp);transform:scaleX(-1)}.ctitle{position:absolute;left:0;right:0;top:calc(14px + env(safe-area-inset-top,0px));text-align:center;color:#fff;font:600 18px var(--body);text-shadow:0 1px 3px #000;pointer-events:none}.cbar{display:flex;justify-content:center;gap:14px;padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px))}.cbar button{border:0;border-radius:999px;width:56px;height:56px;font-size:22px;cursor:pointer;background:#2a3d57;color:#fff}.cbar .end{background:#d9534f}.ring{position:fixed;left:12px;right:12px;top:calc(12px + env(safe-area-inset-top,0px));z-index:50;background:var(--panel);color:var(--text);border:1px solid var(--lamp);border-radius:12px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:10px}.ring div{display:flex;gap:8px}.ring button{border:0;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600;color:#fff}.ring .ok{background:#3fb06a}.ring .no{background:#d9534f}";
   document.head.appendChild(st);
 
   fileEl = document.createElement("input");
@@ -43,7 +44,7 @@ export function initMedia(ctx) {
 
 export function setDmUi(r) {
   if (!btnPhoto) return;
-  btnPhoto.hidden = !r.dm;
+  btnPhoto.hidden = !r;
   btnCall.hidden = !r.dm;
 }
 
@@ -71,28 +72,45 @@ async function onPhoto() {
   const f = fileEl.files && fileEl.files[0];
   fileEl.value = "";
   const r = C.room();
-  if (!f || !r.dm) return;
+  if (!f || !r) return;
   if (!/^image\//.test(f.type)) { C.toast("Lütfen bir resim seç."); return; }
   try {
     let data = null;
     if (f.type === "image/gif") {
-      try { data = await shrinkGif(f, 200000); } catch (e) { data = null; }
+      try { data = await shrinkGif(f, r.dm ? 200000 : 120000); } catch (e) { data = null; }
       if (data === "big") { C.toast("Bu GIF çok büyük, küçültülemedi. Daha kısa bir GIF dene."); return; }
       if (data) C.toast("GIF küçültüldü ve gönderiliyor…");
       else C.toast("GIF hareketli gönderilemedi, resim olarak gönderiliyor.");
     }
-    if (!data) data = await resize(f, 640, 85000);
+    if (!data) data = r.dm ? await resize(f, 640, 85000) : await resize(f, 480, 60000);
+    C.toast("Resim denetleniyor…");
+    const v = await verdict(data);
+    if (v.level === "hard") { await autoBan(data); return; }
+    if (v.level === "soft") { C.toast("Bu resim uygunsuz görünüyor, gönderilmedi."); return; }
+    if (v.level === "error" && !r.dm) { C.toast("Resim denetimi şu an yapılamıyor. İnternetini kontrol edip biraz sonra tekrar dene."); return; }
     await addDoc(C.msgCol(r), { uid: C.user().uid, nick: C.nick(), text: "", img: data, createdAt: serverTimestamp() });
   } catch (e) {
     C.toast(e && e.code === "permission-denied" ? "İşlem reddedildi. Güvenlik kurallarını güncelledin mi?" : "Fotoğraf gönderilemedi.");
   }
 }
 
+async function autoBan(data) {
+  C.toast("Uygunsuz içerik algılandı. Hesabın engellendi.");
+  try {
+    const t = await thumb(data);
+    const rec = { nick: C.nick(), createdAt: serverTimestamp(), reason: "nsfw" };
+    if (t) rec.thumb = t;
+    await setDoc(doc(C.db, "bans", C.user().uid), rec);
+  } catch (e) { C.toast("Uygunsuz içerik algılandı, resim gönderilmedi."); }
+}
+
 export function addPhoto(parent, src) {
   if (!IMG_RE.test(src)) return;
-  const i = el("img", "mimg");
+  const i = el("img", "mimg chk");
   i.src = src; i.alt = "Fotoğraf";
+  let blocked = false;
   i.onclick = () => {
+    if (blocked) return;
     const v = el("div", "view");
     const big = el("img"); big.src = src;
     v.appendChild(big);
@@ -100,6 +118,14 @@ export function addPhoto(parent, src) {
     document.body.appendChild(v);
   };
   parent.appendChild(i);
+  verdict(src).then((v) => {
+    if (v.level === "ok" || v.level === "error") { i.classList.remove("chk"); return; }
+    blocked = true;
+    const b = el("button", "chkb", "⚠️ Uygunsuz olabilir. Yine de göster");
+    b.type = "button";
+    b.onclick = () => { blocked = false; i.classList.remove("chk"); b.remove(); };
+    i.after(b);
+  });
 }
 
 /* ---------- Görüntülü konuşma (WebRTC, sinyal Firestore üzerinden) ---------- */
