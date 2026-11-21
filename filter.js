@@ -9,9 +9,10 @@ import("./otoban.js?v=1").catch(() => {});
 const $ = (i) => document.getElementById(i);
 
 // Tam eşleşen kelimeler (kısa köklerin yanlış alarm vermemesi için)
-const EXACT = ["am", "amk", "aq", "amq", "sik", "sikim", "siktir", "got", "gotun", "gotu", "pic", "picler", "oc", "ibne", "ibneler"];
+const EXACT = ["am", "amk", "aq", "amq", "sik", "sikim", "siktir", "got", "gotun", "gotu", "pic", "picler", "oc", "ibne", "ibneler",
+  "gt", "gtu", "gtun", "gtn", "mk", "mq", "sg", "sktr", "skm", "skim", "skik", "sikm", "yrk", "yrrk", "orspu", "oruspu"];
 // Kelimenin başı eşleşenler
-const PREFIX = ["orospu", "yarrak", "yarak", "pezevenk", "siktir", "sikeyim", "sikerim", "sikik", "amcik", "amina", "aminako", "gotveren", "ibne", "anani", "kahpe", "pust", "gavat", "surtuk"];
+const PREFIX = ["orospu", "yarrak", "yarak", "pezevenk", "siktir", "sikeyim", "sikerim", "sikik", "amcik", "amina", "aminako", "gotveren", "ibne", "anani", "kahpe", "pust", "gavat", "surtuk", "orspu", "oruspu", "gtveren", "sktir", "skerim", "skeyim"];
 
 function norm(s) {
   let t = s.normalize("NFKC").replace(/[̀-ͯ]/g, "").toLocaleLowerCase("tr");
