@@ -2,6 +2,7 @@ import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/
 import { getFirestore, collection, query, orderBy, limit, onSnapshot, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { ROOMS } from "./rooms.js?v=2";
+import { EXTRA } from "./tones.js?v=1";
 
 // Okunmamış özel mesaj rozeti: listede 🔴, sekme başlığında (sayı)
 const auth = getAuth(), db = getFirestore();
@@ -112,6 +113,7 @@ const TONES = {
   melodi: { n: "Melodi", w: "triangle", v: 0.9, d: 0.22, s: [[523, 0], [659, 0.2], [784, 0.4], [1047, 0.6], [784, 0.9], [1047, 1.1]] },
   sesli: { n: "Sesli", w: "square", v: 0.4, d: 0.12, s: [[1175, 0], [1568, 0.13]], say: "Mesaj geldi, baksana" }
 };
+Object.assign(TONES, EXTRA);
 let tone = "sesli";
 try { const k = localStorage.getItem("tone"); if (k && TONES[k]) tone = k; } catch (e) {}
 let lastDing = 0;
