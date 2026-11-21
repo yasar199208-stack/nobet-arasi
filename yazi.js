@@ -70,13 +70,21 @@ function apply(fn) {
   if (!inp) return;
   const v = fn(inp.value);
   if (inp.maxLength > 0 && v.length > inp.maxLength) { toast("Yazı çok uzun, kısalt ve tekrar dene."); return; }
+  const old = inp.value;
+  inp.blur();
   inp.value = v;
   inp.dispatchEvent(new Event("input", { bubbles: true }));
   panel.hidden = true;
-  inp.focus();
+  setTimeout(() => { if (inp.value === old) inp.value = v; inp.focus(); try { inp.setSelectionRange(v.length, v.length); } catch (e) {} }, 120);
 }
 
 function open() {
+  const inp = $("in");
+  if (inp) inp.blur();
+  setTimeout(show, 80);
+}
+
+function show() {
   const inp = $("in");
   const raw = plain(inp ? inp.value : "");
   const sample = raw.trim() ? raw : "Nöbet Arası";
