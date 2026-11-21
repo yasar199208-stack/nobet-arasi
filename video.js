@@ -26,6 +26,68 @@ function norm(u) { return /^https?:\/\//i.test(u) ? u : "https://" + u; }
 const st = document.createElement("style");
 st.textContent =
   ".vcard{margin-top:6px;width:100%;max-width:300px}" +
+        f = document.createElement("video");
+      f.src = m[0]; f.controls = true; f.autoplay = true; f.playsInline = true; f.preload = "metadata";
+      f.style.aspectRatio = pv.ar;
+    } else {
+      f = document.createElement("iframe");
+      f.src = pv.src(m);
+      f.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+      f.allowFullscreen = true;
+      f.referrerPolicy = "strict-origin-when-cross-origin";
+      f.style.aspectRatio = pv.ar;
+    }
+    w.replaceChild(f, b);
+  };
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "vb";
+  b.style.aspectRatio = pv.ar;
+  b.setAttribute("aria-label", "Videoyu oynat");
+  if (pv.th) {
+    const im = document.createElement("img");
+    im.loading = "lazy"; im.alt = "Video"; im.src = pv.th(m);
+    im.onerror = () => im.remove();
+    b.appendChild(im);
+  }
+  const nm = document.createElement("span");
+  nm.className = "vn"; nm.textContent = pv.n;
+  const pl = document.createElement("span");
+  pl.className = "vp"; pl.textContent = "▶";
+  b.appendChild(nm); b.appendChild(pl);
+  b.onclick = play;
+  w.appendChild(b);
+  const a = document.createElement("a");
+  a.className = "vl";
+  a.href = pv.open(m);
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  a.textContent = pv.n + "'da aç";
+  w.appendChild(a);
+  return w;
+}
+
+function scan() {
+  document.querySelectorAll(".msg p:not([data-v])").forEach((p) => {
+    p.setAttribute("data-v", "1");
+    const t = p.textContent || "";
+    for (const pv of PROV) {
+      const m = pv.re.exec(t);
+      if (!m) continue;
+      const log = p.closest(".log");
+      const near = log ? log.scrollHeight - log.scrollTop - log.clientHeight < 160 : false;
+      if (t.trim() === m[0].trim()) p.classList.add("vonly");
+      p.after(card(pv, m));
+      if (near && log) { log.scrollTop = log.scrollHeight; setTimeout(() => { log.scrollTop = log.scrollHeight; }, 400); }
+      return;
+    }
+  });
+}
+
+let tm = 0;
+new MutationObserver(() => { clearTimeout(tm); tm = setTimeout(scan, 60); })
+  .observe(document.body, { childList: true, subtree: true });
+scan();
   ".vcard .vb{position:relative;display:block;width:100%;padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#101820;cursor:pointer}" +
   ".vcard .vb img{width:100%;height:100%;object-fit:cover;display:block}" +
   ".vcard .vn{position:absolute;left:10px;top:8px;font:700 14px var(--head);color:#fff;background:rgba(0,0,0,.55);border-radius:6px;padding:2px 8px}" +
