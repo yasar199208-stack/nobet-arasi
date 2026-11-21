@@ -168,4 +168,203 @@ function openCallUi(c, title) {
     c.flipping = false;
   };
   end.onclick = () => hangup("");
-  const dn = el("button", "", "⬇️"); dn.type = "button"; dn.title =
+  const dn = el("button", "", "⬇️"); dn.type = "button"; dn.title = "Küçült";
+  dn.onclick = () => { o.classList.add("mini"); };
+  // Yüzen pencere: karşı tarafın görüntüsü diğer uygulamaların üstünde küçük pencerede görünür (telefon destekliyorsa).
+  const pip = el("button", "", "⧉"); pip.type = "button"; pip.title = "Yüzen pencere";
+  const openPip = async () => {
+    if (document.pictureInPictureElement) { await document.exitPictureInPicture(); return; }
+    if (!document.pictureInPictureEnabled || !rv.requestPictureInPicture) { C.toast("Bu telefon yüzen pencereyi desteklemiyor."); return; }
+    await rv.requestPictureInPicture();
+  };
+  pip.onclick = async () => { try { await openPip(); } catch (e) { C.toast("Yüzen pencere açılamadı."); } };
+  try { if (navigator.mediaSession) navigator.mediaSession.setActionHandler("enterpictureinpicture", () => { rv.requestPictureInPicture().catch(() => {}); }); } catch (e) {}
+  bar.appendChild(mic); bar.appendChild(cam); bar.appendChild(flip); bar.appendChild(dn); bar.appendChild(pip); bar.appendChild(end);
+  // Küçült: arama küçük bir pencereye iner, uygulamada gezebilirsin. Pencereye dokununca büyür, sürükleyince taşınır.
+  const cmin = el("button", "cmin", "🗕"); cmin.type = "button"; cmin.title = "Küçült";
+  const mend = el("button", "mend", "📞"); mend.type = "button"; mend.title = "Aramayı bitir";
+  const expand = () => { o.classList.remove("mini"); o.style.left = o.style.top = o.style.right = o.style.bottom = ""; };
+  cmin.onclick = () => { o.classList.add("mini"); };
+  mend.onpointerdown = (e) => e.stopPropagation();
+  mend.onclick = (e) => { e.stopPropagation(); hangup(""); };
+  let drag = false, moved = false, sx = 0, sy = 0, ox = 0, oy = 0;
+  o.addEventListener("pointerdown", (e) => {
+    if (!o.classList.contains("mini") || e.target === mend) return;
+    drag = true; moved = false; sx = e.clientX; sy = e.clientY;
+    const r = o.getBoundingClientRect(); ox = r.left; oy = r.top;
+    try { o.setPointerCapture(e.pointerId); } catch (x) {}
+  });
+  o.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (!moved && Math.abs(dx) + Math.abs(dy) < 8) return;
+    moved = true;
+    const x = Math.min(Math.max(0, ox + dx), window.innerWidth - o.offsetWidth);
+    const y = Math.min(Math.max(0, oy + dy), window.innerHeight - o.offsetHeight);
+    o.style.left = x + "px"; o.style.top = y + "px"; o.style.right = "auto"; o.style.bottom = "auto";
+  });
+  o.addEventListener("pointerup", () => { if (!drag) return; drag = false; if (!moved) expand(); });
+  o.addEventListener("pointercancel", () => { drag = false; });
+  o.appendChild(rv); o.appendChild(lv); o.appendChild(t); o.appendChild(bar); o.appendChild(cmin); o.appendChild(mend);
+  document.body.appendChild(o);
+  c.ui = { o: o, rv: rv, t: t };
+}
+
+function setTitle(t) { if (call && call.ui) call.ui.t.textContent = t; }
+
+function teardown(msg) {
+  const c = call;
+  if (!c) return;
+  call = null;
+  clearTimeout(c.timer);
+  c.unsubs.forEach((f) => f());
+  try { c.pc.close(); } catch (e) {}
+  c.stream.getTracks().forEach((t) => t.stop());
+  if (c.ui) c.ui.o.remove();
+  if (msg) C.toast(msg);
+}
+
+async function hangup(msg) {
+  const c = call;
+  if (!c) return;
+  try { await updateDoc(doc(C.db, "calls", c.pairId), { status: "ended" }); } catch (e) {}
+  teardown(msg);
+}
+
+function addCand(c, cand) {
+  if (c.pc.remoteDescription) c.pc.addIceCandidate(cand).catch(() => {});
+  else c.pending.push(cand);
+}
+function flush(c) { c.pending.splice(0).forEach((cand) => c.pc.addIceCandidate(cand).catch(() => {})); }
+
+function wirePc(c) {
+  c.stream.getTracks().forEach((t) => c.pc.addTrack(t, c.stream));
+  c.pc.ontrack = (e) => { c.ui.rv.srcObject = e.streams[0]; };
+  c.pc.onicecandidate = (e) => {
+    if (!e.candidate) return;
+    addDoc(collection(C.db, "calls", c.pairId, "cands"), { cid: c.cid, by: C.user().uid, c: JSON.stringify(e.candidate.toJSON()), createdAt: serverTimestamp() }).catch(() => {});
+  };
+  c.pc.onconnectionstatechange = () => {
+    const s = c.pc.connectionState;
+    if (s === "connected") { c.connected = true; clearTimeout(c.timer); setTitle(c.otherNick); }
+    else if (s === "disconnected") setTitle("Bağlantı zayıf…");
+    else if (s === "failed") hangup("Bağlantı kurulamadı. Farklı ağlarda olabilirsiniz.");
+  };
+  c.unsubs.push(onSnapshot(collection(C.db, "calls", c.pairId, "cands"), (s) => {
+    s.docChanges().forEach((ch) => {
+      if (ch.type !== "added") return;
+      const x = ch.doc.data();
+      if (x.cid !== c.cid || x.by === C.user().uid) return;
+      try { addCand(c, JSON.parse(x.c)); } catch (e) {}
+    });
+  }));
+}
+
+async function getMedia() {
+  if (!navigator.mediaDevices || !window.RTCPeerConnection) { C.toast("Bu tarayıcı görüntülü konuşmayı desteklemiyor."); return null; }
+  try { return await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true }); }
+  catch (e) { C.toast("Kamera ve mikrofon izni gerekli."); return null; }
+}
+
+async function startCall() {
+  const r = C.room(), u = C.user();
+  if (!r.dm || call) { if (call) C.toast("Zaten bir görüşmedesin."); return; }
+  const stream = await getMedia();
+  if (!stream) return;
+  const cid = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  const c = { pairId: r.pairId, cid: cid, stream: stream, pc: new RTCPeerConnection(ICE), unsubs: [], pending: [], otherNick: r.n.slice(1) };
+  call = c;
+  openCallUi(c, c.otherNick + " aranıyor…");
+  try {
+    const old = await getDocs(collection(C.db, "calls", r.pairId, "cands"));
+    await Promise.all(old.docs.map((d) => deleteDoc(d.ref)));
+  } catch (e) {}
+  try {
+    wirePc(c);
+    const offer = await c.pc.createOffer();
+    await c.pc.setLocalDescription(offer);
+    const ref = doc(C.db, "calls", r.pairId);
+    await setDoc(ref, { members: r.pairId.split("_"), from: u.uid, fromNick: C.nick(), cid: cid, offer: { type: offer.type, sdp: offer.sdp }, status: "ringing", createdAt: serverTimestamp() });
+    c.unsubs.push(onSnapshot(ref, (s) => {
+      const x = s.data();
+      if (!x || x.cid !== cid) return;
+      if (x.answer && !c.gotAnswer) {
+        c.gotAnswer = true;
+        setTitle("Bağlanıyor…");
+        c.pc.setRemoteDescription(x.answer).then(() => flush(c)).catch(() => {});
+      }
+      if (x.status === "ended") teardown("Görüşme sona erdi.");
+    }));
+    c.timer = setTimeout(() => { if (call === c && !c.connected) hangup("Cevap vermedi."); }, 45000);
+  } catch (e) {
+    teardown(e && e.code === "permission-denied" ? "İşlem reddedildi. Güvenlik kurallarını güncelledin mi?" : "Arama başlatılamadı.");
+  }
+}
+
+async function answer(pairId, x) {
+  if (call) return;
+  const stream = await getMedia();
+  if (!stream) { try { await updateDoc(doc(C.db, "calls", pairId), { status: "ended" }); } catch (e) {} return; }
+  const c = { pairId: pairId, cid: x.cid, stream: stream, pc: new RTCPeerConnection(ICE), unsubs: [], pending: [], otherNick: x.fromNick };
+  call = c;
+  openCallUi(c, "Bağlanıyor…");
+  try {
+    wirePc(c);
+    await c.pc.setRemoteDescription(x.offer);
+    flush(c);
+    const ans = await c.pc.createAnswer();
+    await c.pc.setLocalDescription(ans);
+    const ref = doc(C.db, "calls", pairId);
+    await updateDoc(ref, { answer: { type: ans.type, sdp: ans.sdp }, status: "active" });
+    c.unsubs.push(onSnapshot(ref, (s) => {
+      const y = s.data();
+      if (y && y.cid === c.cid && y.status === "ended") teardown("Görüşme sona erdi.");
+    }));
+    c.timer = setTimeout(() => { if (call === c && !c.connected) hangup("Bağlantı kurulamadı."); }, 30000);
+  } catch (e) {
+    hangup("Bağlantı kurulamadı.");
+  }
+}
+
+function hideRing() {
+  if (!ring) return;
+  clearTimeout(ring.timer);
+  ring.node.remove();
+  ring = null;
+}
+
+function showRing(pairId, x) {
+  hideRing();
+  const node = el("div", "ring");
+  node.appendChild(el("span", "", x.fromNick + " seni görüntülü arıyor"));
+  const b = el("div");
+  const ok = el("button", "ok", "Cevapla"), no = el("button", "no", "Reddet");
+  b.appendChild(ok); b.appendChild(no); node.appendChild(b);
+  document.body.appendChild(node);
+  ring = { pairId: pairId, cid: x.cid, node: node, timer: setTimeout(hideRing, 45000) };
+  if (navigator.vibrate) navigator.vibrate([300, 200, 300]);
+  ok.onclick = () => { hideRing(); answer(pairId, x); };
+  no.onclick = async () => { hideRing(); try { await updateDoc(doc(C.db, "calls", pairId), { status: "ended" }); } catch (e) {} };
+}
+
+export function startCalls() {
+  stopCalls();
+  const u = C.user();
+  unsubCalls = onSnapshot(query(collection(C.db, "calls"), where("members", "array-contains", u.uid)), (s) => {
+    s.docs.forEach((d) => {
+      const x = d.data();
+      if (call && call.pairId === d.id && call.cid === x.cid && x.status === "ended") teardown("Görüşme sona erdi.");
+      if (ring && ring.pairId === d.id && ring.cid === x.cid && x.status !== "ringing") hideRing();
+      const t = x.createdAt && x.createdAt.toMillis ? x.createdAt.toMillis() : 0;
+      if (x.status === "ringing" && x.from !== u.uid && !call && Date.now() - t < 60000) {
+        if (!ring || ring.cid !== x.cid) showRing(d.id, x);
+      }
+    });
+  }, () => {});
+}
+
+export function stopCalls() {
+  if (unsubCalls) { unsubCalls(); unsubCalls = null; }
+  hideRing();
+  if (call) hangup("");
+}
