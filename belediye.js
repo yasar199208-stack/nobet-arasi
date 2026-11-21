@@ -1,11 +1,19 @@
 import { getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { ROOMS } from "./rooms.js?v=2";
 
-// Belediye Güvenlik bölümü: yalnızca doğru kodu bilenler girer. Denetimi Firestore kuralları yapar.
+// Belediye Güvenlik bölümü: yalnızca doğru kodu bilenler görür. Denetimi Firestore kuralları yapar.
+// Odalar, diğer odalarla aynı sohbet koduyla çalışır (fotoğraf, GIF, video, şikayet, arkadaş ekleme hepsi var).
 let auth, db;
 const $ = (i) => document.getElementById(i);
-let user = null, nick = "", isAdm = false, btn = null, panel = null, unsub = null, last = 0;
+const MUNI = [
+  { id: "bel_genel", ic: "🏛️", n: "Belediye Genel", d: "Sadece belediye çalışanı güvenlikler" },
+  { id: "bel_gece", ic: "🏛️", n: "Belediye Gece vardiyası", d: "Belediye güvenliği: gece nöbeti, uykusuzluk, soğuk" },
+  { id: "bel_maas", ic: "🏛️", n: "Belediye Maaş ve haklar", d: "Belediye güvenliği: maaş, fazla mesai, izin, sözleşme" },
+  { id: "bel_moral", ic: "🏛️", n: "Belediye Moral köşesi", d: "Belediye güvenliği: dertleş, rahatla, destek ol" }
+];
+let user = null, nick = "", isAdm = false, member = false, btn = null, panel = null;
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);
@@ -20,11 +28,28 @@ function toast(m) {
   clearTimeout(toast.t);
   toast.t = setTimeout(() => { t.hidden = true; }, 4000);
 }
-function hm(d) { return d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }); }
 
 const st = el("style");
-st.textContent = ".room.muni{border-left-color:var(--lamp);flex:none}.mnp{position:fixed;left:0;right:0;top:0;height:100dvh;background:var(--bg);color:var(--text);z-index:35;display:flex;flex-direction:column}.mnh{display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 10px;border-bottom:3px solid var(--lamp);background:var(--panel)}.mnh h2{flex:1;margin:0;font:700 20px var(--head);color:var(--lamp)}.mnh button{background:none;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:16px}.mnb{flex:1;min-height:0;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:8px}.mnm{max-width:min(560px,86%);align-self:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 12px}.mnm.me{align-self:flex-end;background:var(--mine)}.mnm b{display:block;font-size:14px;color:var(--lamp)}.mnm p{margin:2px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}.mnm small{color:var(--mute);font-size:12px}.mnm button{background:none;border:0;color:var(--mute);cursor:pointer;margin-left:8px}.mnf{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--panel)}.mnf input{flex:1;min-width:0;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:16px}.mnf button{background:var(--lamp);color:var(--lamp-ink);border:0;border-radius:10px;padding:0 16px;font:700 18px var(--head);cursor:pointer}.mng{margin:auto 0;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center}.mng input{width:100%;max-width:320px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:16px}.mng button{background:var(--lamp);color:var(--lamp-ink);border:0;border-radius:10px;padding:10px 22px;font:700 18px var(--head);cursor:pointer}.mng p{margin:0;color:var(--mute);max-width:320px}.mna{padding:10px 12px;background:var(--panel);border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px}.mna div{display:flex;gap:8px}.mna input{flex:1;min-width:0;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px}.mna button{background:var(--lamp);color:var(--lamp-ink);border:0;border-radius:8px;padding:0 14px;font-weight:700;cursor:pointer}.mna span{color:var(--mute);font-size:13px}";
+st.textContent = ".room.muni{border-left-color:var(--lamp);flex:none}.mnp{position:fixed;left:0;right:0;top:0;height:100dvh;background:var(--bg);color:var(--text);z-index:35;display:flex;flex-direction:column}.mnh{display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 10px;border-bottom:3px solid var(--lamp);background:var(--panel)}.mnh h2{flex:1;margin:0;font:700 20px var(--head);color:var(--lamp)}.mnh button{background:none;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:16px}.mnb{flex:1;min-height:0;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px}.mnb p{margin:0;color:var(--mute)}.mnr{display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--lamp);color:var(--text);border-radius:10px;padding:12px;cursor:pointer;font-size:16px}.mnr b{display:block}.mnr span{color:var(--mute);font-size:14px}.mng{margin:auto 0;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center}.mng input{width:100%;max-width:320px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:16px}.mng button{background:var(--lamp);color:var(--lamp-ink);border:0;border-radius:10px;padding:10px 22px;font:700 18px var(--head);cursor:pointer}.mng p{max-width:320px}.mna{padding:10px 12px;background:var(--panel);border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px}.mna div{display:flex;gap:8px}.mna input{flex:1;min-width:0;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px}.mna button{background:var(--lamp);color:var(--lamp-ink);border:0;border-radius:8px;padding:0 14px;font-weight:700;cursor:pointer}.mna span{color:var(--mute);font-size:13px}";
 document.head.appendChild(st);
+
+function rerender() { const q = $("q"); if (q) q.dispatchEvent(new Event("input")); }
+
+// Üye olunca Belediye odaları ana oda listesine eklenir (genel odaların hemen arkasına)
+function enable() {
+  if (ROOMS.some((r) => r.id === MUNI[0].id)) return;
+  ROOMS.splice(3, 0, ...MUNI);
+  rerender();
+}
+function disable() {
+  for (let i = ROOMS.length - 1; i >= 0; i--) if (/^bel_/.test(ROOMS[i].id)) ROOMS.splice(i, 1);
+  rerender();
+}
+
+async function probe() {
+  try { await getDocs(query(collection(db, "rooms", "bel_genel", "messages"), limit(1))); return true; }
+  catch (e) { return false; }
+}
 
 function mount() {
   const h = $("rooms");
@@ -39,8 +64,14 @@ function mount() {
   if (h.firstChild !== btn) h.insertBefore(btn, h.firstChild);
 }
 
-function stopL() { if (unsub) { unsub(); unsub = null; } }
-function closePanel() { stopL(); if (panel) { panel.remove(); panel = null; } }
+function closePanel() { if (panel) { panel.remove(); panel = null; } }
+
+function openRoomById(r) {
+  closePanel();
+  const want = r.ic + " " + r.n;
+  const b = Array.from(document.querySelectorAll("#rooms .room b")).find((x) => x.textContent === want);
+  if (b && b.parentNode) b.parentNode.click();
+}
 
 function openPanel() {
   closePanel();
@@ -50,6 +81,7 @@ function openPanel() {
   head.appendChild(back);
   head.appendChild(el("h2", "", "🏛️ Belediye Güvenlik"));
   const adm = el("div", "mna"); adm.hidden = true;
+  const cin = el("input"); cin.placeholder = "Giriş kodu (en az 4 karakter)"; cin.autocomplete = "off"; cin.maxLength = 40;
   if (isAdm) {
     const g = el("button", "", "⚙️"); g.type = "button";
     g.onclick = async () => {
@@ -58,7 +90,6 @@ function openPanel() {
     };
     head.appendChild(g);
   }
-  const cin = el("input"); cin.placeholder = "Giriş kodu (en az 4 karakter)"; cin.autocomplete = "off"; cin.maxLength = 40;
   const crow = el("div"); const csv = el("button", "", "Kaydet"); csv.type = "button";
   csv.onclick = async () => {
     const v = cin.value.trim();
@@ -70,18 +101,22 @@ function openPanel() {
   adm.appendChild(el("span", "", "Giriş kodu. Değiştirince herkes yeni kodu yeniden girmek zorunda kalır."));
   adm.appendChild(crow);
   const body = el("div", "mnb");
-  const form = el("form", "mnf"); form.hidden = true;
-  const inp = el("input"); inp.placeholder = "Mesaj yaz…"; inp.maxLength = 400; inp.autocomplete = "off";
-  const send = el("button", "", "Gönder"); send.type = "submit";
-  form.appendChild(inp); form.appendChild(send);
-  panel.appendChild(head); panel.appendChild(adm); panel.appendChild(body); panel.appendChild(form);
+  panel.appendChild(head); panel.appendChild(adm); panel.appendChild(body);
   document.body.appendChild(panel);
 
-  const col = collection(db, "muniRooms", "genel", "messages");
+  function list() {
+    body.innerHTML = "";
+    body.appendChild(el("p", "", "Odalara gir:"));
+    MUNI.forEach((r) => {
+      const b = el("button", "mnr"); b.type = "button";
+      b.appendChild(el("b", "", r.ic + " " + r.n));
+      b.appendChild(el("span", "", r.d));
+      b.onclick = () => openRoomById(r);
+      body.appendChild(b);
+    });
+  }
 
   function gate() {
-    stopL();
-    form.hidden = true;
     body.innerHTML = "";
     const g = el("div", "mng");
     g.appendChild(el("p", "", "Bu bölüm yalnızca belediyede çalışan özel güvenlik görevlilerine açıktır. Giriş kodunu bilen arkadaşından iste."));
@@ -93,7 +128,8 @@ function openPanel() {
       go.disabled = true;
       try {
         await setDoc(doc(db, "muniMembers", user.uid), { nick: nick, code: v, createdAt: serverTimestamp() });
-        listen();
+        member = await probe();
+        if (member) { enable(); list(); } else toast("Giriş yapılamadı. Biraz sonra tekrar dene.");
       } catch (e) { toast("Kod yanlış veya bu bölüm henüz açılmadı."); }
       go.disabled = false;
     };
@@ -101,50 +137,7 @@ function openPanel() {
     body.appendChild(g);
   }
 
-  function render(s) {
-    body.innerHTML = "";
-    form.hidden = false;
-    const rows = s.docs.map((d) => Object.assign({ id: d.id }, d.data({ serverTimestamps: "estimate" }))).reverse();
-    if (!rows.length) body.appendChild(el("p", "", "Henüz mesaj yok. İlk mesajı sen yaz."));
-    rows.forEach((x) => {
-      const m = el("div", "mnm" + (x.uid === user.uid ? " me" : ""));
-      m.appendChild(el("b", "", x.nick || "?"));
-      m.appendChild(el("p", "", x.text || ""));
-      const sm = el("small", "", x.createdAt && x.createdAt.toDate ? hm(x.createdAt.toDate()) : "");
-      if (x.uid === user.uid || isAdm) {
-        const del = el("button", "", "🗑"); del.type = "button";
-        del.onclick = async () => {
-          if (!confirm("Bu mesaj silinsin mi?")) return;
-          try { await deleteDoc(doc(db, "muniRooms", "genel", "messages", x.id)); } catch (e) { toast("Silinemedi."); }
-        };
-        sm.appendChild(del);
-      }
-      m.appendChild(sm);
-      body.appendChild(m);
-    });
-    body.scrollTop = body.scrollHeight;
-  }
-
-  function listen() {
-    stopL();
-    unsub = onSnapshot(query(col, orderBy("createdAt", "desc"), limit(100)), render, (e) => {
-      if (e && e.code === "permission-denied") gate(); else toast("Bağlanılamadı.");
-    });
-  }
-
-  form.onsubmit = async (e) => {
-    e.preventDefault();
-    const t = inp.value.trim();
-    if (!t) return;
-    if (Date.now() - last < 1500) { toast("Biraz yavaş yaz."); return; }
-    try { const f = await import("./filter.js?v=3"); if (f.isBad(t)) { toast("Mesajında uygunsuz ifade var, gönderilmedi."); return; } } catch (x) {}
-    last = Date.now();
-    inp.value = "";
-    try { await addDoc(col, { uid: user.uid, nick: nick, text: t.slice(0, 400), createdAt: serverTimestamp() }); }
-    catch (x) { inp.value = t; toast(x && x.code === "permission-denied" ? "Gönderilemedi. Engellenmiş olabilirsin veya kodu yeniden girmen gerekir." : "Gönderilemedi."); }
-  };
-
-  listen();
+  if (member) list(); else gate();
 }
 
 async function start(u) {
@@ -152,22 +145,10 @@ async function start(u) {
   try { const s = await getDoc(doc(db, "users", u.uid)); nick = s.exists() ? s.data().nick : ""; } catch (e) {}
   try { const s = await getDoc(doc(db, "config", "admin")); isAdm = s.exists() && s.data().uid === u.uid; } catch (e) { isAdm = false; }
   mount();
+  member = await probe();
+  if (member) enable(); else disable();
 }
 
 function init() {
   const h = $("rooms");
-  if (h) new MutationObserver(mount).observe(h, { childList: true });
-  onAuthStateChanged(auth, (u) => {
-    closePanel();
-    if (!u) { user = null; nick = ""; isAdm = false; if (btn) { btn.remove(); } return; }
-    start(u);
-  });
-}
-
-// Uygulama Firebase'i başlatana kadar bekle, sonra başla
-function boot() {
-  if (!getApps().length) { setTimeout(boot, 200); return; }
-  auth = getAuth(); db = getFirestore();
-  init();
-}
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
+  if (h) new MutationObserver(mount).observe(h, {
