@@ -8,7 +8,7 @@ for (let i = 0; i < 150 && !getApps().length; i++) await new Promise((r) => setT
 const auth = getAuth(), db = getFirestore();
 const $ = (i) => document.getElementById(i);
 const KINDS = ["xox", "rps", "c4", "hang", "ships", "reversi", "mancala", "dama", "chess", "hex", "dots", "mill", "wduel", "gomoku", "speed", "dart", "draw"];
-const MODS = ["solo.js?v=2", "action.js?v=1", "puzzle.js?v=1", "puzzle2.js?v=1", "puzzle3.js?v=1", "puzzle4.js?v=1", "action2.js?v=1", "action3.js?v=1", "action4.js?v=1", "action5.js?v=1", "puzzle5.js?v=1", "action6.js?v=1", "action7.js?v=1", "mix1.js?v=1", "action8.js?v=1", "match3.js?v=1", "bubble.js?v=1", "rider.js?v=1"];
+const MODS = ["solo.js?v=2", "action.js?v=1", "puzzle.js?v=1", "puzzle2.js?v=1", "puzzle3.js?v=1", "puzzle4.js?v=1", "action2.js?v=1", "action3.js?v=1", "action4.js?v=1", "action5.js?v=1", "puzzle5.js?v=1", "action6.js?v=1", "action7.js?v=1", "mix1.js?v=1", "action8.js?v=1", "match3.js?v=1", "bubble.js?v=1", "rider.js?v=1", "robot.js?v=1"];
 const PRIMARY = "background:var(--lamp)!important;color:var(--lamp-ink)!important;border:0!important";
 
 let user = null, pair = null, unsub = null, games = {}, tok = 0;
