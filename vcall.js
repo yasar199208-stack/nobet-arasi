@@ -2,6 +2,8 @@ import { getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, addDoc, getDocs, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+import { verdict, thumb } from "./nsfw.js?v=1";
+
 // Grup görüntülü konuşma: odada en fazla MAX kişi, herkes herkesle doğrudan bağlanır (WebRTC).
 const MAX = 5;
 const ICE = { iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }] };
@@ -22,6 +24,7 @@ st.textContent = ".vcp{position:fixed;left:0;right:0;top:0;height:100dvh;backgro
   ".vcg{flex:1;display:grid;gap:6px;padding:6px;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;min-height:0}" +
   ".vct{position:relative;background:#000;border-radius:10px;overflow:hidden;min-height:0}.vct video{width:100%;height:100%;object-fit:cover}" +
   ".vct b{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.55);color:#fff;border-radius:6px;padding:2px 7px;font-size:12px}" +
+  ".vcw{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;background:#222;color:#fff;font-size:13px;text-align:center;padding:8px}" +
   ".vcb{display:flex;gap:8px;justify-content:center;padding:10px;border-top:1px solid var(--line)}.vcb button.off{background:#e5484d;border-color:#e5484d;color:#fff}.vcb button.end{background:#e5484d;border-color:#e5484d;color:#fff}";
 document.head.appendChild(st);
 
@@ -129,11 +132,77 @@ function onPeers(s) {
   });
 }
 
+// Uygunsuz görüntü denetimi (telefonda çalışır, görüntü hiçbir yere gönderilmez)
+function frame(v) {
+  if (!v || v.readyState < 2 || !v.videoWidth) return null;
+  const k = 224 / Math.max(v.videoWidth, v.videoHeight);
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, Math.round(v.videoWidth * k)); c.height = Math.max(1, Math.round(v.videoHeight * k));
+  try { c.getContext("2d").drawImage(v, 0, 0, c.width, c.height); return c.toDataURL("image/jpeg", 0.7); } catch (e) { return null; }
+}
+async function selfBan(src) {
+  try {
+    const rec = { nick: nick || "", createdAt: serverTimestamp(), reason: "nsfw" };
+    const t = await thumb(src);
+    if (t) rec.thumb = t;
+    await setDoc(doc(db, "bans", user.uid), rec);
+  } catch (e) {}
+}
+async function scanOwn(s) {
+  const v = s.tiles.me && s.tiles.me.querySelector("video");
+  const tr = s.stream.getVideoTracks()[0];
+  if (!v || !tr || !tr.enabled) return;
+  const f = frame(v);
+  if (!f) return;
+  const r = await verdict(f);
+  if (S !== s) return;
+  if (r.level === "hard") {
+    tr.enabled = false;
+    toast("Uygunsuz görüntü algılandı. Hesabın engellendi.");
+    await selfBan(f);
+    leave();
+  } else if (r.level === "soft") {
+    s.strikes = (s.strikes || 0) + 1;
+    if (s.strikes >= 2) {
+      tr.enabled = false; s.strikes = 0;
+      const cb = s.root.querySelector(".vcb button:nth-child(2)");
+      if (cb) cb.classList.add("off");
+      toast("Uygunsuz görüntü algılandı, kameran kapatıldı.");
+    }
+  } else if (r.level === "ok") s.strikes = 0;
+}
+async function scanPeer(s, id) {
+  const t = s.tiles[id];
+  const v = t && t.querySelector("video");
+  const f = frame(v);
+  if (!f) return;
+  const r = await verdict(f);
+  if (S !== s || !s.tiles[id]) return;
+  const bad = r.level === "hard" || r.level === "soft";
+  s.flag = s.flag || {};
+  s.flag[id] = bad ? (s.flag[id] || 0) + 1 : 0;
+  const hide = s.flag[id] >= (r.level === "hard" ? 1 : 2);
+  v.style.visibility = hide ? "hidden" : "visible";
+  let w = t.querySelector(".vcw");
+  if (hide && !w) { w = el("div", "vcw", "Uygunsuz görüntü gizlendi"); t.appendChild(w); }
+  if (!hide && w) w.remove();
+}
+function startScan(s) {
+  let k = 0;
+  s.sc = setInterval(() => {
+    if (S !== s || document.hidden) return;
+    k++;
+    scanOwn(s);
+    const ids = Object.keys(s.tiles).filter((x) => x !== "me");
+    if (ids.length) scanPeer(s, ids[k % ids.length]);
+  }, 3000);
+}
+
 async function leave() {
   const s = S;
   if (!s) return;
   S = null;
-  clearInterval(s.hb);
+  clearInterval(s.hb); clearInterval(s.sc);
   s.unsubs.forEach((u) => { try { u(); } catch (e) {} });
   Object.keys(s.pcs).forEach((id) => { try { s.pcs[id].close(); } catch (e) {} });
   s.stream.getTracks().forEach((t) => t.stop());
@@ -208,6 +277,7 @@ async function enter(code, host) {
       onSig(d);
     });
   }, () => {}));
+  startScan(S);
   return true;
 }
 
@@ -242,7 +312,7 @@ function open() {
   head.appendChild(back); head.appendChild(el("h2", "", "📹 Görüntülü konuşma"));
   const body = el("div", "vcm");
   const info = el("div", "vcd");
-  info.textContent = "En fazla " + MAX + " kişi katılabilir. Oda aç, kodu arkadaşlarına mesajla gönder; onlar kodu yazıp katılır. Küfür, hakaret ve taciz yasak. Kimseyi izinsiz kaydetme.";
+  info.textContent = "En fazla " + MAX + " kişi katılabilir. Çıplak ya da uygunsuz görüntü otomatik denetlenir: şüpheli görüntüde kameran kapanır, kesin uygunsuzda hesabın engellenir. Oda aç, kodu arkadaşlarına mesajla gönder; onlar kodu yazıp katılır. Küfür, hakaret ve taciz yasak. Kimseyi izinsiz kaydetme.";
   const mk = el("button", "vgo", "➕ Yeni oda aç"); mk.type = "button"; mk.onclick = create;
   const inp = el("input"); inp.placeholder = "ODA KODU"; inp.maxLength = 5;
   const jn = el("button", "vgo", "Odaya katıl"); jn.type = "button"; jn.onclick = () => join(inp.value);
