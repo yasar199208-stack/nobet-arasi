@@ -1,7 +1,9 @@
+import { getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, deleteDoc, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // Yönetici için: uygunsuz resim nedeniyle otomatik banlanan kullanıcıları gösterir ve banı kaldırma imkânı verir.
+for (let i = 0; i < 150 && !getApps().length; i++) await new Promise((r) => setTimeout(r, 200));
 const auth = getAuth(), db = getFirestore();
 const $ = (i) => document.getElementById(i);
 const KEY = "nb_oto_seen";
