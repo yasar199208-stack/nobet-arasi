@@ -11,7 +11,54 @@ for (let i = 0; i < 150 && !getApps().length; i++) await new Promise((r) => setT
 const auth = getAuth(), db = getFirestore();
 const $ = (i) => document.getElementById(i);
 let user = null, nick = "";
-onAuthStateChanged(auth, (u) => { user = u; nick = ""; if (u) getDoc(doc(db, "users", u.uid)).then((s) => { nick = s.exists() ? (s.data().nick || "") : ""; }).catch(() => {}); });
+let actx = null, repUn = null;
+function beep() {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === "suspended") actx.resume();
+    const t0 = actx.currentTime + 0.02;
+    [[880, 0], [660, 0.18], [880, 0.36], [660, 0.54]].forEach((x) => {
+      const o = actx.createOscillator(), g = actx.createGain(), t = t0 + x[1];
+      o.type = "square"; o.frequency.setValueAtTime(x[0], t);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.4, t + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
+      o.connect(g); g.connect(actx.destination);
+      o.start(t); o.stop(t + 0.2);
+    });
+  } catch (e) {}
+  try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
+}
+document.addEventListener("pointerdown", () => { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === "suspended") actx.resume(); } catch (e) {} }, { once: true });
+
+// Yönetici: yeni şikayet gelince ses + uyarı (uygulama açıkken)
+function watchReports(u) {
+  if (repUn) { repUn(); repUn = null; }
+  getDoc(doc(db, "config", "admin")).then((a) => {
+    if (!(a.exists() && a.data().uid === u.uid) || !user || user.uid !== u.uid) return;
+    let ready = false;
+    repUn = onSnapshot(query(collection(db, "reports"), orderBy("createdAt", "desc"), limit(20)), (s) => {
+      if (ready) {
+        const fresh = s.docChanges().filter((c) => c.type === "added" && !(c.doc.metadata && c.doc.metadata.hasPendingWrites));
+        if (fresh.length) {
+          beep();
+          toast("🚩 Yeni şikayet var.");
+          const tb = document.querySelector(".vctab");
+          if (tb && tb.textContent.indexOf("🔴") < 0) tb.textContent += " 🔴";
+        }
+      }
+      ready = true;
+    }, () => {});
+  }).catch(() => {});
+}
+onAuthStateChanged(auth, (u) => {
+  user = u; nick = "";
+  if (repUn) { repUn(); repUn = null; }
+  if (u) {
+    getDoc(doc(db, "users", u.uid)).then((s) => { nick = s.exists() ? (s.data().nick || "") : ""; }).catch(() => {});
+    watchReports(u);
+  }
+});
 
 const st = document.createElement("style");
 st.textContent = ".vcp{position:fixed;left:0;right:0;top:0;height:100dvh;background:var(--bg);color:var(--text);z-index:36;display:flex;flex-direction:column}" +
@@ -379,6 +426,8 @@ function closePanel() { if (panel) { panel.remove(); panel = null; } }
 function open() {
   if (S) return;
   closePanel();
+  const tb = document.querySelector(".vctab");
+  if (tb) tb.textContent = "📹 Görüntü";
   panel = el("div", "vcp");
   const head = el("div", "vch");
   const back = el("button", "", "←"); back.type = "button"; back.onclick = closePanel;
