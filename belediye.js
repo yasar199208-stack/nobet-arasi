@@ -24,10 +24,10 @@ function toast(m) {
 }
 function rerender() { const q = $("q"); if (q) q.dispatchEvent(new Event("input")); }
 
-// Üye olunca Belediye odaları ana oda listesine eklenir (genel odaların hemen arkasına)
+// Üye olunca Belediye odaları ana oda listesine eklenir (il odalarının en arkasına)
 function enable() {
   if (ROOMS.some((r) => r.id === MUNI[0].id)) return;
-  ROOMS.splice(3, 0, ...MUNI);
+  ROOMS.push(...MUNI);
   rerender();
 }
 function disable() {
