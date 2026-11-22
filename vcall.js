@@ -1,6 +1,6 @@
 import { getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, addDoc, getDocs, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, addDoc, getDocs, onSnapshot, query, where, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { verdict, thumb } from "./nsfw.js?v=1";
 
@@ -25,7 +25,7 @@ st.textContent = ".vcp{position:fixed;left:0;right:0;top:0;height:100dvh;backgro
   ".vct{position:relative;background:#000;border-radius:10px;overflow:hidden;min-height:0}.vct video{width:100%;height:100%;object-fit:cover}" +
   ".vct b{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.55);color:#fff;border-radius:6px;padding:2px 7px;font-size:12px}" +
   ".vcw{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;background:#222;color:#fff;font-size:13px;text-align:center;padding:8px}" +
-  ".vcb{display:flex;gap:8px;justify-content:center;padding:10px;border-top:1px solid var(--line)}.vcb button.off{background:#e5484d;border-color:#e5484d;color:#fff}.vcb button.end{background:#e5484d;border-color:#e5484d;color:#fff}";
+  ".vcl{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--panel);font-size:14px}.vcl small{color:var(--mute)}.vcl .vcr{display:flex;gap:6px;flex-wrap:wrap}.vcl button,.vcm button.vsm{background:none;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 10px;font-size:14px;cursor:pointer}.vcb{display:flex;gap:8px;justify-content:center;padding:10px;border-top:1px solid var(--line)}.vcb button.off{background:#e5484d;border-color:#e5484d;color:#fff}.vcb button.end{background:#e5484d;border-color:#e5484d;color:#fff}";
 document.head.appendChild(st);
 
 function el(t, c, x) { const e = document.createElement(t); if (c) e.className = c; if (x) e.textContent = x; return e; }
@@ -198,6 +198,77 @@ function startScan(s) {
   }, 3000);
 }
 
+// Şikayet: odadaki birini yöneticiye bildir
+function reportMenu() {
+  if (!S) return;
+  const s = S;
+  const ids = Object.keys(s.names);
+  const ov = el("div", "vcp");
+  ov.style.zIndex = 37;
+  const head = el("div", "vch");
+  const back = el("button", "", "←"); back.type = "button"; back.onclick = () => ov.remove();
+  head.appendChild(back); head.appendChild(el("h2", "", "🚩 Kimi bildiriyorsun?"));
+  const body = el("div", "vcm");
+  if (!ids.length) body.appendChild(el("div", "vcd", "Odada başka kimse yok."));
+  ids.forEach((id) => {
+    const b = el("button", "vgo", "🚩 " + s.names[id]); b.type = "button";
+    b.onclick = async () => {
+      b.disabled = true;
+      s.rep = s.rep || {};
+      if (s.rep[id]) { toast("Bu kişiyi zaten bildirdin."); return; }
+      try {
+        await addDoc(collection(db, "reports"), { reporter: user.uid, room: "video:" + s.code, msgId: s.names[id], msgUid: id, createdAt: serverTimestamp() });
+        s.rep[id] = 1;
+        toast("Şikayet yöneticiye iletildi.");
+        ov.remove();
+      } catch (e) { b.disabled = false; toast("Şikayet gönderilemedi."); }
+    };
+    body.appendChild(b);
+  });
+  ov.appendChild(head); ov.appendChild(body);
+  document.body.appendChild(ov);
+}
+
+// Yönetici: görüntülü konuşma şikayetleri
+function adminList() {
+  const ov = el("div", "vcp");
+  ov.style.zIndex = 37;
+  const head = el("div", "vch");
+  const back = el("button", "", "←"); back.type = "button";
+  let un = null;
+  back.onclick = () => { if (un) un(); ov.remove(); };
+  head.appendChild(back); head.appendChild(el("h2", "", "🚩 Görüntülü şikayetler"));
+  const body = el("div", "vcm");
+  ov.appendChild(head); ov.appendChild(body);
+  document.body.appendChild(ov);
+  un = onSnapshot(query(collection(db, "reports"), orderBy("createdAt", "desc"), limit(50)), (s) => {
+    body.textContent = "";
+    const rows = s.docs.filter((d) => String(d.data().room || "").indexOf("video:") === 0);
+    if (!rows.length) { body.appendChild(el("div", "vcd", "Görüntülü şikayet yok.")); return; }
+    rows.forEach((d) => {
+      const r = d.data();
+      const w = el("div", "vcl");
+      const when = r.createdAt && r.createdAt.toDate ? r.createdAt.toDate().toLocaleString("tr-TR") : "";
+      w.appendChild(el("b", "", "Şikayet edilen: " + (r.msgId || "?")));
+      w.appendChild(el("small", "", "Oda " + String(r.room).slice(6) + " · " + when));
+      const row = el("div", "vcr");
+      const ban = el("button", "", "🚫 Engelle"); ban.type = "button";
+      ban.onclick = async () => {
+        try {
+          await setDoc(doc(db, "bans", r.msgUid), { nick: String(r.msgId || "").slice(0, 20), createdAt: serverTimestamp() });
+          await deleteDoc(d.ref);
+          toast("Kullanıcı engellendi.");
+        } catch (e) { toast("Engellenemedi."); }
+      };
+      const cl = el("button", "", "Şikayeti kapat"); cl.type = "button";
+      cl.onclick = () => deleteDoc(d.ref).catch(() => toast("Kapatılamadı."));
+      row.appendChild(ban); row.appendChild(cl);
+      w.appendChild(row);
+      body.appendChild(w);
+    });
+  }, () => toast("Şikayetler okunamadı."));
+}
+
 async function leave() {
   const s = S;
   if (!s) return;
@@ -241,6 +312,8 @@ async function enter(code, host) {
   const cp = el("button", "", "Kodu kopyala"); cp.type = "button";
   cp.onclick = () => { try { navigator.clipboard.writeText(code); toast("Kod kopyalandı: " + code); } catch (e) { toast("Kod: " + code); } };
   head.appendChild(cp);
+  const rp = el("button", "", "🚩 Bildir"); rp.type = "button"; rp.onclick = reportMenu;
+  head.appendChild(rp);
   const grid = el("div", "vcg");
   const bar = el("div", "vcb");
   root.appendChild(head); root.appendChild(grid); root.appendChild(bar);
@@ -312,12 +385,18 @@ function open() {
   head.appendChild(back); head.appendChild(el("h2", "", "📹 Görüntülü konuşma"));
   const body = el("div", "vcm");
   const info = el("div", "vcd");
-  info.textContent = "En fazla " + MAX + " kişi katılabilir. Çıplak ya da uygunsuz görüntü otomatik denetlenir: şüpheli görüntüde kameran kapanır, kesin uygunsuzda hesabın engellenir. Oda aç, kodu arkadaşlarına mesajla gönder; onlar kodu yazıp katılır. Küfür, hakaret ve taciz yasak. Kimseyi izinsiz kaydetme.";
+  info.textContent = "En fazla " + MAX + " kişi katılabilir. Çıplak ya da uygunsuz görüntü otomatik denetlenir: şüpheli görüntüde kameran kapanır, kesin uygunsuzda hesabın engellenir. Oda aç, kodu arkadaşlarına mesajla gönder; onlar kodu yazıp katılır. Küfür, hakaret ve taciz yasak. Kimseyi izinsiz kaydetme. Kural dışı davranan birini odadaki 🚩 Bildir düğmesiyle yöneticiye bildirebilirsin.";
   const mk = el("button", "vgo", "➕ Yeni oda aç"); mk.type = "button"; mk.onclick = create;
   const inp = el("input"); inp.placeholder = "ODA KODU"; inp.maxLength = 5;
   const jn = el("button", "vgo", "Odaya katıl"); jn.type = "button"; jn.onclick = () => join(inp.value);
   const wr = el("div", "vcd", "Not: Mobil internette bazı bağlantılar kurulamayabilir. Wi-Fi daha iyi çalışır.");
   [info, mk, inp, jn, wr].forEach((x) => body.appendChild(x));
+  getDoc(doc(db, "config", "admin")).then((a) => {
+    if (a.exists() && a.data().uid === user.uid && panel) {
+      const ab = el("button", "vsm", "🚩 Görüntülü şikayetler (yönetici)"); ab.type = "button"; ab.onclick = adminList;
+      body.appendChild(ab);
+    }
+  }).catch(() => {});
   panel.appendChild(head); panel.appendChild(body);
   document.body.appendChild(panel);
 }
