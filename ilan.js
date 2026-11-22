@@ -6,7 +6,7 @@ const $ = (i) => document.getElementById(i);
 const st = document.createElement("style");
 st.textContent = C1 + C2;
 document.head.appendChild(st);
-let panel = null, btn = null;
+let panel = null;
 function el(t, c, x) {
   const e = document.createElement(t);
   if (c) e.className = c;
@@ -64,18 +64,14 @@ function open() {
   document.body.appendChild(panel);
 }
 function mount() {
-  const h = $("rooms");
-  if (!h || !$("app") || $("app").hidden) return;
-  if (!btn) {
-    btn = el("button", "room ilanb");
-    btn.type = "button";
-    btn.appendChild(el("b", "", "💼 İş İlanları"));
-    btn.appendChild(el("span", "", "81 ilde özel güvenlik iş ilanları"));
-    btn.onclick = open;
+  const w = document.querySelector(".mtabs");
+  if (!w) return false;
+  if (!w.querySelector(".iltab")) {
+    const b = el("button", "iltab", "💼 İlanlar");
+    b.type = "button"; b.onclick = open;
+    w.appendChild(b);
   }
-  const bel = h.querySelector(".muni");
-  const want = bel ? bel.nextSibling : h.firstChild;
-  if (btn.parentNode !== h || (bel ? btn.previousSibling !== bel : h.firstChild !== btn)) h.insertBefore(btn, want === btn ? null : want);
+  return true;
 }
 function bar() {
   const rt = $("rt"), rd = $("rd");
@@ -88,4 +84,5 @@ function bar() {
 }
 const t = $("rt");
 if (t) new MutationObserver(bar).observe(t, { childList: true, characterData: true, subtree: true });
-setInterval(() => { mount(); bar(); }, 1200);
+let n = 0;
+const iv = setInterval(() => { if (mount() || ++n > 60) clearInterval(iv); }, 300);
