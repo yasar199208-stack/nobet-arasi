@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ağ testi</title>
+<style>
+body{background:#0e1726;color:#e6edf7;font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}
+.r{border:1px solid #2a3d57;border-radius:10px;padding:10px 12px;margin:8px 0;word-break:break-word}
+.ok{border-color:#3fb06a}.bad{border-color:#e5484d;background:#2a1418}
+</style></head><body>
+<h2>Ağ testi</h2>
+<div id="o"></div>
+<script>
+var URLS = [
+  ["Firebase kodu (gstatic)", "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"],
+  ["Giriş servisi", "https://identitytoolkit.googleapis.com/"],
+  ["Veritabanı", "https://firestore.googleapis.com/"],
+  ["Giriş alanı", "https://nobet-arasi.firebaseapp.com/__/auth/handler"],
+  ["Genel internet", "https://www.google.com/generate_204"]
+];
+var o = document.getElementById("o");
+URLS.forEach(function (u) {
+  var d = document.createElement("div");
+  d.className = "r";
+  d.textContent = u[0] + ": deneniyor…";
+  o.appendChild(d);
+  var t0 = Date.now();
+  var c = new AbortController();
+  var tm = setTimeout(function () { c.abort(); }, 12000);
+  fetch(u[1], { mode: "no-cors", cache: "no-store", signal: c.signal }).then(function () {
+    clearTimeout(tm);
+    d.className = "r ok";
+    d.textContent = u[0] + ": ULAŞILDI (" + (Date.now() - t0) + " ms)";
+  }).catch(function (e) {
+    clearTimeout(tm);
+    d.className = "r bad";
+    d.textContent = u[0] + ": ULAŞILAMADI (" + e.name + ", " + (Date.now() - t0) + " ms)";
+  });
+});
+</script></body></html>
