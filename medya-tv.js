@@ -1,7 +1,18 @@
 // Canlı TV (resmi YouTube canlı yayınları) ve müzik linki çalar
 const CH = [
   { n: "TRT Haber", id: "UCBgTP2LOFVPmq15W-RH-WXA" },
-  { n: "Habertürk TV", id: "UCn6dNfiRE_Xunu7iMyvD7AA" }
+  { n: "Habertürk TV", id: "UCn6dNfiRE_Xunu7iMyvD7AA" },
+  { n: "CNN TÜRK", id: "UCV6zcRug6Hqp1UX_FdyUeBg" },
+  { n: "A Haber", id: "UCKQhfw-lzz0uKnE1fY1PsAA" },
+  { n: "Halk TV", id: "UCf_ResXZzE-o18zACUEmyvQ" },
+  { n: "Sözcü TV", id: "UCOulx_rep5O4i9y6AyDqVvw" },
+  { n: "TV100", id: "UCndsdUW_oPLqpQJY9J8oIRg" },
+  { n: "Tele1", id: "UCoHnRpOS5rL62jTmSDO5Npw" },
+  { n: "Ulusal Kanal", id: "UC6T0L26KS1NHMPbTwI1L4Eg" },
+  { n: "TRT World", id: "UC7fWeaHhqgM4Ry-RMpM2YYw" },
+  { n: "TGRT Haber", id: "UCzgrZ-CndOoylh2_e72nSBQ" },
+  { n: "Flash TV", id: "UCLVRGERuHdmUe10mvGvQuMw" },
+  { n: "Ülke TV", id: "UCi65FGbYYj-OzJm2luB_fNQ" }
 ];
 function frame(src) {
   const f = document.createElement("iframe");
