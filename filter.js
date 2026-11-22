@@ -8,7 +8,7 @@ import("./belediye.js?v=2").catch(() => {});
 import("./callguard.js?v=1").catch(() => {});
 import("./renk.js?v=1").catch(() => {});
 import("./medya.js?v=1").catch(() => {});
-import("./ilan.js?v=2").catch(() => {});
+import("./ilan.js?v=3").catch(() => {});
 
 // Küfür filtresi: uygunsuz ifade içeren mesaj gönderilmeden önce engellenir.
 const $ = (i) => document.getElementById(i);
