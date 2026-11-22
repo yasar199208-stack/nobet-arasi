@@ -73,7 +73,9 @@ function mount() {
     btn.appendChild(el("span", "", "81 ilde özel güvenlik iş ilanları"));
     btn.onclick = open;
   }
-  if (h.firstChild !== btn) h.insertBefore(btn, h.firstChild);
+  const bel = h.querySelector(".muni");
+  const want = bel ? bel.nextSibling : h.firstChild;
+  if (btn.parentNode !== h || (bel ? btn.previousSibling !== bel : h.firstChild !== btn)) h.insertBefore(btn, want === btn ? null : want);
 }
 function bar() {
   const rt = $("rt"), rd = $("rd");
@@ -84,8 +86,6 @@ function bar() {
   if (!b) { b = el("div", "ilbar", "📌 Kurallar: küfür, hakaret ve taciz yasak. Para isteyen ya da sahte ilan yok. Telefon/TC/adres yazma. İlanına görev yeri, vardiya, ücret ve aranan belgeyi yaz."); b.id = "ilbar"; }
   if (b.parentNode !== rd.parentNode || b.previousSibling !== rd) rd.insertAdjacentElement("afterend", b);
 }
-const h = $("rooms");
-if (h) new MutationObserver(mount).observe(h, { childList: true });
 const t = $("rt");
 if (t) new MutationObserver(bar).observe(t, { childList: true, characterData: true, subtree: true });
-setInterval(() => { mount(); bar(); }, 1500);
+setInterval(() => { mount(); bar(); }, 1200);
