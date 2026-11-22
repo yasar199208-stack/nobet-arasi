@@ -3,7 +3,7 @@ import { CSS as C1 } from "./belediye-css.js?v=1";
 import { KURUMLAR } from "./kurum-data.js?v=1";
 const $ = (i) => document.getElementById(i);
 const st = document.createElement("style");
-st.textContent = C1 + ".mnq{width:100%;box-sizing:border-box;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:16px}";
+st.textContent = C1 + ".mtabs{flex-wrap:wrap}.mtabs button{flex:1 1 0;min-width:56px;padding:7px 2px;font-size:13px}.mnq{width:100%;box-sizing:border-box;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:16px}";
 document.head.appendChild(st);
 let panel = null;
 function el(t, c, x) {
