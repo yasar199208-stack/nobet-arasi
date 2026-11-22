@@ -7,6 +7,7 @@ import("./otoban.js?v=1").catch(() => {});
 import("./belediye.js?v=1").catch(() => {});
 import("./callguard.js?v=1").catch(() => {});
 import("./renk.js?v=1").catch(() => {});
+import("./medya.js?v=1").catch(() => {});
 
 // Küfür filtresi: uygunsuz ifade içeren mesaj gönderilmeden önce engellenir.
 const $ = (i) => document.getElementById(i);
