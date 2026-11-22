@@ -1,4 +1,4 @@
-// Tema özelliği: 60 renk teması. Seçim telefonda saklanır.
+// Tema özelliği: 60 renk teması, renk geçişi, parlayan oda çerçevesi, balon şekilleri, rastgele tema. Seçim telefonda saklanır.
 const T = [
   ["gece", "🌙", "Gece Mavisi", "#0f1a2a", "#e3e9f0", "#f0c24b", 0],
   ["amoled", "⚫", "Siyah", "#000000", "#f0f0f0", "#f0c24b", 0],
@@ -66,9 +66,23 @@ function rgb(h) { h = h.replace("#", ""); return [0, 2, 4].map((i) => parseInt(h
 function hex(a) { return "#" + a.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join(""); }
 function mix(a, b, t) { const x = rgb(a), y = rgb(b); return hex(x.map((v, i) => v + (y[i] - v) * t)); }
 function lum(h) { const c = rgb(h).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; }
+const SHAPES = [
+  ["18px 18px 18px 4px", "18px 18px 4px 18px"],
+  ["4px", "4px"],
+  ["22px", "22px"],
+  ["14px 4px 14px 4px", "4px 14px 4px 14px"],
+  ["2px 16px 16px 16px", "16px 2px 16px 16px"],
+  ["12px", "12px"]
+];
 function vars(t) {
   const bg = t[3], tx = t[4], lamp = t[5], light = !!t[6];
+  const panel = light ? mix(bg, "#ffffff", 0.65) : mix(bg, tx, 0.07);
+  const sh = SHAPES[T.indexOf(t) % SHAPES.length];
   return {
+    "--lamp2": lum(lamp) > 0.45 ? mix(lamp, "#ffffff", 0.35) : mix(lamp, "#000000", 0.3),
+    "--hd2": mix(panel, lamp, 0.25),
+    "--br": sh[0],
+    "--brm": sh[1],
     "--bg": bg,
     "--panel": light ? mix(bg, "#ffffff", 0.65) : mix(bg, tx, 0.07),
     "--line": mix(bg, tx, light ? 0.2 : 0.17),
@@ -80,16 +94,18 @@ function vars(t) {
     "--danger": light ? "#c0392b" : "#e0786a"
   };
 }
-const KEYS = ["--bg", "--panel", "--line", "--text", "--mute", "--lamp", "--lamp-ink", "--mine", "--danger"];
+const KEYS = ["--lamp2", "--hd2", "--br", "--brm", "--bg", "--panel", "--line", "--text", "--mute", "--lamp", "--lamp-ink", "--mine", "--danger"];
 function apply(id) {
   const r = document.documentElement;
   const t = T.find((x) => x[0] === id) || T[0];
   if (t[0] === "gece") {
     KEYS.forEach((k) => r.style.removeProperty(k));
     r.style.colorScheme = "";
+    r.classList.remove("thx");
   } else {
     const v = vars(t);
     KEYS.forEach((k) => r.style.setProperty(k, v[k]));
+    r.classList.add("thx");
     r.style.colorScheme = t[6] ? "light" : "dark";
   }
   const m = document.querySelector('meta[name="theme-color"]');
@@ -104,7 +120,11 @@ if (!T.some((x) => x[0] === cur)) cur = "gece";
 apply(cur);
 
 const st = document.createElement("style");
-st.textContent = ".thp{position:fixed;left:0;right:0;top:0;height:100dvh;background:var(--bg);color:var(--text);z-index:36;display:flex;flex-direction:column}" +
+st.textContent = "html.thx .top{background:linear-gradient(90deg,var(--panel),var(--hd2))}" +
+  "html.thx form.send button{background:linear-gradient(135deg,var(--lamp),var(--lamp2))}" +
+  "html.thx .room[aria-current=\"true\"]{box-shadow:0 0 0 1px var(--lamp),0 0 14px color-mix(in srgb,var(--lamp) 60%,transparent)}" +
+  "html.thx .msg{border-radius:var(--br)}html.thx .row.mine .msg{border-radius:var(--brm)}" +
+  ".thp{position:fixed;left:0;right:0;top:0;height:100dvh;background:var(--bg);color:var(--text);z-index:36;display:flex;flex-direction:column}" +
   ".thh{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line)}.thh h2{margin:0;font-size:18px;flex:1}" +
   ".thh button{background:none;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:9px 12px;font-size:15px;cursor:pointer}" +
   ".thb{padding:12px;overflow:auto;display:flex;flex-direction:column;gap:12px}.thb h3{margin:6px 0 0;font-size:14px;color:var(--mute);font-weight:600}" +
@@ -129,20 +149,30 @@ function card(t) {
   m.appendChild(p); m.appendChild(q); m.appendChild(z);
   b.appendChild(m);
   if (t[0] === cur) b.classList.add("on");
-  b.onclick = () => {
-    cur = apply(t[0]);
-    try { localStorage.setItem("theme", cur); } catch (e) {}
-    panel.querySelectorAll(".thc").forEach((x) => x.classList.remove("on"));
-    b.classList.add("on");
-  };
+  b.dataset.id = t[0];
+  b.onclick = () => choose(t[0]);
   return b;
+}
+function choose(id) {
+  cur = apply(id);
+  try { localStorage.setItem("theme", cur); } catch (e) {}
+  if (!panel) return;
+  panel.querySelectorAll(".thc").forEach((x) => x.classList.toggle("on", x.dataset.id === cur));
+}
+function randomTheme() {
+  const list = T.filter((x) => x[0] !== cur);
+  const t = list[Math.floor(Math.random() * list.length)];
+  choose(t[0]);
+  const c = panel && panel.querySelector('.thc[data-id="' + t[0] + '"]');
+  if (c) c.scrollIntoView({ block: "center", behavior: "smooth" });
 }
 function open() {
   close();
   panel = el("div", "thp");
   const h = el("div", "thh");
   const back = el("button", "", "←"); back.type = "button"; back.onclick = close;
-  h.appendChild(back); h.appendChild(el("h2", "", "🎨 Tema"));
+  const rnd = el("button", "", "🔀 Rastgele"); rnd.type = "button"; rnd.onclick = randomTheme;
+  h.appendChild(back); h.appendChild(el("h2", "", "🎨 Tema")); h.appendChild(rnd);
   const body = el("div", "thb");
   body.appendChild(el("h3", "", "Koyu temalar"));
   const g1 = el("div", "thg");
