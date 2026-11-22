@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Giriş kontrolü</title>
+<style>
+body{background:#0e1726;color:#e6edf7;font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}
+input,button{width:100%;box-sizing:border-box;padding:12px;margin:6px 0;font-size:16px;border-radius:10px;border:1px solid #2a3d57;background:#1a2640;color:#e6edf7}
+button{background:#f0c24b;color:#111;font-weight:800;border:0}
+.r{border:1px solid #2a3d57;border-radius:10px;padding:10px 12px;margin:8px 0;word-break:break-word}
+.ok{border-color:#3fb06a}.bad{border-color:#e5484d;background:#2a1418}
+</style></head><body>
+<h2>Giriş kontrolü</h2>
+<input id="e" type="email" placeholder="E-posta" autocomplete="off">
+<input id="p" type="password" placeholder="Şifre" autocomplete="off">
+<button id="g">Dene</button>
+<div id="o"></div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+const app = initializeApp({
+  apiKey: "AIzaSyBaIbceZ4EIsUEd4IhNcHH4NnJjnixjzFc",
+  authDomain: "nobet-arasi.firebaseapp.com",
+  projectId: "nobet-arasi",
+  appId: "1:525115130558:web:7147ce142a12b173d494ef"
+});
+const auth = getAuth(app), db = getFirestore(app);
+const o = document.getElementById("o");
+function add(cls, t) { const d = document.createElement("div"); d.className = "r " + cls; d.textContent = t; o.appendChild(d); }
+document.getElementById("g").onclick = async () => {
+  o.textContent = "";
+  add("", "1) Giriş deneniyor…");
+  let u;
+  try {
+    u = (await signInWithEmailAndPassword(auth, document.getElementById("e").value.trim(), document.getElementById("p").value)).user;
+    add("ok", "1) Giriş TAMAM");
+  } catch (e) { add("bad", "1) Giriş HATASI: " + e.code + " | " + e.message); return; }
+  try {
+    const s = await getDoc(doc(db, "users", u.uid));
+    add("ok", "2) Profil okuma TAMAM. Profil var mı: " + s.exists());
+  } catch (e) { add("bad", "2) Profil okuma HATASI: " + e.code + " | " + e.message); }
+  try { await signOut(auth); } catch (e) {}
+};
+</script></body></html>
