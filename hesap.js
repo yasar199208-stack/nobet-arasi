@@ -1,7 +1,9 @@
+import { getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, EmailAuthProvider, reauthenticateWithCredential, deleteUser } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, getDocs, deleteDoc, collection, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // Hesabı sil: kullanıcının kendi verilerini siler, sonra giriş hesabını kaldırır. Düğme oda listesinin üstündedir.
+for (let i = 0; i < 150 && !getApps().length; i++) await new Promise((r) => setTimeout(r, 200));
 const auth = getAuth(), db = getFirestore();
 const $ = (i) => document.getElementById(i);
 let btn = null, panel = null, busy = false;
