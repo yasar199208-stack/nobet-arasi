@@ -3,6 +3,7 @@ import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/
 import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, addDoc, getDocs, onSnapshot, query, where, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { verdict, thumb } from "./nsfw.js?v=1";
+import { EXTRA } from "./tones.js?v=1";
 
 // Grup görüntülü konuşma: odada en fazla MAX kişi, herkes herkesle doğrudan bağlanır (WebRTC).
 const MAX = 5;
@@ -12,19 +13,31 @@ const auth = getAuth(), db = getFirestore();
 const $ = (i) => document.getElementById(i);
 let user = null, nick = "";
 let actx = null, repUn = null;
+let repSnd = true;
+try { repSnd = localStorage.getItem("repsnd") !== "0"; } catch (e) {}
+const TONES = {
+  alarm0: { n: "Şikayet (varsayılan)", w: "square", v: 0.4, d: 0.15, s: [[880, 0], [660, 0.18], [880, 0.36], [660, 0.54]] },
+  bip: { n: "Bip", w: "square", v: 0.45, d: 0.16, s: [[880, 0], [1175, 0.16]] },
+  zil: { n: "Zil", w: "square", v: 0.4, d: 0.11, s: [[1319, 0], [1568, 0.13], [1319, 0.26], [1568, 0.39], [1319, 0.52], [1568, 0.65]] },
+  melodi: { n: "Melodi", w: "triangle", v: 0.9, d: 0.22, s: [[523, 0], [659, 0.2], [784, 0.4], [1047, 0.6], [784, 0.9], [1047, 1.1]] }
+};
+Object.assign(TONES, EXTRA);
+let repTone = "alarm0";
+try { const k = localStorage.getItem("reptone"); if (k && TONES[k]) repTone = k; } catch (e) {}
 function beep() {
+  const T = TONES[repTone] || TONES.alarm0;
   try {
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
     if (actx.state === "suspended") actx.resume();
     const t0 = actx.currentTime + 0.02;
-    [[880, 0], [660, 0.18], [880, 0.36], [660, 0.54]].forEach((x) => {
+    T.s.forEach((x) => {
       const o = actx.createOscillator(), g = actx.createGain(), t = t0 + x[1];
-      o.type = "square"; o.frequency.setValueAtTime(x[0], t);
+      o.type = T.w; o.frequency.setValueAtTime(x[0], t);
       g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(0.4, t + 0.015);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
+      g.gain.exponentialRampToValueAtTime(T.v, t + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + T.d);
       o.connect(g); g.connect(actx.destination);
-      o.start(t); o.stop(t + 0.2);
+      o.start(t); o.stop(t + T.d + 0.05);
     });
   } catch (e) {}
   try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
@@ -41,7 +54,7 @@ function watchReports(u) {
       if (ready) {
         const fresh = s.docChanges().filter((c) => c.type === "added" && !(c.doc.metadata && c.doc.metadata.hasPendingWrites));
         if (fresh.length) {
-          beep();
+          if (repSnd) beep();
           toast("🚩 Yeni şikayet var.");
           const tb = document.querySelector(".vctab");
           if (tb && tb.textContent.indexOf("🔴") < 0) tb.textContent += " 🔴";
@@ -442,6 +455,27 @@ function open() {
   [info, mk, inp, jn, wr].forEach((x) => body.appendChild(x));
   getDoc(doc(db, "config", "admin")).then((a) => {
     if (a.exists() && a.data().uid === user.uid && panel) {
+      const sb = el("button", "vsm"); sb.type = "button";
+      const lab = () => { sb.textContent = repSnd ? "🔔 Şikayet sesi açık" : "🔕 Şikayet sesi kapalı"; };
+      lab();
+      sb.onclick = () => {
+        repSnd = !repSnd;
+        try { localStorage.setItem("repsnd", repSnd ? "1" : "0"); } catch (e) {}
+        lab();
+        if (repSnd) beep();
+      };
+      body.appendChild(sb);
+      const tn = el("button", "vsm"); tn.type = "button";
+      const tl = () => { tn.textContent = "🎵 Şikayet sesi: " + TONES[repTone].n; };
+      tl();
+      tn.onclick = () => {
+        const ks = Object.keys(TONES);
+        repTone = ks[(ks.indexOf(repTone) + 1) % ks.length];
+        try { localStorage.setItem("reptone", repTone); } catch (e) {}
+        tl();
+        beep();
+      };
+      body.appendChild(tn);
       const ab = el("button", "vsm", "🚩 Görüntülü şikayetler (yönetici)"); ab.type = "button"; ab.onclick = adminList;
       body.appendChild(ab);
     }
