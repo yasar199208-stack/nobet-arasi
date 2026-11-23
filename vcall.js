@@ -767,3 +767,4 @@ function mount() {
 window.addEventListener("pagehide", () => { if (S) { try { deleteDoc(doc(db, "vrooms", S.code, "peers", user.uid)); } catch (e) {} } });
 let n = 0;
 const iv = setInterval(() => { if (mount() || ++n > 60) clearInterval(iv); }, 300);
+window.__vcS = () => S;
