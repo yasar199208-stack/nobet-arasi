@@ -11,7 +11,7 @@ import("./medya.js?v=1").catch(() => {});
 import("./ilan.js?v=3").catch(() => {});
 import("./kurum.js?v=4").catch(() => {});
 import("./vcall.js?v=8").catch(() => {});
-import("./vcmask.js?v=1").catch(() => {});
+import("./vcmask.js?v=2").catch(() => {});
 import("./theme.js?v=2").catch(() => {});
 
 // Küfür filtresi: uygunsuz ifade içeren mesaj gönderilmeden önce engellenir.
