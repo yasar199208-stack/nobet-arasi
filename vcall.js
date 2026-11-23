@@ -287,4 +287,56 @@ async function selfBan(src) {
   try {
     const rec = { nick: nick || "", createdAt: serverTimestamp(), reason: "nsfw" };
     const t = await thumb(src);
-    if (t) rec.th
+    if (t) rec.thumb = t;
+    await setDoc(doc(db, "bans", user.uid), rec);
+  } catch (e) {}
+}
+async function scanOwn(s) {
+  const v = s.tiles.me && s.tiles.me.querySelector("video");
+  const tr = s.stream.getVideoTracks()[0];
+  if (!v || !tr || !tr.enabled) return;
+  const f = frame(v);
+  if (!f) return;
+  const r = await verdict(f);
+  if (S !== s) return;
+  if (r.level === "hard") {
+    tr.enabled = false;
+    toast("Uygunsuz görüntü algılandı. Hesabın engellendi.");
+    await selfBan(f);
+    leave();
+  } else if (r.level === "soft") {
+    s.strikes = (s.strikes || 0) + 1;
+    if (s.strikes >= 2) {
+      tr.enabled = false; s.strikes = 0;
+      const cb = s.root.querySelector(".vcb button:nth-child(2)");
+      if (cb) cb.classList.add("off");
+      toast("Uygunsuz görüntü algılandı, kameran kapatıldı.");
+    }
+  } else if (r.level === "ok") s.strikes = 0;
+}
+async function scanPeer(s, id) {
+  const t = s.tiles[id];
+  const v = t && t.querySelector("video");
+  const f = frame(v);
+  if (!f) return;
+  const r = await verdict(f);
+  if (S !== s || !s.tiles[id]) return;
+  const bad = r.level === "hard" || r.level === "soft";
+  s.flag = s.flag || {};
+  s.flag[id] = bad ? (s.flag[id] || 0) + 1 : 0;
+  const hide = s.flag[id] >= (r.level === "hard" ? 1 : 2);
+  v.style.visibility = hide ? "hidden" : "visible";
+  let w = t.querySelector(".vcw");
+  if (hide && !w) { w = el("div", "vcw", "Uygunsuz görüntü gizlendi"); t.appendChild(w); }
+  if (!hide && w) w.remove();
+}
+function startScan(s) {
+  let k = 0;
+  s.sc = setInterval(() => {
+    if (S !== s || document.hidden) return;
+    k++;
+    scanOwn(s);
+    const ids = Object.keys(s.tiles).filter((x) => x !== "me");
+    if (ids.length) scanPeer(s, ids[k % ids.length]);
+  }, 3000);
+}
