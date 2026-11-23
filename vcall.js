@@ -86,6 +86,9 @@ st.textContent = ".vcp{position:fixed;left:0;right:0;top:0;height:100dvh;backgro
   ".vct b{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.55);color:#fff;border-radius:6px;padding:2px 7px;font-size:12px}" +
   ".vcw{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;background:#222;color:#fff;font-size:13px;text-align:center;padding:8px}" +
   ".vcl{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--panel);font-size:14px}.vcl small{color:var(--mute)}.vcl .vcr{display:flex;gap:6px;flex-wrap:wrap}.vcl button,.vcm button.vsm{background:none;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 10px;font-size:14px;cursor:pointer}.vcb{display:flex;gap:8px;justify-content:center;padding:10px;border-top:1px solid var(--line)}.vcb button.off{background:#e5484d;border-color:#e5484d;color:#fff}.vcb button.end{background:#e5484d;border-color:#e5484d;color:#fff}";
+st.textContent += ".vcp.mini{left:auto;top:auto;right:8px;bottom:150px;width:176px;height:auto;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,.45)}" +
+  ".vcp.mini .vch{display:none}.vcp.mini .vcg{flex:none;height:112px;padding:3px;gap:3px;touch-action:none}" +
+  ".vcp.mini .vcb{padding:4px;gap:4px;border-top:0}.vcp.mini .vcb button{padding:6px 8px;font-size:13px}.vcp.mini .vcb .hm{display:none}";
 document.head.appendChild(st);
 
 function el(t, c, x) { const e = document.createElement(t); if (c) e.className = c; if (x) e.textContent = x; return e; }
@@ -374,13 +377,37 @@ async function enter(code, host) {
   head.appendChild(cp);
   const rp = el("button", "", "🚩 Bildir"); rp.type = "button"; rp.onclick = reportMenu;
   head.appendChild(rp);
+  const mn = el("button", "", "⬇️ Küçült"); mn.type = "button";
+  head.appendChild(mn);
   const grid = el("div", "vcg");
   const bar = el("div", "vcb");
   root.appendChild(head); root.appendChild(grid); root.appendChild(bar);
   document.body.appendChild(root);
   S = { code: code, host: host, stream: stream, pcs: {}, tiles: {}, names: {}, unsubs: [], root: root, grid: grid, hb: null };
-  const mic = el("button", "", "🎤"), cam = el("button", "", "📷"), flip = el("button", "", "🔄"), end = el("button", "end", "Çık");
-  [mic, cam, flip, end].forEach((b) => { b.type = "button"; bar.appendChild(b); });
+  const mic = el("button", "", "🎤"), cam = el("button", "hm", "📷"), flip = el("button", "hm", "🔄"), sz = el("button", "", "⬇️"), end = el("button", "end", "Çık");
+  [mic, cam, flip, sz, end].forEach((b) => { b.type = "button"; bar.appendChild(b); });
+  const toggleMini = () => {
+    const m = root.classList.toggle("mini");
+    sz.textContent = m ? "⬆️" : "⬇️";
+    ["left", "top", "right", "bottom"].forEach((k) => { root.style[k] = ""; });
+  };
+  mn.onclick = toggleMini; sz.onclick = toggleMini;
+  // Küçük pencereyi parmakla sürükle
+  let drag = null;
+  grid.addEventListener("pointerdown", (e) => {
+    if (!root.classList.contains("mini")) return;
+    const r = root.getBoundingClientRect();
+    drag = { dx: e.clientX - r.left, dy: e.clientY - r.top, w: r.width, h: r.height };
+    try { grid.setPointerCapture(e.pointerId); } catch (x) {}
+  });
+  grid.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const x = Math.max(0, Math.min(window.innerWidth - drag.w, e.clientX - drag.dx));
+    const y = Math.max(0, Math.min(window.innerHeight - drag.h, e.clientY - drag.dy));
+    root.style.left = x + "px"; root.style.top = y + "px"; root.style.right = "auto"; root.style.bottom = "auto";
+  });
+  const stop = () => { drag = null; };
+  grid.addEventListener("pointerup", stop); grid.addEventListener("pointercancel", stop);
   mic.onclick = () => { const a = stream.getAudioTracks()[0]; if (a) { a.enabled = !a.enabled; mic.classList.toggle("off", !a.enabled); mic.textContent = a.enabled ? "🎤" : "🔇"; } };
   cam.onclick = () => { const v = stream.getVideoTracks()[0]; if (v) { v.enabled = !v.enabled; cam.classList.toggle("off", !v.enabled); } };
   flip.onclick = async () => {
