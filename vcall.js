@@ -12,6 +12,24 @@ for (let i = 0; i < 150 && !getApps().length; i++) await new Promise((r) => setT
 const auth = getAuth(), db = getFirestore();
 const $ = (i) => document.getElementById(i);
 let user = null, nick = "";
+// Oda içi yazışma için küçük küfür filtresi
+const BE = ["am", "amk", "aq", "amq", "sik", "sikim", "siktir", "got", "gotun", "gotu", "pic", "picler", "oc", "ibne", "ibneler", "gt", "gtu", "gtun", "gtn", "mk", "mq", "sg", "sktr", "skm", "skim", "skik", "sikm", "yrk", "yrrk", "orspu", "oruspu"];
+const BP = ["orospu", "yarrak", "yarak", "pezevenk", "siktir", "sikeyim", "sikerim", "sikik", "amcik", "amina", "aminako", "gotveren", "ibne", "anani", "kahpe", "pust", "gavat", "surtuk", "gtveren", "sktir", "skerim", "skeyim"];
+function nrm(s) {
+  let t = String(s).normalize("NFKC").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("tr");
+  const map = { "ç": "c", "ğ": "g", "ı": "i", "ö": "o", "ş": "s", "ü": "u", "â": "a", "î": "i", "û": "u", "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s" };
+  t = t.replace(/[çğıöşüâîû013457@$]/g, (c) => map[c] || c);
+  t = t.replace(/[^a-z]+/g, " ");
+  t = t.replace(/([a-z])\1+/g, "$1");
+  return t.trim();
+}
+function bad(text) {
+  const words = nrm(text).split(" ").filter(Boolean);
+  const singles = words.filter((w) => w.length === 1);
+  const glued = singles.length >= 3 ? singles.join("") : "";
+  const all = glued ? words.concat([glued]) : words;
+  return all.some((w) => BE.indexOf(w) >= 0 || BP.some((p) => w.indexOf(p) === 0));
+}
 let actx = null, repUn = null;
 let repSnd = true;
 try { repSnd = localStorage.getItem("repsnd") !== "0"; } catch (e) {}
@@ -89,6 +107,19 @@ st.textContent = ".vcp{position:fixed;left:0;right:0;top:0;height:100dvh;backgro
 st.textContent += ".vcp.mini{left:auto;top:auto;right:8px;bottom:150px;width:176px;height:auto;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,.45)}" +
   ".vcp.mini .vch{display:none}.vcp.mini .vcg{flex:none;height:112px;padding:3px;gap:3px;touch-action:none}" +
   ".vcp.mini .vcb{padding:4px;gap:4px;border-top:0}.vcp.mini .vcb button{padding:6px 8px;font-size:13px}.vcp.mini .vcb .hm{display:none}";
+st.textContent += ".vch{flex-wrap:wrap}.vch.r h2{flex:1 1 100%;font-size:16px;overflow-wrap:anywhere}.vch.r button{padding:7px 9px;font-size:14px}" +
+  ".vcp .vcb{flex-wrap:wrap;gap:6px}.vcp .vcb button{padding:8px 9px}" +
+  ".vct{cursor:pointer}.vct.spk{outline:3px solid var(--lamp);outline-offset:-3px}" +
+  ".vcg.f{grid-template-columns:repeat(4,1fr);grid-template-rows:1fr;grid-auto-rows:72px}.vct.big{grid-column:1/-1;grid-row:1}" +
+  ".vct .rx{position:absolute;left:50%;top:38%;font-size:44px;pointer-events:none;animation:vcrx 2.4s ease-out forwards}" +
+  "@keyframes vcrx{0%{opacity:0;transform:translate(-50%,20px) scale(.6)}15%{opacity:1;transform:translate(-50%,0) scale(1.1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-60px)}}" +
+  ".vct .hd{position:absolute;right:6px;top:4px;font-size:22px}" +
+  ".vcc{flex:none;height:42%;display:flex;flex-direction:column;border-top:1px solid var(--line);background:var(--bg)}" +
+  ".vcc .lg{flex:1;overflow:auto;padding:8px 10px;display:flex;flex-direction:column;gap:5px;font-size:14px}.vcc .lg div{overflow-wrap:anywhere}.vcc .lg b{color:var(--lamp)}" +
+  ".vcc form{display:flex;gap:6px;padding:6px;border-top:1px solid var(--line)}.vcc input{flex:1;min-width:0;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:16px}.vcc button{background:var(--lamp);color:var(--lamp-ink);border:0;border-radius:10px;padding:0 14px;font-weight:700}" +
+  ".vpop{display:flex;gap:6px;justify-content:center;padding:8px;border-top:1px solid var(--line);background:var(--panel)}.vpop button{background:none;border:1px solid var(--line);border-radius:10px;font-size:24px;padding:4px 8px;cursor:pointer}" +
+  ".vcp.mini .vcc,.vcp.mini .vpop{display:none!important}.vcp.mini.n3{width:204px}.vcp.mini.n3 .vcg{height:132px}.vcp.mini.n5 .vcg{height:168px}" +
+  ".vcp.mini .vcg.f{grid-template-columns:1fr 1fr;grid-template-rows:none;grid-auto-rows:1fr}.vcp.mini .vct.big{grid-column:auto;grid-row:auto}";
 document.head.appendChild(st);
 
 function el(t, c, x) { const e = document.createElement(t); if (c) e.className = c; if (x) e.textContent = x; return e; }
@@ -115,18 +146,56 @@ function tile(id, label, stream, mute) {
     const v = document.createElement("video");
     v.autoplay = true; v.playsInline = true; v.muted = !!mute;
     t.appendChild(v); t.appendChild(el("b", "", label));
+    t.onclick = () => { if (!S || S.root.classList.contains("mini")) return; S.focus = S.focus === id ? null : id; layout(); };
     S.grid.appendChild(t);
     S.tiles[id] = t;
   }
   const v = t.querySelector("video");
   if (v.srcObject !== stream) { v.srcObject = stream; v.play().catch(() => {}); }
+  // Ses çözümleyicisi, görüntü oynamaya başladıktan sonra kurulur (uzak yayınlarda daha önce kurulursa sessiz kalıyor)
+  v.onplaying = () => watchAudio(id, stream);
+  setTimeout(() => watchAudio(id, stream), 1500);
   layout();
 }
 function layout() {
   const n = Object.keys(S.tiles).length;
-  S.grid.style.gridTemplateColumns = n <= 1 ? "1fr" : "1fr 1fr";
+  if (S.focus && !S.tiles[S.focus]) S.focus = null;
+  S.grid.classList.toggle("f", !!S.focus);
+  S.grid.style.gridTemplateColumns = S.focus ? "" : (n <= 1 ? "1fr" : "1fr 1fr");
+  Object.keys(S.tiles).forEach((k) => S.tiles[k].classList.toggle("big", S.focus === k));
+  S.root.classList.toggle("n3", n >= 3);
+  S.root.classList.toggle("n5", n >= 5);
 }
-function dropTile(id) { if (S && S.tiles[id]) { S.tiles[id].remove(); delete S.tiles[id]; layout(); } }
+function dropTile(id) {
+  if (S && S.tiles[id]) {
+    S.tiles[id].remove(); delete S.tiles[id];
+    if (S.an[id]) { try { S.an[id].src.disconnect(); } catch (e) {} delete S.an[id]; }
+    layout();
+  }
+}
+// Konuşan kişinin görüntüsünü çerçeveyle vurgula
+function watchAudio(id, stream) {
+  if (!S || S.an[id] || !stream.getAudioTracks().length) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const src = actx.createMediaStreamSource(stream), an = actx.createAnalyser();
+    an.fftSize = 1024; src.connect(an);
+    S.an[id] = { an: an, src: src, buf: new Uint8Array(an.fftSize), last: 0 };
+  } catch (e) {}
+}
+function speakLoop() {
+  if (!S || document.hidden) return;
+  try { if (actx && actx.state === "suspended") actx.resume(); } catch (e) {}
+  Object.keys(S.an).forEach((id) => {
+    const a = S.an[id], t = S.tiles[id];
+    if (!t) return;
+    a.an.getByteTimeDomainData(a.buf);
+    let m = 0;
+    for (let k = 0; k < a.buf.length; k++) { const d = Math.abs(a.buf[k] - 128); if (d > m) m = d; }
+    if (m > 12) a.last = Date.now();
+    t.classList.toggle("spk", Date.now() - a.last < 500);
+  });
+}
 
 function sig(to, type, data) {
   return addDoc(collection(db, "vrooms", S.code, "sig"), { from: user.uid, to: to, type: type, data: data, createdAt: serverTimestamp() }).catch(() => {});
@@ -163,6 +232,17 @@ async function onSig(d) {
       const pc = mkPc(pid, S.names[pid] || "Katılımcı");
       const c = JSON.parse(x);
       if (pc.remoteDescription) { try { await pc.addIceCandidate(c); } catch (e) {} } else pc._q.push(c);
+    } else if (d.type === "chat") {
+      let t = String(x).slice(0, 200);
+      if (bad(t)) t = "***";
+      addChat(S.names[pid] || "Katılımcı", t, false);
+    } else if (d.type === "react") {
+      onReact(pid, String(x));
+    } else if (d.type === "kick") {
+      if (pid === S.hostUid) { toast("Oda yöneticisi seni odadan çıkardı."); leave(); }
+    } else if (d.type === "game") {
+      const g = await ensureGame();
+      if (g) g.onMsg(pid, String(x));
     }
   } catch (e) {}
 }
@@ -207,319 +287,4 @@ async function selfBan(src) {
   try {
     const rec = { nick: nick || "", createdAt: serverTimestamp(), reason: "nsfw" };
     const t = await thumb(src);
-    if (t) rec.thumb = t;
-    await setDoc(doc(db, "bans", user.uid), rec);
-  } catch (e) {}
-}
-async function scanOwn(s) {
-  const v = s.tiles.me && s.tiles.me.querySelector("video");
-  const tr = s.stream.getVideoTracks()[0];
-  if (!v || !tr || !tr.enabled) return;
-  const f = frame(v);
-  if (!f) return;
-  const r = await verdict(f);
-  if (S !== s) return;
-  if (r.level === "hard") {
-    tr.enabled = false;
-    toast("Uygunsuz görüntü algılandı. Hesabın engellendi.");
-    await selfBan(f);
-    leave();
-  } else if (r.level === "soft") {
-    s.strikes = (s.strikes || 0) + 1;
-    if (s.strikes >= 2) {
-      tr.enabled = false; s.strikes = 0;
-      const cb = s.root.querySelector(".vcb button:nth-child(2)");
-      if (cb) cb.classList.add("off");
-      toast("Uygunsuz görüntü algılandı, kameran kapatıldı.");
-    }
-  } else if (r.level === "ok") s.strikes = 0;
-}
-async function scanPeer(s, id) {
-  const t = s.tiles[id];
-  const v = t && t.querySelector("video");
-  const f = frame(v);
-  if (!f) return;
-  const r = await verdict(f);
-  if (S !== s || !s.tiles[id]) return;
-  const bad = r.level === "hard" || r.level === "soft";
-  s.flag = s.flag || {};
-  s.flag[id] = bad ? (s.flag[id] || 0) + 1 : 0;
-  const hide = s.flag[id] >= (r.level === "hard" ? 1 : 2);
-  v.style.visibility = hide ? "hidden" : "visible";
-  let w = t.querySelector(".vcw");
-  if (hide && !w) { w = el("div", "vcw", "Uygunsuz görüntü gizlendi"); t.appendChild(w); }
-  if (!hide && w) w.remove();
-}
-function startScan(s) {
-  let k = 0;
-  s.sc = setInterval(() => {
-    if (S !== s || document.hidden) return;
-    k++;
-    scanOwn(s);
-    const ids = Object.keys(s.tiles).filter((x) => x !== "me");
-    if (ids.length) scanPeer(s, ids[k % ids.length]);
-  }, 3000);
-}
-
-// Şikayet: odadaki birini yöneticiye bildir
-function reportMenu() {
-  if (!S) return;
-  const s = S;
-  const ids = Object.keys(s.names);
-  const ov = el("div", "vcp");
-  ov.style.zIndex = 37;
-  const head = el("div", "vch");
-  const back = el("button", "", "←"); back.type = "button"; back.onclick = () => ov.remove();
-  head.appendChild(back); head.appendChild(el("h2", "", "🚩 Kimi bildiriyorsun?"));
-  const body = el("div", "vcm");
-  if (!ids.length) body.appendChild(el("div", "vcd", "Odada başka kimse yok."));
-  ids.forEach((id) => {
-    const b = el("button", "vgo", "🚩 " + s.names[id]); b.type = "button";
-    b.onclick = async () => {
-      b.disabled = true;
-      s.rep = s.rep || {};
-      if (s.rep[id]) { toast("Bu kişiyi zaten bildirdin."); return; }
-      try {
-        await addDoc(collection(db, "reports"), { reporter: user.uid, room: "video:" + s.code, msgId: s.names[id], msgUid: id, createdAt: serverTimestamp() });
-        s.rep[id] = 1;
-        toast("Şikayet yöneticiye iletildi.");
-        ov.remove();
-      } catch (e) { b.disabled = false; toast("Şikayet gönderilemedi."); }
-    };
-    body.appendChild(b);
-  });
-  ov.appendChild(head); ov.appendChild(body);
-  document.body.appendChild(ov);
-}
-
-// Yönetici: görüntülü konuşma şikayetleri
-function adminList() {
-  const ov = el("div", "vcp");
-  ov.style.zIndex = 37;
-  const head = el("div", "vch");
-  const back = el("button", "", "←"); back.type = "button";
-  let un = null;
-  back.onclick = () => { if (un) un(); ov.remove(); };
-  head.appendChild(back); head.appendChild(el("h2", "", "🚩 Görüntülü şikayetler"));
-  const body = el("div", "vcm");
-  ov.appendChild(head); ov.appendChild(body);
-  document.body.appendChild(ov);
-  un = onSnapshot(query(collection(db, "reports"), orderBy("createdAt", "desc"), limit(50)), (s) => {
-    body.textContent = "";
-    const rows = s.docs.filter((d) => String(d.data().room || "").indexOf("video:") === 0);
-    if (!rows.length) { body.appendChild(el("div", "vcd", "Görüntülü şikayet yok.")); return; }
-    rows.forEach((d) => {
-      const r = d.data();
-      const w = el("div", "vcl");
-      const when = r.createdAt && r.createdAt.toDate ? r.createdAt.toDate().toLocaleString("tr-TR") : "";
-      w.appendChild(el("b", "", "Şikayet edilen: " + (r.msgId || "?")));
-      w.appendChild(el("small", "", "Oda " + String(r.room).slice(6) + " · " + when));
-      const row = el("div", "vcr");
-      const ban = el("button", "", "🚫 Engelle"); ban.type = "button";
-      ban.onclick = async () => {
-        try {
-          await setDoc(doc(db, "bans", r.msgUid), { nick: String(r.msgId || "").slice(0, 20), createdAt: serverTimestamp() });
-          await deleteDoc(d.ref);
-          toast("Kullanıcı engellendi.");
-        } catch (e) { toast("Engellenemedi."); }
-      };
-      const cl = el("button", "", "Şikayeti kapat"); cl.type = "button";
-      cl.onclick = () => deleteDoc(d.ref).catch(() => toast("Kapatılamadı."));
-      row.appendChild(ban); row.appendChild(cl);
-      w.appendChild(row);
-      body.appendChild(w);
-    });
-  }, () => toast("Şikayetler okunamadı."));
-}
-
-async function leave() {
-  const s = S;
-  if (!s) return;
-  S = null;
-  clearInterval(s.hb); clearInterval(s.sc);
-  s.unsubs.forEach((u) => { try { u(); } catch (e) {} });
-  Object.keys(s.pcs).forEach((id) => { try { s.pcs[id].close(); } catch (e) {} });
-  s.stream.getTracks().forEach((t) => t.stop());
-  s.root.remove();
-  try {
-    await deleteDoc(doc(db, "vrooms", s.code, "peers", user.uid));
-    if (s.host) {
-      const left = await getDocs(collection(db, "vrooms", s.code, "peers"));
-      if (left.empty) await deleteDoc(doc(db, "vrooms", s.code));
-    }
-  } catch (e) {}
-}
-
-async function enter(code, host) {
-  let stream = null;
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true },
-      video: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15, max: 20 }, facingMode: "user" }
-    });
-  } catch (e) {
-    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); toast("Kamera açılamadı, sadece sesle girdin."); }
-    catch (e2) { toast("Kamera ve mikrofon izni gerekli. Tarayıcı ayarından izin ver."); return false; }
-  }
-  if (!host) {
-    try {
-      const pr = await getDocs(collection(db, "vrooms", code, "peers"));
-      const now = Date.now();
-      const n = pr.docs.filter((d) => d.id !== user.uid && now - (d.data().ts || 0) < 90000).length;
-      if (n >= MAX) { stream.getTracks().forEach((t) => t.stop()); toast("Oda dolu (en fazla " + MAX + " kişi)."); return false; }
-    } catch (e) { stream.getTracks().forEach((t) => t.stop()); toast("Odaya girilemedi."); return false; }
-  }
-  const root = el("div", "vcp");
-  const head = el("div", "vch");
-  head.appendChild(el("h2", "", "📹 Oda: " + code));
-  const cp = el("button", "", "Kodu kopyala"); cp.type = "button";
-  cp.onclick = () => { try { navigator.clipboard.writeText(code); toast("Kod kopyalandı: " + code); } catch (e) { toast("Kod: " + code); } };
-  head.appendChild(cp);
-  const rp = el("button", "", "🚩 Bildir"); rp.type = "button"; rp.onclick = reportMenu;
-  head.appendChild(rp);
-  const mn = el("button", "", "⬇️ Küçült"); mn.type = "button";
-  head.appendChild(mn);
-  const grid = el("div", "vcg");
-  const bar = el("div", "vcb");
-  root.appendChild(head); root.appendChild(grid); root.appendChild(bar);
-  document.body.appendChild(root);
-  S = { code: code, host: host, stream: stream, pcs: {}, tiles: {}, names: {}, unsubs: [], root: root, grid: grid, hb: null };
-  const mic = el("button", "", "🎤"), cam = el("button", "hm", "📷"), flip = el("button", "hm", "🔄"), sz = el("button", "", "⬇️"), end = el("button", "end", "Çık");
-  [mic, cam, flip, sz, end].forEach((b) => { b.type = "button"; bar.appendChild(b); });
-  const toggleMini = () => {
-    const m = root.classList.toggle("mini");
-    sz.textContent = m ? "⬆️" : "⬇️";
-    ["left", "top", "right", "bottom"].forEach((k) => { root.style[k] = ""; });
-  };
-  mn.onclick = toggleMini; sz.onclick = toggleMini;
-  // Küçük pencereyi parmakla sürükle
-  let drag = null;
-  grid.addEventListener("pointerdown", (e) => {
-    if (!root.classList.contains("mini")) return;
-    const r = root.getBoundingClientRect();
-    drag = { dx: e.clientX - r.left, dy: e.clientY - r.top, w: r.width, h: r.height };
-    try { grid.setPointerCapture(e.pointerId); } catch (x) {}
-  });
-  grid.addEventListener("pointermove", (e) => {
-    if (!drag) return;
-    const x = Math.max(0, Math.min(window.innerWidth - drag.w, e.clientX - drag.dx));
-    const y = Math.max(0, Math.min(window.innerHeight - drag.h, e.clientY - drag.dy));
-    root.style.left = x + "px"; root.style.top = y + "px"; root.style.right = "auto"; root.style.bottom = "auto";
-  });
-  const stop = () => { drag = null; };
-  grid.addEventListener("pointerup", stop); grid.addEventListener("pointercancel", stop);
-  mic.onclick = () => { const a = stream.getAudioTracks()[0]; if (a) { a.enabled = !a.enabled; mic.classList.toggle("off", !a.enabled); mic.textContent = a.enabled ? "🎤" : "🔇"; } };
-  cam.onclick = () => { const v = stream.getVideoTracks()[0]; if (v) { v.enabled = !v.enabled; cam.classList.toggle("off", !v.enabled); } };
-  flip.onclick = async () => {
-    const v = stream.getVideoTracks()[0];
-    if (!v) return;
-    const face = v.getSettings().facingMode === "environment" ? "user" : "environment";
-    try {
-      const ns = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15, max: 20 }, facingMode: face } });
-      const nt = ns.getVideoTracks()[0];
-      Object.keys(S.pcs).forEach((id) => { const sd = S.pcs[id].getSenders().find((x) => x.track && x.track.kind === "video"); if (sd) sd.replaceTrack(nt); });
-      stream.removeTrack(v); v.stop(); stream.addTrack(nt);
-      tile("me", "Sen", stream, true);
-    } catch (e) { toast("Kamera değiştirilemedi."); }
-  };
-  end.onclick = leave;
-  tile("me", "Sen", stream, true);
-  const mine = { nick: nick || "Katılımcı", ts: Date.now() };
-  try { await setDoc(doc(db, "vrooms", code, "peers", user.uid), mine); }
-  catch (e) { toast("Odaya girilemedi."); leave(); return false; }
-  S.hb = setInterval(() => { updateDoc(doc(db, "vrooms", code, "peers", user.uid), { ts: Date.now() }).catch(() => {}); }, 20000);
-  S.unsubs.push(onSnapshot(collection(db, "vrooms", code, "peers"), onPeers, () => {}));
-  S.unsubs.push(onSnapshot(query(collection(db, "vrooms", code, "sig"), where("to", "==", user.uid)), (s) => {
-    s.docChanges().forEach((c) => {
-      if (c.type !== "added") return;
-      const d = c.doc.data();
-      deleteDoc(c.doc.ref).catch(() => {});
-      onSig(d);
-    });
-  }, () => {}));
-  startScan(S);
-  return true;
-}
-
-async function create() {
-  if (!user) { toast("Önce giriş yap."); return; }
-  const code = codeNew();
-  try { await setDoc(doc(db, "vrooms", code), { host: user.uid, at: serverTimestamp() }); }
-  catch (e) { toast("Oda açılamadı. Tekrar dene."); return; }
-  closePanel();
-  await enter(code, true);
-}
-async function join(raw) {
-  if (!user) { toast("Önce giriş yap."); return; }
-  const code = String(raw || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
-  if (code.length !== 5) { toast("Kod 5 karakter olmalı."); return; }
-  try {
-    const s = await getDoc(doc(db, "vrooms", code));
-    if (!s.exists()) { toast("Böyle bir oda yok."); return; }
-  } catch (e) { toast("Oda kontrol edilemedi."); return; }
-  closePanel();
-  await enter(code, false);
-}
-
-let panel = null;
-function closePanel() { if (panel) { panel.remove(); panel = null; } }
-function open() {
-  if (S) return;
-  closePanel();
-  const tb = document.querySelector(".vctab");
-  if (tb) tb.textContent = "📹 Görüntü";
-  panel = el("div", "vcp");
-  const head = el("div", "vch");
-  const back = el("button", "", "←"); back.type = "button"; back.onclick = closePanel;
-  head.appendChild(back); head.appendChild(el("h2", "", "📹 Görüntülü konuşma"));
-  const body = el("div", "vcm");
-  const info = el("div", "vcd");
-  info.textContent = "En fazla " + MAX + " kişi katılabilir. Çıplak ya da uygunsuz görüntü otomatik denetlenir: şüpheli görüntüde kameran kapanır, kesin uygunsuzda hesabın engellenir. Oda aç, kodu arkadaşlarına mesajla gönder; onlar kodu yazıp katılır. Küfür, hakaret ve taciz yasak. Kimseyi izinsiz kaydetme. Kural dışı davranan birini odadaki 🚩 Bildir düğmesiyle yöneticiye bildirebilirsin.";
-  const mk = el("button", "vgo", "➕ Yeni oda aç"); mk.type = "button"; mk.onclick = create;
-  const inp = el("input"); inp.placeholder = "ODA KODU"; inp.maxLength = 5;
-  const jn = el("button", "vgo", "Odaya katıl"); jn.type = "button"; jn.onclick = () => join(inp.value);
-  const wr = el("div", "vcd", "Not: Mobil internette bazı bağlantılar kurulamayabilir. Wi-Fi daha iyi çalışır.");
-  [info, mk, inp, jn, wr].forEach((x) => body.appendChild(x));
-  getDoc(doc(db, "config", "admin")).then((a) => {
-    if (a.exists() && a.data().uid === user.uid && panel) {
-      const sb = el("button", "vsm"); sb.type = "button";
-      const lab = () => { sb.textContent = repSnd ? "🔔 Şikayet sesi açık" : "🔕 Şikayet sesi kapalı"; };
-      lab();
-      sb.onclick = () => {
-        repSnd = !repSnd;
-        try { localStorage.setItem("repsnd", repSnd ? "1" : "0"); } catch (e) {}
-        lab();
-        if (repSnd) beep();
-      };
-      body.appendChild(sb);
-      const tn = el("button", "vsm"); tn.type = "button";
-      const tl = () => { tn.textContent = "🎵 Şikayet sesi: " + TONES[repTone].n; };
-      tl();
-      tn.onclick = () => {
-        const ks = Object.keys(TONES);
-        repTone = ks[(ks.indexOf(repTone) + 1) % ks.length];
-        try { localStorage.setItem("reptone", repTone); } catch (e) {}
-        tl();
-        beep();
-      };
-      body.appendChild(tn);
-      const ab = el("button", "vsm", "🚩 Görüntülü şikayetler (yönetici)"); ab.type = "button"; ab.onclick = adminList;
-      body.appendChild(ab);
-    }
-  }).catch(() => {});
-  panel.appendChild(head); panel.appendChild(body);
-  document.body.appendChild(panel);
-}
-function mount() {
-  const w = document.querySelector(".mtabs");
-  if (!w) return false;
-  if (!w.querySelector(".vctab")) {
-    const b = el("button", "vctab", "📹 Görüntü");
-    b.type = "button"; b.onclick = open;
-    w.appendChild(b);
-  }
-  return true;
-}
-window.addEventListener("pagehide", () => { if (S) { try { deleteDoc(doc(db, "vrooms", S.code, "peers", user.uid)); } catch (e) {} } });
-let n = 0;
-const iv = setInterval(() => { if (mount() || ++n > 60) clearInterval(iv); }, 300);
+    if (t) rec.th
