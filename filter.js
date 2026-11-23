@@ -10,7 +10,7 @@ import("./renk.js?v=1").catch(() => {});
 import("./medya.js?v=1").catch(() => {});
 import("./ilan.js?v=3").catch(() => {});
 import("./kurum.js?v=4").catch(() => {});
-import("./vcall.js?v=6").catch(() => {});
+import("./vcall.js?v=7").catch(() => {});
 import("./theme.js?v=2").catch(() => {});
 
 // Küfür filtresi: uygunsuz ifade içeren mesaj gönderilmeden önce engellenir.
@@ -23,9 +23,9 @@ const EXACT = ["am", "amk", "aq", "amq", "sik", "sikim", "siktir", "got", "gotun
 const PREFIX = ["orospu", "yarrak", "yarak", "pezevenk", "siktir", "sikeyim", "sikerim", "sikik", "amcik", "amina", "aminako", "gotveren", "ibne", "anani", "kahpe", "pust", "gavat", "surtuk", "orspu", "oruspu", "gtveren", "sktir", "skerim", "skeyim"];
 
 function norm(s) {
-  let t = s.normalize("NFKC").replace(/[̀-ͯ]/g, "").toLocaleLowerCase("tr");
+  let t = s.normalize("NFKC").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("tr");
   const map = { "ç": "c", "ğ": "g", "ı": "i", "ö": "o", "ş": "s", "ü": "u", "â": "a", "î": "i", "û": "u", "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s" };
-  t = t.replace(/[çğıöşüâîû0134 57@$]/g, (c) => map[c] || c);
+  t = t.replace(/[çğıöşüâîû013457@$]/g, (c) => map[c] || c);
   t = t.replace(/[^a-z]+/g, " ");
   t = t.replace(/([a-z])\1+/g, "$1");
   return t.trim();
