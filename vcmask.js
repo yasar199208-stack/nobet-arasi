@@ -21,7 +21,7 @@ css.textContent = ".vmkp{flex:none;max-height:40%;overflow:auto;display:flex;fle
   ".vmkp button{background:none;border:1px solid var(--line);color:var(--text);border-radius:10px;font-size:24px;padding:3px 8px;cursor:pointer;flex:none}" +
   ".vmkp button.t{font-size:14px;padding:8px 10px}.vmkp button.on{border-color:var(--lamp);box-shadow:0 0 0 2px var(--lamp)}" +
   ".vmkp small{text-align:left;color:var(--mute);font-size:12px;flex:none}" +
-  ".vcp.mini .vmkp{display:none!important}";
+  ".vcp.mini .vmkp,.call.mini .vmkp{display:none!important}";
 document.head.appendChild(css);
 
 function el(t, c, x) { const e = document.createElement(t); if (c) e.className = c; if (x) e.textContent = x; return e; }
@@ -32,7 +32,36 @@ function toast(m) {
   clearTimeout(toast.t);
   toast.t = setTimeout(() => { t.hidden = true; }, 4500);
 }
-function getS() { try { return window.__vcS ? window.__vcS() : null; } catch (e) { return null; } }
+// Özel görüntülü aramada (arkadaşla birebir) bağlantıyı yakalamak için RTCPeerConnection kayıt altına alınır
+const PCS = [];
+try {
+  const RPC = window.RTCPeerConnection;
+  if (RPC && !RPC.__vm) {
+    const W = class extends RPC { constructor(...a) { super(...a); PCS.push(this); } };
+    W.__vm = 1;
+    window.RTCPeerConnection = W;
+  }
+} catch (e) {}
+let dmS = null;
+function dmSession() {
+  const o = document.querySelector(".call");
+  if (!o) { dmS = null; return null; }
+  const lv = o.querySelector(".lv");
+  if (!lv || !lv.srcObject) return null;
+  for (let i = PCS.length - 1; i >= 0; i--) if (PCS[i].connectionState === "closed") PCS.splice(i, 1);
+  const st = lv.srcObject;
+  let pc = null;
+  for (let i = PCS.length - 1; i >= 0 && !pc; i--) {
+    try { if (PCS[i].getSenders().some((x) => x.track && st.getTracks().indexOf(x.track) >= 0)) pc = PCS[i]; } catch (e) {}
+  }
+  if (!pc) return null;
+  if (!dmS || dmS.root !== o || dmS.pcs.dm !== pc) dmS = { dm: true, root: o, stream: st, pcs: { dm: pc }, tiles: { me: lv } };
+  return dmS;
+}
+function getS() {
+  try { const v = window.__vcS ? window.__vcS() : null; return v || dmSession(); } catch (e) { return null; }
+}
+function barOf(S) { return S.root && S.root.querySelector(".vcb, .cbar"); }
 
 let M = null;      // etkin maske oturumu
 let panel = null;  // seçim paneli
@@ -50,7 +79,7 @@ function swap(S, from, to) {
   try { S.stream.addTrack(to); } catch (e) {}
   vsender(S).forEach((sd) => { try { sd.replaceTrack(to); } catch (e) {} });
 }
-function flipBtn(S) { return S.root.querySelector(".vcb button:nth-child(3)"); }
+function flipBtn(S) { const b = barOf(S); return b && b.children[2]; }
 
 function start(S) {
   const raw = S.stream.getVideoTracks()[0];
@@ -184,7 +213,9 @@ function hookTile(S) {
     const r = t.getBoundingClientRect(), v = M && M.rv;
     if (!v || !v.videoWidth) return null;
     const vw = v.videoWidth, vh = v.videoHeight, sc = Math.max(r.width / vw, r.height / vh);
-    return { x: (e.clientX - r.left - (r.width - vw * sc) / 2) / sc / vw, y: (e.clientY - r.top - (r.height - vh * sc) / 2) / sc / vh };
+    let px = (e.clientX - r.left - (r.width - vw * sc) / 2) / sc / vw;
+    try { if (/^matrix\(-1/.test(getComputedStyle(t).transform)) px = 1 - px; } catch (x) {}
+    return { x: px, y: (e.clientY - r.top - (r.height - vh * sc) / 2) / sc / vh };
   };
   t.addEventListener("pointerdown", (e) => {
     if (!M || !(M.face || M.acc) || M.auto || M.S.root.classList.contains("mini")) return;
@@ -284,13 +315,13 @@ function openPanel(S) {
   mk("❌ Hepsini kaldır", () => { remove(); closePanel(); });
   panel.appendChild(r2);
   panel.appendChild(el("small", "", "Seçileni tekrar seçersen kapanır. Yüz takibi hazırsa maske yüzünü izler, değilse kendi görüntüne dokunup sürükleyerek yerleştir."));
-  const bar = S.root.querySelector(".vcb");
+  const bar = barOf(S);
   S.root.insertBefore(panel, bar);
   syncPanel();
 }
 
 function ensureBtn(S) {
-  const bar = S.root && S.root.querySelector(".vcb");
+  const bar = S.root && barOf(S);
   if (!bar || bar.querySelector(".vmk")) return;
   const b = el("button", "vmk hm", "🎭"); b.type = "button";
   b.onclick = () => openPanel(S);
