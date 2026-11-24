@@ -1,12 +1,35 @@
 // Vardiya takibi 5. parça: PDF'deki gruplar (Metro, Tramvay T1·T2·T3). Aynı gün kim nerede, tüm ay, WhatsApp. Her şey telefonda kalır.
 import { getLib, rowsOf, assign, fold, monthOf, guess } from "./vardiya3.js?v=4";
+import { ROOMS } from "./rooms.js?v=2";
 const TK = "na_vardiya_tel";
 const tels = () => { try { return JSON.parse(localStorage.getItem(TK)) || {}; } catch (e) { return {}; } };
 const nk = (s) => fold(s).split(" ").filter((w) => /^[a-z]{2,}$/.test(w));
 const norm = (c) => String(c || "").replace(/\s+/g, " ").trim().toLocaleUpperCase("tr");
 const isOff = (c) => fold(c).replace(/ /g, "").length <= 2;
 const pre = (c) => { const m = c.match(/^[A-ZÇĞİÖŞÜ]+\d?/); return m ? m[0] : c; };
+// Grup sohbet odaları: her gün değişen kodla. Üyeler (anahtarı bilenler) otomatik yeni güne geçer, yeni gelen o günün kodunu kullanır.
+const RK = "na_vardiya_odalar", AL = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const rk = () => { try { return (JSON.parse(localStorage.getItem(RK)) || []).filter((x) => x && x.t); } catch (e) { return []; } };
+const dayN = () => Math.floor((Date.now() + 108e5) / 864e5);
+const hb = async (s) => new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("nobetarasi-vd|" + s)));
+const hx = async (s) => Array.from(await hb(s)).map((x) => x.toString(16).padStart(2, "0")).join("");
+const dc = async (S, d) => Array.from((await hb("c|" + S + "|" + d)).slice(0, 8)).map((x) => AL[x % 32]).join("");
+const rnd = () => Array.from(crypto.getRandomValues(new Uint8Array(8))).map((x) => AL[x % 32]).join("");
+const rerender = () => { const q = document.getElementById("q"); if (q) q.dispatchEvent(new Event("input")); };
 const icon = (g) => (/TRAM/i.test(g) ? "🚋" : /BURSARAY|METRO|İSTASYON/i.test(g) ? "🚇" : "👥");
+const title = (n) => n.toLocaleLowerCase("tr").replace(/(^|\s)(\S)/g, (m, a, b) => a + b.toLocaleUpperCase("tr"));
+const mk = async (e, C) => { const h = await hx(fold(e.n) + "|" + C); return { id: "vd_" + h.slice(0, 32), ic: icon(e.n), n: title(e.n) + " 🔒" + h.slice(0, 3).toUpperCase(), d: "Özel oda · kod her gün değişir · takma adınla yazarsın", v: 1 }; };
+const codeOf = (e) => (e.t === "m" ? dc(e.s, dayN()) : Promise.resolve(e.c));
+let lastDay = dayN();
+async function refresh() {
+  if (!(window.crypto && crypto.subtle)) return;
+  const d = dayN(); lastDay = d; const l = rk().filter((e) => e.t === "m" || e.d === d), nr = [];
+  try { localStorage.setItem(RK, JSON.stringify(l)); } catch (e) {}
+  for (const e of l) nr.push(await mk(e, await codeOf(e)));
+  for (let i = ROOMS.length - 1; i >= 0; i--) if (ROOMS[i].v) ROOMS.splice(i, 1);
+  nr.forEach((r, i) => ROOMS.splice(3 + i, 0, r)); rerender();
+}
+refresh(); setTimeout(rerender, 2500); setTimeout(rerender, 6000); setInterval(() => { if (dayN() !== lastDay) refresh(); }, 6e4);
 
 export function gruplar(api) {
   const { el, toast, openSheet, ymd, MON, DS, save, render } = api, now = new Date();
@@ -40,6 +63,18 @@ export function gruplar(api) {
         toast(n + " kişinin numarası eşleşti."); draw();
       } catch (e) {}
     };
+    const enter = async (e) => {
+      const key = e.s || e.c;
+      if (String(key).length < 6) { toast("Kod en az 6 harf/rakam olsun."); return; }
+      if (!(window.crypto && crypto.subtle)) { toast("Bu tarayıcı güvenli kodu desteklemiyor."); return; }
+      const l = rk().filter((x) => !(x.t === e.t && fold(x.n) === fold(e.n) && (x.s || x.c) === key)); l.push(e);
+      try { localStorage.setItem(RK, JSON.stringify(l)); } catch (er) {}
+      await refresh(); const r = await mk(e, await codeOf(e));
+      const x = document.querySelector(".vd .vd-h .vd-ib"); if (x) x.click();
+      setTimeout(() => { const b = Array.from(document.querySelectorAll("#rooms .room b")).find((y) => y.textContent === r.ic + " " + r.n); if (b && b.parentNode) b.parentNode.click(); else toast("Oda eklendi, Sohbet sekmesinde bul: " + r.n); }, 300);
+    };
+    const clean = (v) => String(v || "").replace(/\s+/g, "").toLocaleUpperCase("tr");
+    const shareCode = async (G, e) => { const k = await codeOf(e), t = "Nöbet Arası'nda \"" + G.n + "\" özel odası. Vardiya > Gruplar > günlük kod (bugün geçerli): " + k; if (navigator.share) navigator.share({ text: t }).catch(() => {}); else { try { navigator.clipboard.writeText(t); toast("Kopyalandı."); } catch (er) { toast("Bugünün kodu: " + k); } } };
     const draw = () => {
       body.innerHTML = ""; const G = D.groups[gi], ps = D.people.filter((p) => p.g === gi);
       const fc = el("div", "vd-fc"); fc.style.marginTop = "12px";
@@ -49,6 +84,19 @@ export function gruplar(api) {
       [["day", "📅 Aynı gün"], ["all", "👤 Tüm ay"]].forEach((x) => { const b = el("button", mode === x[0] ? "on" : "", x[1]); b.type = "button"; b.onclick = () => { mode = x[0]; open = -1; draw(); }; mc.appendChild(b); });
       body.appendChild(mc);
       say(MON[D.m] + " " + D.y + " · " + G.n + " · " + ps.length + " kişi");
+      const cw = el("div", "vd-tg"); cw.style.marginTop = "6px"; cw.appendChild(el("div", "", "🔒 Özel oda: kodu bilmeyen giremez. Kod HER GÜN değişir. Anahtarı bilen üyeler otomatik yeni güne geçer; yeni birini almak için ona bugünün kodunu (📤) gönder. Her gün oda yenilendiği için eski mesajlar görünmez."));
+      const ci = el("input"); ci.placeholder = "Anahtar veya günlük kod (en az 6)"; ci.autocapitalize = "characters"; ci.style.marginTop = "8px"; cw.appendChild(ci);
+      const rn = el("button", "vd-btn", "✨ Rastgele anahtar üret"); rn.type = "button"; rn.style.cssText = "width:100%;margin-top:6px"; rn.onclick = () => { ci.value = rnd(); }; cw.appendChild(rn);
+      const rb = el("button", "vd-btn p", "🔑 Anahtarla gir / oda aç (üye)"); rb.type = "button"; rb.style.cssText = "width:100%;margin-top:6px"; rb.onclick = () => enter({ t: "m", n: G.n, s: clean(ci.value) }); cw.appendChild(rb);
+      const gb = el("button", "vd-btn", "📨 Günlük kodla katıl (bugün)"); gb.type = "button"; gb.style.cssText = "width:100%;margin-top:6px"; gb.onclick = () => enter({ t: "g", n: G.n, c: clean(ci.value), d: dayN() }); cw.appendChild(gb);
+      rk().filter((x) => fold(x.n) === fold(G.n)).forEach((x) => {
+        const l = el("div", ""); l.style.cssText = "display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13px";
+        const t = el("span", "", x.t === "m" ? "🔑 " + x.s : "📨 " + x.c + " (bugün)"); t.style.flex = "1"; l.appendChild(t);
+        const e1 = el("button", "vd-ib", "Gir"); e1.type = "button"; e1.onclick = () => enter(x); l.appendChild(e1);
+        if (x.t === "m") { const e2 = el("button", "vd-ib", "📤"); e2.type = "button"; e2.onclick = () => shareCode(G, x); l.appendChild(e2); codeOf(x).then((k) => { t.textContent = "🔑 " + x.s + " · bugün: " + k; }); }
+        cw.appendChild(l);
+      });
+      body.appendChild(cw);
       if (mode === "day") {
         const ds = el("select"); for (let i = 1; i <= new Date(D.y, D.m + 1, 0).getDate(); i++) ds.appendChild(new Option(i + ". gün · " + DS[(new Date(D.y, D.m, i).getDay() + 6) % 7], i));
         ds.value = day; ds.style.marginTop = "6px"; ds.onchange = () => { day = +ds.value; draw(); }; body.appendChild(ds);
