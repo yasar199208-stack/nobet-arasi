@@ -13,6 +13,16 @@ const ld = () => { try { const x = JSON.parse(localStorage.getItem(SK)) || {}; r
 const sv = (x) => { try { localStorage.setItem(SK, JSON.stringify(x)); return true; } catch (e) { return false; } };
 const BS = "border:1px solid var(--line,#333);background:transparent;color:inherit;border-radius:12px;padding:10px 14px;font-size:15px;cursor:pointer";
 const IS = "box-sizing:border-box;padding:12px;font-size:16px;border-radius:12px;border:1px solid var(--line,#333);background:transparent;color:inherit";
+const TJ = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.esm.min.js";
+async function ocr(file, prog) {
+  const bm = await createImageBitmap(file), sc = Math.min(1, 2600 / Math.max(bm.width, bm.height)), cv = document.createElement("canvas");
+  cv.width = Math.round(bm.width * sc); cv.height = Math.round(bm.height * sc); const cx = cv.getContext("2d"); try { cx.filter = "grayscale(1) contrast(1.5)"; } catch (e) {}
+  cx.drawImage(bm, 0, 0, cv.width, cv.height);
+  const m = await import(TJ), cw = m.createWorker || (m.default && m.default.createWorker);
+  const w = await cw("tur", 1, { logger: (x) => { prog(x.status === "recognizing text" ? "Okunuyor… %" + Math.round(x.progress * 100) : "Hazırlanıyor… (ilk seferde dil dosyası iner)"); } });
+  const r = await w.recognize(cv); try { await w.terminate(); } catch (e) {}
+  return r.data.lines ? r.data.lines.map((l) => l.text) : String(r.data.text).split("\n");
+}
 function open() {
   const ov = E("div", "position:fixed;inset:0;z-index:99999;background:var(--bg,#0f1320);color:var(--text,#eee);overflow:auto;padding:14px;font-family:inherit");
   const top = E("div", "display:flex;align-items:center;gap:10px"); const bk = E("button", BS, "← Geri");
@@ -24,6 +34,19 @@ function open() {
   const body = E("div"); ov.appendChild(body);
   let S = ld(), q = "", ed = "", msg = "", fileEl = null;
   const clean = (c) => String(c).replace(/\D/g, "").slice(0, 8);
+  // Bir satırdaki (ad + 4 haneli kod) çiftlerini bulur; yan yana iki sütunlu tablolarda bir satırda birden çok çift olabilir.
+  const ing = (t, grp) => {
+    let buf = [], n = 0;
+    t.forEach((x) => {
+      if (/^\d{4}$/.test(x)) {
+        const nm = buf.join(" ").replace(/[|_]/g, " ").replace(/\s+/g, " ").trim(); buf = [];
+        if (nm.length < 2 || /KOD NO|S\.?NO|ISTASYON ADI|İSTASYON ADI/i.test(nm)) return;
+        const ex = T.some((g) => g[1].some((y) => fo(y[0]) === fo(nm) && String(y[1]) === x)) || S.ad.some((y) => fo(y[1]) === fo(nm) && y[2] === x);
+        if (!ex) { S.ad.push([grp, nm, x]); n++; }
+      } else if (!/^\d{1,2}$/.test(x)) buf.push(x);
+    });
+    return n;
+  };
   const draw = () => {
     body.innerHTML = ""; const keep = q;
     // Benim telsiz kodum (yalnızca bu telefonda)
@@ -78,20 +101,29 @@ function open() {
         const V = await import("./vardiya3.js?v=4"), L = await V.getLib(), doc = await L.getDocument({ data: await f.arrayBuffer() }).promise; let add = 0;
         for (let p = 1; p <= Math.min(doc.numPages, 30); p++) {
           const rows = V.rowsOf((await (await doc.getPage(p)).getTextContent()).items);
-          rows.forEach((r) => {
-            const t = r.t.map((x) => x.s.trim()).filter(Boolean); if (t.length < 2) return;
-            const ix = t.map((x, i) => (/^\d{4}$/.test(x) ? i : -1)).filter((i) => i >= 0); if (!ix.length) return;
-            const ci = ix[ix.length - 1], c = t[ci], nm = t.slice(0, ci).filter((x) => !/^\d{1,2}$/.test(x)).join(" ").trim();
-            if (nm.length < 2 || /KOD NO|S\.?NO/i.test(nm)) return;
-            const ex = T.some((g) => g[1].some((x) => fo(x[0]) === fo(nm) && String(x[1]) === c)) || S.ad.some((x) => fo(x[1]) === fo(nm) && x[2] === c);
-            if (!ex) { S.ad.push(["PDF'den alınanlar", nm, c]); add++; }
-          });
+          rows.forEach((r) => { add += ing(r.t.map((x) => x.s.trim()).filter(Boolean), "PDF'den alınanlar"); });
         }
         sv(S); msg = add ? add + " yeni kod eklendi. Listede 'PDF'den alınanlar' başlığında. Yanlış olanı ✏️ ile düzelt." : "Yeni kod bulunamadı (hepsi zaten listede ya da PDF taranmış fotoğraf olabilir).";
       } catch (e) { msg = "PDF okunamadı. İnternet bağlantını kontrol edip tekrar dene."; }
       draw();
     };
     pd.appendChild(pb); body.appendChild(pd);
+    const ph = E("div", "margin-top:14px;padding:12px;border:1px solid var(--line,#333);border-radius:14px");
+    ph.appendChild(E("div", "font-weight:700", "📷 Fotoğraftan telsiz kodlarını al"));
+    ph.appendChild(E("div", "font-size:13px;opacity:.8;margin-top:4px", "Tablonun net, düz bir fotoğrafını seç. Fotoğraf telefonunda okunur, hiçbir yere gönderilmez. İlk seferde okuyucu internetten iner."));
+    const pi = E("input", "margin-top:8px"); pi.type = "file"; pi.accept = "image/*"; ph.appendChild(pi);
+    const pt = E("button", BS + ";width:100%;margin-top:8px", "📖 Fotoğrafı oku"); pt.type = "button";
+    const ps2 = E("div", "margin-top:8px;font-size:14px");
+    pt.onclick = async () => {
+      const f = pi.files && pi.files[0]; if (!f) { ps2.textContent = "Önce fotoğrafı seç."; return; } pt.disabled = true;
+      try {
+        const ls = await ocr(f, (x) => { ps2.textContent = x; }); let add = 0;
+        ls.forEach((l) => { add += ing(String(l).split(/\s+/).filter(Boolean), "Fotoğraftan alınanlar"); });
+        sv(S); msg = add ? add + " yeni kod eklendi. Listede 'Fotoğraftan alınanlar' başlığında. Yanlış okunanı ✏️ ile düzelt, gereksizi 🗑️ ile sil." : "Yeni kod bulunamadı. Fotoğraf daha net, düz ve yakın olmalı; kodlar 4 haneli sayı olarak okunmalı.";
+      } catch (e) { msg = "Fotoğraf okunamadı. İnternet bağlantını kontrol edip tekrar dene."; }
+      draw();
+    };
+    ph.appendChild(pt); ph.appendChild(ps2); body.appendChild(ph);
     if (msg) { const m = E("div", "margin-top:12px;padding:10px;border-radius:12px;background:rgba(240,194,75,.15)", msg); body.appendChild(m); msg = ""; }
     const rs = E("button", BS + ";width:100%;margin-top:14px", "↺ Değiştirdiklerimi ilk haline döndür"); rs.type = "button"; rs.onclick = () => { S.ov = {}; S.dl = {}; sv(S); draw(); }; body.appendChild(rs);
     const ra = E("button", BS + ";width:100%;margin-top:8px;margin-bottom:20px", "🗑️ Eklediğim / PDF'den aldığım kodları sil"); ra.type = "button"; ra.onclick = () => { S.ad = []; sv(S); draw(); }; body.appendChild(ra);
