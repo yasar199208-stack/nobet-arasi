@@ -30,6 +30,19 @@ async function refresh() {
   nr.forEach((r, i) => ROOMS.splice(3 + i, 0, r)); rerender();
 }
 refresh(); setTimeout(rerender, 2500); setTimeout(rerender, 6000); setInterval(() => { if (dayN() !== lastDay) refresh(); }, 6e4);
+// Vardiya odasındayken üstte "← Vardiya" geri tuşu
+(function () {
+  let b = null, n = 0;
+  const upd = () => { const t = document.getElementById("rt"); if (b && t) b.hidden = !ROOMS.some((r) => r.v && r.ic + " " + r.n === t.textContent); };
+  const init = () => {
+    const top = document.querySelector(".top"), t = document.getElementById("rt"); if (!top || !t) return false;
+    b = document.createElement("button"); b.type = "button"; b.textContent = "← Vardiya"; b.hidden = true;
+    b.style.cssText = "flex:none;background:none;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:14px";
+    b.onclick = () => { const v = document.querySelector(".vdtab"); if (v) v.click(); };
+    top.insertBefore(b, top.firstChild); new MutationObserver(upd).observe(t, { childList: true, characterData: true, subtree: true }); upd(); return true;
+  };
+  const iv = setInterval(() => { if (init() || ++n > 60) clearInterval(iv); }, 300);
+})();
 
 export function gruplar(api) {
   const { el, toast, openSheet, ymd, MON, DS, save, render } = api, now = new Date();
