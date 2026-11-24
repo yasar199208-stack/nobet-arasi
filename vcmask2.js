@@ -1,10 +1,12 @@
 // Özel çizim maskeler: kendi çizimimiz, hareketli. vcmask.js bu dosyayı yükler.
-export const SP = [
+import { SP3, drawSp3 } from "./vcmask3.js?v=1";
+const SP1 = [
   ["kedi", "🐱 Kedi"], ["tavsan", "🐰 Tavşan"], ["melek", "😇 Melek"], ["seytan", "😈 Şeytan"], ["kral", "👑 Kral tacı"], ["super", "🦸 Kahraman"],
   ["venedik", "🎭 Balo maskesi"], ["robot", "🤖 Robot"], ["alev", "🔥 Alev saç"], ["kelebek", "🦋 Kelebekler"], ["kalpler", "💖 Kalp çemberi"],
   ["yildiz", "✨ Yıldız tozu"], ["neon", "🕶️ Neon gözlük"], ["boya", "🌈 Yüz boyası"], ["uzayli", "👽 Uzaylı"], ["alevgoz", "👀 Alev gözler"],
   ["cicek", "🌸 Çiçek tacı"], ["korsan", "🏴 Korsan"]
 ];
+export const SP = SP1.concat(SP3);
 const EF = "'Apple Color Emoji','Noto Color Emoji','Segoe UI Emoji',sans-serif";
 const TAU = Math.PI * 2;
 
@@ -49,6 +51,7 @@ function flower(c, x, y, r, col) {
 }
 
 export function drawSp(id, c, cx, cy, s, t) {
+  if (drawSp3(id, c, cx, cy, s, t)) return;
   const ey = cy - 0.07 * s, y0 = cy - 0.42 * s;
   c.save();
   if (id === "kedi") {
