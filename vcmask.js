@@ -19,6 +19,9 @@ const RAIN = [["❄️", 1], ["🌸", 1], ["🍂", 1], ["⭐", 1], ["🎉", 1], 
 const FRAMES = [["kalp", "❤️ Kalp"], ["yildiz", "⭐ Yıldız"], ["cicek", "🌸 Çiçek"], ["ates", "🔥 Ateş"], ["neon", "🌈 Neon"], ["sinema", "🎬 Sinema"]];
 // Alt yazı bandı: hazır yazılar
 const CAPS = [["Nöbetteyim 🛡️", "Nöbetteyim 🛡️"], ["Mola vakti ☕", "Mola vakti ☕"], ["Gece vardiyası 🌙", "Gece vardiyası 🌙"], ["Yorgunum 😴", "Yorgunum 😴"], ["Selam! 👋", "Selam! 👋"], ["Günaydın ☀️", "Günaydın ☀️"], ["İyi nöbetler 🙏", "İyi nöbetler 🙏"]];
+// Özel çizim maskeler ayrı dosyada (vcmask2.js). Yüklenemezse diğer maskeler yine çalışır.
+let SPM = null;
+import("./vcmask2.js?v=1").then((m) => { SPM = m; }).catch(() => {});
 const MP = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
 const MODEL = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite";
 
@@ -102,7 +105,7 @@ function start(S) {
   cv.width = st.width || 320; cv.height = st.height || 240;
   const out = cv.captureStream(15).getVideoTracks()[0];
   out.enabled = raw.enabled;
-  M = { S: S, raw: raw, rv: rv, cv: cv, ctx: cv.getContext("2d"), out: out, face: null, acc: null, fx: null, rain: null, frame: null, cap: null, parts: [],
+  M = { S: S, raw: raw, rv: rv, cv: cv, ctx: cv.getContext("2d"), out: out, face: null, sp: null, acc: null, fx: null, rain: null, frame: null, cap: null, parts: [],
     x: 0.5, y: 0.45, sz: 0.5, tx: 0.5, ty: 0.45, tsz: 0.5, k: 1, seen: 0, det: null, busy: false, auto: false, drag: null, moved: 0, tm: 0, dt: 0 };
   swap(S, raw, out);
   const fb = flipBtn(S);
@@ -217,6 +220,7 @@ function draw() {
       else put(id, cx, cy + m.acc[1] * size, Math.max(18, size * m.acc[2]));
     }
   }
+  if (m.sp && SPM && !lost) { try { SPM.drawSp(m.sp, c, cx, cy, size, Date.now()); } catch (e) {} }
   if (m.rain) rain(m, c, w, h);
   if (m.frame) drawFrame(m, c, w, h);
   if (m.cap) drawCap(c, w, h, m.cap);
@@ -321,7 +325,7 @@ function hookTile(S) {
     return { x: px, y: (e.clientY - r.top - (r.height - vh * sc) / 2) / sc / vh };
   };
   t.addEventListener("pointerdown", (e) => {
-    if (!M || !(M.face || M.acc) || M.auto || M.S.root.classList.contains("mini")) return;
+    if (!M || !(M.face || M.acc || M.sp) || M.auto || M.S.root.classList.contains("mini")) return;
     M.drag = { x: e.clientX, y: e.clientY }; M.moved = 0;
     try { t.setPointerCapture(e.pointerId); } catch (x) {}
   });
@@ -376,6 +380,7 @@ function syncPanel() {
     let on = false;
     if (M) {
       if (k === "face") on = M.face === v;
+      else if (k === "sp") on = M.sp === v;
       else if (k === "acc") on = !!M.acc && M.acc[0] === v;
       else if (k === "fx") on = M.fx === v;
       else if (k === "rain") on = !!M.rain && M.rain[0] === v;
@@ -388,12 +393,13 @@ function syncPanel() {
 function pick(S, k, v) {
   if (!M && !start(S)) return;
   if (k === "face") M.face = M.face === v ? null : v;
+  else if (k === "sp") M.sp = M.sp === v ? null : v;
   else if (k === "acc") { const a = ACC.find((x) => x[0] === v); M.acc = M.acc && M.acc[0] === v ? null : a; }
   else if (k === "fx") M.fx = M.fx === v ? null : v;
   else if (k === "rain") { const r = RAIN.find((x) => x[0] === v); M.rain = M.rain && M.rain[0] === v ? null : r; M.parts = []; }
   else if (k === "frame") M.frame = M.frame === v ? null : v;
   else if (k === "cap") M.cap = M.cap === v ? null : v;
-  if (!M.face && !M.acc && !M.fx && !M.rain && !M.frame && !M.cap) { remove(); return; }
+  if (!M.face && !M.sp && !M.acc && !M.fx && !M.rain && !M.frame && !M.cap) { remove(); return; }
   syncPanel();
 }
 function openPanel(S) {
@@ -412,6 +418,7 @@ function openPanel(S) {
     });
     panel.appendChild(r);
   };
+  if (SPM) sec("✨ Özel maskeler (en güzelleri)", "sp", SPM.SP, true);
   sec("Yüz maskesi", "face", FACE, false);
   sec("Aksesuar", "acc", ACC, false);
   sec("Efekt", "fx", FX, true);
