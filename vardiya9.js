@@ -10,24 +10,43 @@ export function toks(line) {
   for (let i = 0; i < t.length; i++) {
     if (/^T\d$/i.test(t[i]) && t[i + 1] === "-" && /^\d$/.test(t[i + 2] || "")) { o.push(t[i] + " - " + t[i + 2]); i += 2; continue; }
     if (/^T\d-\d$/i.test(t[i])) { o.push(t[i].replace("-", " - ")); continue; }
+    if (/^[A-ZÇĞİÖŞÜa-zçğıöşü]{2,4}$/.test(t[i]) && /^\d[A-Za-z]$/.test(t[i + 1] || "")) { o.push(t[i].toLocaleUpperCase("tr") + " " + t[i + 1].toUpperCase()); i++; continue; }
+    if (/^[A-ZÇĞİÖŞÜa-zçğıöşü]{2,4}\d[A-Za-z]$/.test(t[i])) { o.push(t[i].toLocaleUpperCase("tr").replace(/^(\D+)(\d[A-Z])$/, "$1 $2")); continue; }
     o.push(t[i]);
   }
   return o;
 }
-const isCode = (x) => /\d/.test(x) || OFFS.test(x.toLocaleUpperCase("tr"));
-// Satırdaki ad ve sicil kısmını at, kodları döndür.
-export function codes(line) {
-  const t = toks(line); let i = 0;
-  while (i < t.length && /^\d{1,6}$/.test(t[i])) i++;
-  while (i < t.length && !isCode(t[i])) i++;
-  return t.slice(i).map((x) => x.toLocaleUpperCase("tr").replace(/^H[1Ll!|]$/, "Hİ").replace(/^Y[1Ll!|]$/, "Yİ"));
+const CELL = /^[A-ZÇĞİÖŞÜ]{2,4}( \d[A-Z]|-[A-Z])$/;
+const OFF2 = /^(H[Iİ1Ll!|]|Y[Iİ1Ll!|]|V[Iİ]|R|RT|S[Iİ1Ll!|])$/;
+const JUNK = /^[—–\-~|_.,:;<>=*•«»]+$/;
+const FUZ = /^[A-ZÇĞİÖŞÜ]{2,4}[JIİl|][A-C]$/;
+const HIL = /^[KNMBPFE]İ$/;
+// Hücre (vardiya kodu) mu? sic: satırda sicil numarası varsa ad ile karışmasın diye daha sıkı bakılır.
+const isCode = (x, sic) => { const u = x.toLocaleUpperCase("tr"); if (/^\(\d{4}\)$/.test(u)) return false; return CELL.test(u) || OFF2.test(u) || (!sic && OFFS.test(u)) || /\d/.test(u); };
+// Satırı böl: baştaki NO ve sicil, ad, sonra hücreler. Siyah (Hİ) hücreler okunamayınca "—" gibi çıkar: boş hücre sayılır.
+function cut(line) {
+  const t = toks(line); let i = 0, sic = false;
+  if (/^\d{1,3}$/.test(t[0] || "") && /^\d{5}$/.test(t[1] || "")) { sic = true; i = 2; } else while (i < t.length && /^\d{1,6}$/.test(t[i])) i++;
+  while (i < t.length && JUNK.test(t[i])) i++;
+  const a = i, nm = []; let n = 0;
+  while (i < t.length) {
+    const x = t[i], u = x.toLocaleUpperCase("tr");
+    if (JUNK.test(x)) { if (n >= 2) break; i++; continue; }
+    if (isCode(x, sic) || (n >= 2 && (FUZ.test(u) || HIL.test(u)))) break;
+    nm.push(x); n++; i++;
+  }
+  return { t: t, a: a, b: i, nm: nm };
 }
-export function nameOf(line) {
-  const t = toks(line); let i = 0;
-  while (i < t.length && /^\d{1,6}$/.test(t[i])) i++;
-  const a = i; while (i < t.length && !isCode(t[i])) i++;
-  return t.slice(a, i).join(" ");
-}
+const fixc = (x) => {
+  const u = x.toLocaleUpperCase("tr");
+  if (JUNK.test(u)) return "";
+  if (/^H[1Ll!|]$/.test(u) || HIL.test(u)) return "Hİ";
+  if (/^Y[1Ll!|]$/.test(u) || /^V[Iİ]$/.test(u)) return "Yİ";
+  if (FUZ.test(u) && !CELL.test(u)) return u.replace(/^(.+?)[JIİl|]([A-C])$/, "$1 1$2");
+  return u;
+};
+export function codes(line) { const c = cut(line); return c.t.slice(c.b).map(fixc); }
+export function nameOf(line) { return cut(line).nm.join(" "); }
 const fold = (s) => String(s).toLocaleLowerCase("tr").replace(/ı/g, "i").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
 export function findLines(lines, q) {
   const w = fold(q).split(" ").filter(Boolean); if (!w.length) return [];
@@ -69,7 +88,7 @@ function open() {
   bk.onclick = () => { close(); try { if (history.state && history.state.ph) history.back(); } catch (e) {} };
   try { history.pushState({ ph: 1, vdb: 1 }, ""); window.addEventListener("popstate", close); } catch (e) {}
   const now = new Date(); let lines = null, mo = now.getMonth(), yr = now.getFullYear(), nm = ""; try { nm = localStorage.getItem("na_vardiya_ad") || ""; } catch (e) {}
-  let st = "", ps = null, rows = [], lq = "", raw = [], showRaw = false;
+  let sel = -1, st = "", ps = null, rows = [], lq = "", raw = [], showRaw = false;
   const draw1 = () => {
     body.innerHTML = "";
     body.appendChild(E("div", "margin-top:12px;font-size:14px;opacity:.85;line-height:1.5", "1) Vardiya listesinin fotoğrafını seç (tablo net, düz ve aydınlık olsun). 2) Adını yaz. 3) Okunanı kontrol edip takvime ekle. Fotoğraf telefonunda okunur, hiçbir yere gönderilmez."));
@@ -83,7 +102,7 @@ function open() {
       const f = fi.files && fi.files[0]; nm = useName ? ni.value.trim() : ""; mo = +ms.value; yr = +ys.value;
       if (!window.__ocrTest && !f) { sm.textContent = "Önce fotoğrafı seç."; return; } if (useName && !nm) { sm.textContent = "Aramak için bir ad yaz ya da \"Tüm listeyi göster\"e bas."; return; } go.disabled = true; all.disabled = true;
       try { lines = await ocr(f, (x) => { sm.textContent = x; }); } catch (e) { st = "Fotoğraf okunamadı. İnternet bağlantını kontrol edip tekrar dene (okuyucu ilk seferde internetten yüklenir)."; draw1(); return; }
-      rows = lines.filter((l) => codes(l).length >= 2 && nameOf(l).length >= 2); raw = lines.map((l) => String(l).trim()).filter((l) => l.length >= 4); showRaw = false;
+      rows = lines.filter((l) => !/GRUBU|PERSONEL|ADI SOYADI|S[İI]C[İI]L/i.test(l) && codes(l).filter(Boolean).length >= 2 && nameOf(l).length >= 2); raw = lines.map((l) => String(l).trim()).filter((l) => l.length >= 4); showRaw = false;
       if (!raw.length) { st = "Fotoğraftan yazı okuyamadım. Daha net, düz ve yakın bir fotoğraf dene."; draw1(); return; } if (!rows.length) showRaw = true;
       lq = nm; drawL();
     };
@@ -102,7 +121,7 @@ function open() {
         const nmx = nameOf(l) || l.slice(0, 40), fw = fold(showRaw ? l : nmx).split(/[^a-z0-9]+/); if (w.length && !w.every((x) => fw.some((y) => y.indexOf(x) === 0))) return; n++;
         const cs = codes(l), b = E("button", BS + ";width:100%;margin-top:8px;text-align:left;display:block", ""); b.type = "button";
         b.appendChild(E("div", "font-weight:700;font-size:15px", nmx)); b.appendChild(E("div", "margin-top:4px;font-size:12px;opacity:.75;word-break:break-word", showRaw ? l : cs.slice(0, 8).join(" ") + (cs.length > 8 ? " … (" + cs.length + " kod)" : "")));
-        b.onclick = () => { ps = { l: l, c: cs, n: nmx }; draw3(); }; lw.appendChild(b);
+        b.onclick = () => { ps = { l: l, c: cs, n: nmx }; sel = -1; draw3(); }; lw.appendChild(b);
       });
       if (!n) lw.appendChild(E("div", "margin-top:14px;opacity:.8", "Bu isimde satır yok. Adı kısaltıp dene ya da yukarıdan tüm satırları göster."));
     };
@@ -113,10 +132,13 @@ function open() {
     body.appendChild(E("div", "margin-top:12px;font-weight:700", MN[mo] + " " + yr + " · okunan satır"));
     body.appendChild(E("div", "margin-top:6px;padding:10px;border-radius:12px;background:rgba(255,255,255,.07);font-size:13px;word-break:break-word", ps.l));
     body.appendChild(E("div", "margin-top:10px;font-size:14px;opacity:.85;line-height:1.5", "Okunan kodlar günlere dizildi. Yanlış olanı düzelt, boş bırakırsan o gün eklenmez. Hepsi bir gün kaymışsa aşağıdaki ◀ ▶ ile kaydır."));
+    body.appendChild(E("div", "margin-top:10px;font-size:13px;opacity:.85;line-height:1.5", "Siyah (Hİ) hücreler çoğu zaman okunmaz ve sonrası kayar. Hİ'nin olması gereken günün numarasına dokun, sonra aşağıdan \"Bu güne boş ekle\" de: sonraki günler bir sağa kayar, sen de Hİ yazarsın. Fazla bir kod varsa \"Bu günü sil\" ile sola kaydır."));
+    const sx = E("div", "display:flex;gap:8px;margin-top:8px"); const ia = E("button", BS + ";flex:1;font-size:13px", "＋ Bu güne boş ekle"), da = E("button", BS + ";flex:1;font-size:13px", "－ Bu günü sil"); ia.type = da.type = "button";
+    ia.onclick = () => { read(); if (sel < 0) return; ps.c.splice(sel, 0, ""); draw3(); }; da.onclick = () => { read(); if (sel < 0) return; ps.c.splice(sel, 1); draw3(); }; sx.appendChild(ia); sx.appendChild(da); body.appendChild(sx);
     const sh = E("div", "display:flex;gap:8px;margin-top:10px"); const l1 = E("button", BS + ";flex:1", "◀ Bir gün geri"), r1 = E("button", BS + ";flex:1", "Bir gün ileri ▶"); l1.type = r1.type = "button";
     l1.onclick = () => { read(); ps.c.shift(); draw3(); }; r1.onclick = () => { read(); ps.c.unshift(""); draw3(); }; sh.appendChild(l1); sh.appendChild(r1); body.appendChild(sh);
     const g = E("div", "display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px"); const ins = [];
-    for (let i = 0; i < nd; i++) { const w = E("div", "display:flex;align-items:center;gap:6px"); w.appendChild(E("span", "width:24px;font-size:13px;opacity:.7;text-align:right", String(i + 1))); const x = E("input", IS + ";padding:8px;font-size:15px"); x.value = ps.c[i] || ""; ins.push(x); w.appendChild(x); g.appendChild(w); }
+    for (let i = 0; i < nd; i++) { const w = E("div", "display:flex;align-items:center;gap:6px"); const nb = E("button", "width:30px;height:30px;flex:none;border-radius:8px;border:1px solid " + (sel === i ? "var(--lamp,#f0c24b)" : "transparent") + ";background:" + (sel === i ? "rgba(240,194,75,.25)" : "transparent") + ";color:inherit;font-size:13px;padding:0", String(i + 1)); nb.type = "button"; nb.onclick = () => { read(); sel = sel === i ? -1 : i; draw3(); }; w.appendChild(nb); const x = E("input", IS + ";padding:8px;font-size:15px"); x.value = ps.c[i] || ""; ins.push(x); w.appendChild(x); g.appendChild(w); }
     body.appendChild(g);
     const read = () => { ps.c = ins.map((x) => x.value.trim()).concat(ps.c.slice(nd)); };
     const ex = ps.c.length - nd; if (ex > 0) body.appendChild(E("div", "margin-top:8px;font-size:13px;opacity:.8", "Not: satırda " + ex + " fazla kod var, ay sonundan sonrası eklenmez."));
