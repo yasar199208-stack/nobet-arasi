@@ -1,9 +1,11 @@
 // Ek özel maskeler (2. paket): kendi çizimimiz. vcmask2.js bu dosyayı yükler.
-export const SP3 = [
+import { SP4, drawSp4 } from "./vcmask4.js?v=1";
+const SP3A = [
   ["panda", "🐼 Panda"], ["ayi", "🐻 Ayı"], ["tilki", "🦊 Tilki"], ["unicorn", "🦄 Tek boynuz"], ["kovboy", "🤠 Kovboy şapkası"], ["sef", "🧑‍🍳 Aşçı şapkası"],
   ["guvenlik", "🛡️ Güvenlik kepi"], ["inek", "🤓 İnek gözlük"], ["yildizgoz", "🌟 Yıldız gözlük"], ["kalpgoz", "😍 Kalp gözlük"], ["gozyasi", "😭 Gözyaşı"],
   ["noel", "🎅 Noel şapkası"], ["elektrik", "⚡ Elektrik"], ["vampir", "🧛 Vampir"], ["kafatasi", "💀 Kafatası boyası"], ["sasgin", "👀 Şaşkın gözler"], ["yanak", "☺️ Pembe yanak"]
 ];
+export const SP3 = SP4.concat(SP3A);
 const EF = "'Apple Color Emoji','Noto Color Emoji','Segoe UI Emoji',sans-serif";
 const TAU = Math.PI * 2;
 
@@ -26,6 +28,7 @@ function rnd(n) { const v = Math.sin(n * 12.9898) * 43758.5453; return v - Math.
 
 // Çizdiyse true döner
 export function drawSp3(id, c, cx, cy, s, t) {
+  if (drawSp4(id, c, cx, cy, s, t)) return true;
   const ey = cy - 0.07 * s, y0 = cy - 0.42 * s;
   let ok = true;
   c.save();
