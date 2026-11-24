@@ -36,19 +36,21 @@ export function gruplar(api) {
   const { el, toast, openSheet, ymd, MON, DS, save, render } = api, now = new Date();
   openSheet((sh) => {
     sh.appendChild(el("h3", "", "🗂️ Gruplar · Metro · Tramvay"));
-    sh.appendChild(el("div", "vd-tg", "🔒 PDF telefonunda açılır. Listedeki isimler ve rehber numaraları yalnızca bu telefonda kalır, hiçbir yere gönderilmez."));
+    sh.appendChild(el("div", "vd-tg", "🔒 PDF telefonunda açılır. Okunan liste ve rehber numaraları yalnızca bu telefonda saklanır (uygulamayı kapatsan da kalır), hiçbir yere gönderilmez."));
     const fi = el("input"); fi.type = "file"; fi.accept = ".pdf,application/pdf"; fi.style.marginTop = "12px"; sh.appendChild(fi);
     const go = el("button", "vd-btn p", "📂 Listeyi oku"); go.type = "button"; go.style.cssText = "width:100%;margin-top:10px"; sh.appendChild(go);
     const msg = el("div", "vd-tg"); msg.style.marginTop = "12px"; msg.hidden = true; sh.appendChild(msg);
     const body = el("div"); sh.appendChild(body);
+    const GK = "na_vardiya_grup_v1", loadG = () => { try { const x = JSON.parse(localStorage.getItem(GK)); return x && x.people && x.groups && x.groups.length ? x : null; } catch (e) { return null; } };
     const say = (x) => { msg.hidden = !x; msg.textContent = x || ""; };
     let D = null, gi = 0, mode = "day", day = now.getDate(), q = "", open = -1, busy = false;
     const phone = (p) => tels()[fold(p.name)] || "";
     const hi = (c) => { const x = fold(c).replace(/ /g, ""); return x === "hi" ? "izin" : x === "yi" ? "izin" : x === "r" ? "rapor" : ""; };
-    const addFr = (p) => {
+    const addFr = (p, quiet) => {
       const f = api.D.fr.find((x) => fold(x.n) === fold(p.name)) || api.newFriend(p.name), t = phone(p); if (t) f.p = t;
       let n = 0; Object.keys(p.out).forEach((d) => { const c = norm(p.out[d]), id = hi(c) || guess(c, api.D.types) || "c:" + c; if (!c || +d > new Date(D.y, D.m + 1, 0).getDate()) return; f.days[ymd(new Date(D.y, D.m, +d))] = { t: id, n: "" }; n++; });
-      save(); render(); toast(p.name + " takvime eklendi (" + n + " gün). Vardiya ekranında üstteki sekmeden gör.");
+      if (!quiet) { save(); render(); toast(p.name + " takvime eklendi (" + n + " gün). Vardiya ekranında üstteki sekmeden gör."); }
+      return n;
     };
     const wbtn = (p) => { const b = el("button", "vd-ib", "💬"); b.type = "button"; b.onclick = (e) => { e.stopPropagation(); api.wa({ p: phone(p) }, "Selam, nöbet arası müsait misin?"); }; return b; };
     const matchTel = async () => {
@@ -138,8 +140,10 @@ export function gruplar(api) {
         };
         list();
       }
-      const cb = el("button", "vd-btn", "📇 Rehberden eşleştir (WhatsApp otomatik)"); cb.type = "button"; cb.style.cssText = "width:100%;margin-top:14px"; cb.onclick = matchTel; body.appendChild(cb);
+      const ga = el("button", "vd-btn p", "👥 " + G.n + " grubunu takvime ekle (" + ps.length + " kişi)"); ga.type = "button"; ga.style.cssText = "width:100%;margin-top:14px"; ga.onclick = () => { ps.forEach((p) => addFr(p, true)); save(); render(); toast(ps.length + " kişi takvime eklendi. Vardiya ekranında arkadaş listesinden seçip gör."); }; body.appendChild(ga);
+      const cb = el("button", "vd-btn", "📇 Rehberden eşleştir (WhatsApp otomatik)"); cb.type = "button"; cb.style.cssText = "width:100%;margin-top:8px"; cb.onclick = matchTel; body.appendChild(cb);
       body.appendChild(el("p", "vd-tg", "Rehber ekranında kişileri seç (hepsini seçebilirsin). Adı eşleşenlerin 💬 tuşu doğrudan WhatsApp sohbetini açar."));
+      const dl = el("button", "vd-btn", "🗑️ Kayıtlı listeyi sil (yeni PDF seç)"); dl.type = "button"; dl.style.cssText = "width:100%;margin-top:14px"; dl.onclick = () => { try { localStorage.removeItem(GK); } catch (e) {} D = null; body.innerHTML = ""; say("Kayıtlı liste silindi. Yeni PDF seçip 'Listeyi oku'ya bas."); }; body.appendChild(dl);
       const cl = el("button", "vd-btn", "🗑️ Rehber eşleşmelerini sil"); cl.type = "button"; cl.style.cssText = "width:100%;margin-top:4px"; cl.onclick = () => { try { localStorage.removeItem(TK); } catch (e) {} toast("Silindi."); draw(); }; body.appendChild(cl);
     };
     go.onclick = async () => {
@@ -160,10 +164,12 @@ export function gruplar(api) {
         }
         if (!people.length) { say("Bu PDF'den liste okuyamadım. Taranmış (fotoğraf) bir PDF olabilir."); busy = false; return; }
         D = { people: people, groups: groups.filter((g) => g.c), m: md, y: my }; const old = D.groups.length; D.people.forEach((p) => { p.g = groups.filter((g) => g.c).indexOf(groups[p.g]); });
+        try { localStorage.setItem(GK, JSON.stringify(D)); } catch (e) {}
         gi = 0; open = -1; if (md !== now.getMonth() || my !== now.getFullYear()) day = 1; if (!old) { say("Grup bulunamadı."); busy = false; return; }
         draw();
       } catch (e) { say("PDF okunamadı. İnternet bağlantını kontrol edip tekrar dene. (PDF okuyucu ilk seferde internetten yüklenir.)"); }
       busy = false;
     };
+    const sv = loadG(); if (sv) { D = sv; if (D.m !== now.getMonth() || D.y !== now.getFullYear()) day = 1; draw(); }
   });
 }
