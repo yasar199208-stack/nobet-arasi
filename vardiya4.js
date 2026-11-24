@@ -3,7 +3,7 @@ export function friends(api) {
   const { el, toast, openSheet, closeSheet, render } = api;
   openSheet((sh) => {
     sh.appendChild(el("h3", "", "👥 Arkadaşlar"));
-    sh.appendChild(el("div", "vd-tg", "Arkadaşının vardiyasını eklersen takvimde “👥” ile kimin aynı gün nöbette olduğunu görürsün. İsimler, telefon numaraları ve vardiyalar yalnızca bu telefonda kalır. 💬 WhatsApp’ı açar. Arkadaşını PDF’den eklemek için “PDF’den yükle”de onun adını yaz."));
+    sh.appendChild(el("div", "vd-tg", "Arkadaşının vardiyasını eklersen takvimde “👥” ile kimin aynı gün nöbette olduğunu görürsün. İsimler, telefon numaraları ve vardiyalar yalnızca bu telefonda kalır. 📇 rehberden numara seçer, 💬 WhatsApp’ı açar. Numara yoksa 💬 WhatsApp’ta kişiyi seçtirir. Arkadaşını PDF’den eklemek için “PDF’den yükle”de onun adını yaz."));
     const list = el("div"); sh.appendChild(list);
     const draw = () => {
       list.innerHTML = "";
@@ -15,10 +15,15 @@ export function friends(api) {
         op.onclick = () => { api.setSel(f.id); closeSheet(); render(); };
         let sure = 0; dl.onclick = () => { if (!sure) { sure = 1; dl.textContent = "Sil?"; return; } api.delFriend(f.id); api.save(); draw(); render(); toast("Silindi."); };
         r.appendChild(nm); r.appendChild(op); r.appendChild(dl); list.appendChild(r);
-        const r3 = el("div", "vd-r"), ph = el("input"), wb = el("button", "vd-btn", "💬"); ph.type = "tel"; ph.maxLength = 16; ph.placeholder = "Telefon (isteğe bağlı) 05xx xxx xx xx"; ph.value = f.p || ""; wb.type = "button"; wb.style.flex = "none"; wb.style.padding = "10px 14px";
+        const r3 = el("div", "vd-r"), ph = el("input"), wb = el("button", "vd-btn", "💬"), cb = el("button", "vd-btn", "📇"); ph.type = "tel"; ph.maxLength = 16; ph.placeholder = "Telefon (isteğe bağlı)"; ph.value = f.p || ""; wb.type = "button"; wb.style.flex = "none"; wb.style.padding = "10px 14px";
         ph.onchange = () => { f.p = ph.value.replace(/[^\d+ ]/g, "").trim(); ph.value = f.p; api.save(); render(); };
         wb.onclick = () => { f.p = ph.value.replace(/[^\d+ ]/g, "").trim(); api.save(); api.wa(f, "Selam, nöbet arası müsait misin?"); };
-        r3.appendChild(ph); r3.appendChild(wb); list.appendChild(r3);
+        cb.type = "button"; cb.style.flex = "none"; cb.style.padding = "10px 14px";
+        cb.onclick = async () => {
+          if (!(navigator.contacts && navigator.contacts.select)) { toast("Bu telefonda rehber seçimi yok, numarayı yaz."); return; }
+          try { const c = await navigator.contacts.select(["tel"], { multiple: false }); const n = c && c[0] && c[0].tel && c[0].tel[0]; if (n) { f.p = String(n).replace(/[^\d+ ]/g, "").trim(); ph.value = f.p; api.save(); render(); toast("Numara eklendi."); } } catch (e) {}
+        };
+        r3.appendChild(ph); r3.appendChild(cb); r3.appendChild(wb); list.appendChild(r3);
       });
     };
     draw();
