@@ -21,7 +21,13 @@ let D = load();
 if (!Array.isArray(D.fr)) D.fr = [];
 let sel = "";
 function days() { const f = sel && D.fr.find((x) => x.id === sel); return f ? f.days : D.days; }
-function who(k) { const o = []; if (sel) { const e = D.days[k], t = e && tdef(e.t); if (t) o.push(["Sen", t]); } else D.fr.forEach((f) => { const e = f.days[k], t = e && tdef(e.t); if (t) o.push([f.n, t]); }); return o; }
+function who(k) { const o = []; if (sel) { const e = D.days[k], t = e && tdef(e.t); if (t) o.push(["Sen", t]); } else D.fr.forEach((f) => { const e = f.days[k], t = e && tdef(e.t); if (t) o.push([f.n, t, f]); }); return o; }
+function wa(f, msg) {
+  let n = String((f && f.p) || "").replace(/\D/g, "");
+  if (n.length === 11 && n[0] === "0") n = "9" + n; else if (n.length === 10 && n[0] === "5") n = "90" + n;
+  if (n.length < 10) { toast("Önce “Arkadaşlar”dan telefon numarasını gir."); return; }
+  window.open("https://wa.me/" + n + (msg ? "?text=" + encodeURIComponent(msg) : ""), "_blank", "noopener");
+}
 function save() { try { localStorage.setItem(KEY, JSON.stringify(D)); } catch (e) { toast("Kaydedilemedi, depolama dolu olabilir."); } }
 
 const st = document.createElement("style");
@@ -188,7 +194,11 @@ function render() {
   if (D.fr.length) {
     const fc = el("div", "vd-fc"), mk = (id, tx) => { const x = el("button", sel === id ? "on" : "", tx); x.type = "button"; x.onclick = () => { sel = id; render(); }; fc.appendChild(x); };
     mk("", "👤 Ben"); D.fr.forEach((f) => mk(f.id, f.n)); b.appendChild(fc);
-    if (sel) b.appendChild(el("div", "vd-tg", "👁️ " + ((D.fr.find((x) => x.id === sel) || {}).n || "") + " adlı arkadaşının takvimi. Güne dokunup onun vardiyasını düzeltebilirsin."));
+    if (sel) {
+      const sf = D.fr.find((x) => x.id === sel) || {};
+      b.appendChild(el("div", "vd-tg", "👁️ " + (sf.n || "") + " adlı arkadaşının takvimi. Güne dokunup onun vardiyasını düzeltebilirsin."));
+      const wb = el("button", "vd-btn", "💬 " + (sf.n || "") + " ile WhatsApp’ta yaz"); wb.type = "button"; wb.style.cssText = "width:100%;margin-top:8px"; wb.onclick = () => wa(sf, "Selam, nöbet arası müsait misin?"); b.appendChild(wb);
+    }
   }
   const mn = el("div", "vd-mn"), pv = el("button", "", "‹"), nx = el("button", "", "›"); pv.type = nx.type = "button";
   pv.onclick = () => { view = new Date(view.getFullYear(), view.getMonth() - 1, 1); render(); };
@@ -238,7 +248,7 @@ function dayEdit(d) {
     if (wl.length || D.fr.length) {
       sh.appendChild(el("label", "", sel ? "Bu gün sen" : "Bu gün arkadaşların")); const wb = el("div", "vd-who");
       if (!wl.length) wb.appendChild(el("div", "", sel ? "Senin vardiyan yok." : "Kayıtlı arkadaşın çalışmıyor ya da girilmemiş."));
-      wl.forEach((q) => { const r = el("div"); r.appendChild(el("b", "", q[0])); r.appendChild(el("span", "", q[1].ic + " " + q[1].n + (q[1].off ? "" : " " + q[1].s + "–" + q[1].e))); wb.appendChild(r); });
+      wl.forEach((q) => { const r = el("div"); r.appendChild(el("b", "", q[0])); r.appendChild(el("span", "", q[1].ic + " " + q[1].n + (q[1].off ? "" : " " + q[1].s + "–" + q[1].e))); if (q[2]) { const w = el("button", "vd-ib", "💬"); w.type = "button"; w.onclick = () => wa(q[2], "Selam, nöbet arası müsait misin?"); r.appendChild(w); } wb.appendChild(r); });
       sh.appendChild(wb);
     }
     const r = el("div", "vd-r"), cl = el("button", "vd-btn", "Temizle"), ok = el("button", "vd-btn p", "Tamam"); cl.type = ok.type = "button";
@@ -253,10 +263,10 @@ function dayEdit(d) {
 let X = null, X3 = null, X4 = null;
 import("./vardiya2.js?v=1").then((m) => { X = m; }).catch(() => {});
 import("./vardiya3.js?v=2").then((m) => { X3 = m; }).catch(() => {});
-import("./vardiya4.js?v=1").then((m) => { X4 = m; }).catch(() => {});
+import("./vardiya4.js?v=2").then((m) => { X4 = m; }).catch(() => {});
 const API = {
   get D() { return D; }, set D(v) { D = v; if (!Array.isArray(D.fr)) D.fr = []; },
-  save, el, toast, openSheet, closeSheet, tdef, dur, ymd, wd, MON, DS, DL, render,
+  save, wa, el, toast, openSheet, closeSheet, tdef, dur, ymd, wd, MON, DS, DL, render,
   setView(d) { view = d; }, getView() { return view; },
   getSel() { return sel; }, setSel(v) { sel = v || ""; },
   newFriend(n) { const f = { id: "f" + Date.now().toString(36) + Math.floor(Math.random() * 99), n: n, days: {} }; D.fr.push(f); return f; },
