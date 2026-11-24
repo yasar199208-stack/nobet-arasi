@@ -2,6 +2,7 @@
 import { ROOMS } from "./rooms.js?v=2";
 import("./vardiya8.js?v=1").catch(() => {});
 import("./vardiya9.js?v=1").catch(() => {});
+import("./vardiya10.js?v=1").catch(() => {});
 const AL = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const hb = async (s) => new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("nobetarasi-vd|" + s)));
 // Görüntülü konuşma: Vardiya odasındaki herkes aynı görüntülü odaya düşer (kod oda kimliğinden üretilir). Mevcut "📹 Görüntü" sistemini kullanır.
@@ -57,7 +58,7 @@ async function vcStart(room) {
     b.onclick = back; top.insertBefore(b, top.firstChild);
     vb = document.createElement("button"); vb.type = "button"; vb.hidden = true; vb.textContent = "📹 Görüntülü"; vb.style.cssText = b.style.cssText;
     vb.onclick = () => { const r = ROOMS.find((x) => x.v && x.ic + " " + x.n === cur); if (r) vcStart(r); }; top.insertBefore(vb, b.nextSibling);
-    new MutationObserver(upd).observe(t, { childList: true, characterData: true, subtree: true }); upd(); push(); return true;
+    new MutationObserver(upd).observe(t, { childList: true, subtree: true, characterData: true }); upd(); push(); return true;
   };
   const iv = setInterval(() => { if (init() || ++n > 60) clearInterval(iv); }, 300);
 })();
