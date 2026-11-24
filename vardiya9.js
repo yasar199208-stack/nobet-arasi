@@ -69,39 +69,42 @@ function open() {
   bk.onclick = () => { close(); try { if (history.state && history.state.ph) history.back(); } catch (e) {} };
   try { history.pushState({ ph: 1, vdb: 1 }, ""); window.addEventListener("popstate", close); } catch (e) {}
   const now = new Date(); let lines = null, mo = now.getMonth(), yr = now.getFullYear(), nm = ""; try { nm = localStorage.getItem("na_vardiya_ad") || ""; } catch (e) {}
-  let st = "", ps = null, rows = [], lq = "";
+  let st = "", ps = null, rows = [], lq = "", raw = [], showRaw = false;
   const draw1 = () => {
     body.innerHTML = "";
     body.appendChild(E("div", "margin-top:12px;font-size:14px;opacity:.85;line-height:1.5", "1) Vardiya listesinin fotoğrafını seç (tablo net, düz ve aydınlık olsun). 2) Adını yaz. 3) Okunanı kontrol edip takvime ekle. Fotoğraf telefonunda okunur, hiçbir yere gönderilmez."));
     const fi = E("input", "margin-top:12px"); fi.type = "file"; fi.accept = "image/*"; body.appendChild(fi);
-    const ni = E("input", IS + ";margin-top:12px"); ni.placeholder = "Aranacak ad (boş bırakırsan tüm liste gelir)"; ni.value = nm; body.appendChild(ni);
+    const ni = E("input", IS + ";margin-top:12px"); ni.placeholder = "İsimle aramak için ad yaz (isteğe bağlı)"; body.appendChild(ni);
     const row = E("div", "display:flex;gap:8px;margin-top:12px"); const ms = E("select", IS + ";flex:1"); MN.forEach((m, i) => ms.appendChild(new Option(m, i))); ms.value = mo; const ys = E("select", IS + ";width:110px"); [yr - 1, yr, yr + 1].forEach((y) => ys.appendChild(new Option(y, y))); ys.value = yr; row.appendChild(ms); row.appendChild(ys); body.appendChild(row);
-    const go = E("button", BS + ";width:100%;margin-top:14px;background:var(--lamp,#f0c24b);color:#000;font-weight:700", "📖 Fotoğrafı oku"); go.type = "button"; body.appendChild(go);
+    const go = E("button", BS + ";width:100%;margin-top:14px;background:var(--lamp,#f0c24b);color:#000;font-weight:700", "🔎 İsimle ara"); go.type = "button"; body.appendChild(go);
+    const all = E("button", BS + ";width:100%;margin-top:8px;font-weight:700", "📋 Tüm listeyi göster"); all.type = "button"; body.appendChild(all);
     const sm = E("div", "margin-top:12px;font-size:14px", st); body.appendChild(sm);
-    go.onclick = async () => {
-      const f = fi.files && fi.files[0]; nm = ni.value.trim(); mo = +ms.value; yr = +ys.value;
-      if (!window.__ocrTest && !f) { sm.textContent = "Önce fotoğrafı seç."; return; }       try { localStorage.setItem("na_vardiya_ad", nm); } catch (e) {} go.disabled = true;
+    const run = async (useName) => {
+      const f = fi.files && fi.files[0]; nm = useName ? ni.value.trim() : ""; mo = +ms.value; yr = +ys.value;
+      if (!window.__ocrTest && !f) { sm.textContent = "Önce fotoğrafı seç."; return; } if (useName && !nm) { sm.textContent = "Aramak için bir ad yaz ya da \"Tüm listeyi göster\"e bas."; return; } go.disabled = true; all.disabled = true;
       try { lines = await ocr(f, (x) => { sm.textContent = x; }); } catch (e) { st = "Fotoğraf okunamadı. İnternet bağlantını kontrol edip tekrar dene (okuyucu ilk seferde internetten yüklenir)."; draw1(); return; }
-      rows = lines.filter((l) => codes(l).length >= 3 && nameOf(l).length >= 2);
-      if (!rows.length) { st = "Fotoğraftan vardiya satırı okuyamadım. Daha net, düz ve yakın bir fotoğraf dene."; draw1(); return; }
+      rows = lines.filter((l) => codes(l).length >= 2 && nameOf(l).length >= 2); raw = lines.map((l) => String(l).trim()).filter((l) => l.length >= 4); showRaw = false;
+      if (!raw.length) { st = "Fotoğraftan yazı okuyamadım. Daha net, düz ve yakın bir fotoğraf dene."; draw1(); return; } if (!rows.length) showRaw = true;
       lq = nm; drawL();
     };
+    go.onclick = () => run(true); all.onclick = () => run(false);
   };
   const drawL = () => {
     body.innerHTML = "";
-    const top2 = E("div", "display:flex;gap:8px;margin-top:12px;align-items:center"); const bb = E("button", BS, "↩ Başa dön"); bb.type = "button"; bb.onclick = draw1; top2.appendChild(bb); top2.appendChild(E("span", "font-size:13px;opacity:.8", rows.length + " satır okundu")); body.appendChild(top2);
+    const top2 = E("div", "display:flex;gap:8px;margin-top:12px;align-items:center"); const bb = E("button", BS, "↩ Başa dön"); bb.type = "button"; bb.onclick = draw1; top2.appendChild(bb); top2.appendChild(E("span", "font-size:13px;opacity:.8", (showRaw ? raw.length + " ham satır" : rows.length + " vardiya satırı") + " okundu")); body.appendChild(top2);
+    const tg = E("button", BS + ";width:100%;margin-top:10px;font-size:13px", showRaw ? "✓ Tüm okunan satırlar gösteriliyor (vardiya satırlarına dön)" : "Eksik satır mı var? Okunan TÜM satırları göster (" + raw.length + ")"); tg.type = "button"; tg.onclick = () => { showRaw = !showRaw; drawL(); }; body.appendChild(tg);
     const qi = E("input", IS + ";margin-top:12px"); qi.placeholder = "İsimle ara"; qi.value = lq; body.appendChild(qi);
     body.appendChild(E("div", "margin-top:8px;font-size:13px;opacity:.8", "Bir satıra dokun: kodları kontrol edip takvime eklersin."));
     const lw = E("div"); body.appendChild(lw);
     const list = () => {
       lw.innerHTML = ""; const w = fold(lq).split(" ").filter(Boolean); let n = 0;
-      rows.forEach((l) => {
-        const nmx = nameOf(l), fw = fold(nmx).split(/[^a-z0-9]+/); if (w.length && !w.every((x) => fw.some((y) => y.indexOf(x) === 0))) return; n++;
+      (showRaw ? raw : rows).forEach((l) => {
+        const nmx = nameOf(l) || l.slice(0, 40), fw = fold(showRaw ? l : nmx).split(/[^a-z0-9]+/); if (w.length && !w.every((x) => fw.some((y) => y.indexOf(x) === 0))) return; n++;
         const cs = codes(l), b = E("button", BS + ";width:100%;margin-top:8px;text-align:left;display:block", ""); b.type = "button";
-        b.appendChild(E("div", "font-weight:700;font-size:15px", nmx)); b.appendChild(E("div", "margin-top:4px;font-size:12px;opacity:.75;word-break:break-word", cs.slice(0, 8).join(" ") + (cs.length > 8 ? " … (" + cs.length + " kod)" : "")));
+        b.appendChild(E("div", "font-weight:700;font-size:15px", nmx)); b.appendChild(E("div", "margin-top:4px;font-size:12px;opacity:.75;word-break:break-word", showRaw ? l : cs.slice(0, 8).join(" ") + (cs.length > 8 ? " … (" + cs.length + " kod)" : "")));
         b.onclick = () => { ps = { l: l, c: cs, n: nmx }; draw3(); }; lw.appendChild(b);
       });
-      if (!n) lw.appendChild(E("div", "margin-top:14px;opacity:.8", "Bu isimde satır yok. Adı kısaltıp dene."));
+      if (!n) lw.appendChild(E("div", "margin-top:14px;opacity:.8", "Bu isimde satır yok. Adı kısaltıp dene ya da yukarıdan tüm satırları göster."));
     };
     qi.oninput = () => { lq = qi.value; list(); }; list();
   };
