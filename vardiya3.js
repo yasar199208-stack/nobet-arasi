@@ -2,18 +2,18 @@
 const PB = window.__vdPdfBase || "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/legacy/build";
 const MONF = ["ocak", "subat", "mart", "nisan", "mayis", "haziran", "temmuz", "agustos", "eylul", "ekim", "kasim", "aralik"];
 let lib = null;
-async function getLib() {
+export async function getLib() {
   if (lib) return lib;
   lib = await import(PB + "/pdf.min.mjs");
   lib.GlobalWorkerOptions.workerSrc = PB + "/pdf.worker.min.mjs";
   return lib;
 }
-function fold(s) {
+export function fold(s) {
   return String(s || "").toLocaleLowerCase("tr").replace(/ç/g, "c").replace(/ğ/g, "g").replace(/ı/g, "i").replace(/ö/g, "o").replace(/ş/g, "s").replace(/ü/g, "u")
     .replace(/[^a-z0-9]+/g, " ").trim();
 }
 // Sayfadaki yazıları satırlara ve kelimelere ayırır; her kelimenin yeri (x) bilinir
-function rowsOf(items) {
+export function rowsOf(items) {
   const toks = [];
   items.forEach((it) => {
     const str = it.str || ""; if (!str.trim()) return;
@@ -31,7 +31,7 @@ function rowsOf(items) {
   return rows;
 }
 function matchRow(r, q) { const ws = r.t.map((t) => fold(t.s)); return q.every((w) => ws.some((x) => x === w || (w.length >= 3 && x.indexOf(w) === 0))); }
-function guess(code, types) {
+export function guess(code, types) {
   const c = fold(code).replace(/ /g, "");
   const by = (id) => (types.some((t) => t.id === id) ? id : "");
   if (/^(g|gn|gunduz|d|day)$/.test(c)) return by("gunduz");
@@ -49,16 +49,16 @@ function guess(code, types) {
   return "";
 }
 // Satırdaki hücreleri günlere dağıtır: önce sayfadaki 1,2,3… başlık satırına göre, bulunamazsa sırayla
-function assign(rows, ri, q) {
-  const row = rows[ri], out = {}; let auto = false;
+export function assign(rows, ri, q) {
+  const row = rows[ri], out = {}; let auto = false, lo = 1e9;
   let hdr = null;
   for (let i = ri - 1; i >= 0 && !hdr; i--) {
     const nums = rows[i].t.filter((t) => /^\d{1,2}$/.test(t.s) && +t.s >= 1 && +t.s <= 31);
-    if (nums.length >= 15) hdr = nums;
+    if (nums.length >= 15 && nums.every((t, j) => j === 0 || +t.s > +nums[j - 1].s)) hdr = nums;
   }
   if (hdr) {
     const xs = hdr.map((t) => t.x), sp = (Math.max.apply(null, xs) - Math.min.apply(null, xs)) / Math.max(1, hdr.length - 1);
-    const lo = Math.min.apply(null, xs) - sp * 0.6, hi = Math.max.apply(null, xs) + sp * 0.6;
+    lo = Math.min.apply(null, xs) - sp * 0.6; const hi = Math.max.apply(null, xs) + sp * 0.6;
     row.t.forEach((t) => {
       if (t.x < lo || t.x > hi) return;
       let best = null; hdr.forEach((h) => { if (!best || Math.abs(h.x - t.x) < Math.abs(best.x - t.x)) best = h; });
@@ -69,9 +69,13 @@ function assign(rows, ri, q) {
     let last = -1; row.t.forEach((t, i) => { if (q.some((w) => fold(t.s).indexOf(w) === 0)) last = i; });
     row.t.slice(last + 1).filter((t) => t.s.length <= 8 && !(/^\d{3,}$/.test(t.s))).forEach((t, i) => { if (i < 31) out[i + 1] = t.s; });
   }
-  return { out: out, auto: auto };
+  return { out: out, auto: auto, lo: lo };
 }
 
+export function monthOf(rows, dm, dy) {
+  rows.slice(0, 14).forEach((rr) => { const tx = fold(rr.t.map((t) => t.s).join(" ")); MONF.forEach((m, i) => { if (tx.split(" ").indexOf(m) >= 0) { dm = i; const yy = tx.match(/\b(20\d\d)\b/); if (yy) dy = +yy[1]; } }); });
+  return [dm, dy];
+}
 export function pdf(api) {
   const { el, toast, openSheet, closeSheet, ymd, MON, save, render } = api;
   openSheet((sh) => {
@@ -130,7 +134,7 @@ export function pdf(api) {
           const sel = {};
           codes.forEach((c) => {
             const r2 = el("div", "vd-r"), lb = el("b", "", c), s = el("select"); lb.style.cssText = "min-width:70px;font-size:17px";
-            s.appendChild(new Option("Atla", "")); api.D.types.forEach((t) => s.appendChild(new Option(t.ic + " " + t.n, t.id))); s.value = guess(c, api.D.types);
+            s.appendChild(new Option("Atla", "")); s.appendChild(new Option("📍 Kodu aynen yaz", "c:" + c)); api.D.types.forEach((t) => s.appendChild(new Option(t.ic + " " + t.n, t.id))); s.value = guess(c, api.D.types) || "c:" + c;
             r2.appendChild(lb); r2.appendChild(s); res.appendChild(r2); sel[c] = s;
           });
           res.appendChild(el("label", "", "Hangi ay?"));
