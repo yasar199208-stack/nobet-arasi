@@ -30,16 +30,31 @@ async function refresh() {
   nr.forEach((r, i) => ROOMS.splice(3 + i, 0, r)); rerender();
 }
 refresh(); setTimeout(rerender, 2500); setTimeout(rerender, 6000); setInterval(() => { if (dayN() !== lastDay) refresh(); }, 6e4);
-// Vardiya odasındayken üstte "← Vardiya" geri tuşu
+// Geri tuşu: her odada üstte. Vardiya odasında "← Vardiya", diğerlerinde "← Geri" (önceki odaya). Özel mesajda uygulamanın kendi "← Odalar" tuşu var.
 (function () {
-  let b = null, n = 0;
-  const upd = () => { const t = document.getElementById("rt"); if (b && t) b.hidden = !ROOMS.some((r) => r.v && r.ic + " " + r.n === t.textContent); };
+  let b = null, n = 0, cur = "", hist = [], going = false;
+  const isVd = (t) => ROOMS.some((r) => r.v && r.ic + " " + r.n === t);
+  const find = (t) => Array.from(document.querySelectorAll("#rooms .room")).find((x) => { const y = x.querySelector("b"); return y && y.textContent === t; });
+  const upd = () => {
+    const rt = document.getElementById("rt"); if (!b || !rt) return; const t = rt.textContent;
+    if (t !== cur) { if (!going && cur) { hist.push(cur); if (hist.length > 20) hist.shift(); } going = false; cur = t; }
+    const vd = isVd(t); b.hidden = t.indexOf("💌") === 0 || (!vd && !hist.length); b.textContent = vd ? "← Vardiya" : "← Geri";
+  };
+  const back = () => {
+    if (isVd(cur)) { const v = document.querySelector(".vdtab"); if (v) v.click(); return; }
+    while (hist.length) {
+      const t = hist.pop(); let x = find(t);
+      if (!x) { const q = document.getElementById("q"); if (q && q.value) { q.value = ""; q.dispatchEvent(new Event("input")); x = find(t); } }
+      if (x) { going = true; x.click(); return; }
+    }
+    upd();
+  };
   const init = () => {
     const top = document.querySelector(".top"), t = document.getElementById("rt"); if (!top || !t) return false;
-    b = document.createElement("button"); b.type = "button"; b.textContent = "← Vardiya"; b.hidden = true;
+    b = document.createElement("button"); b.type = "button"; b.hidden = true;
     b.style.cssText = "flex:none;background:none;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:14px";
-    b.onclick = () => { const v = document.querySelector(".vdtab"); if (v) v.click(); };
-    top.insertBefore(b, top.firstChild); new MutationObserver(upd).observe(t, { childList: true, characterData: true, subtree: true }); upd(); return true;
+    b.onclick = back; top.insertBefore(b, top.firstChild);
+    new MutationObserver(upd).observe(t, { childList: true, characterData: true, subtree: true }); upd(); return true;
   };
   const iv = setInterval(() => { if (init() || ++n > 60) clearInterval(iv); }, 300);
 })();
