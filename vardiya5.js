@@ -32,8 +32,21 @@ async function refresh() {
 }
 refresh(); setTimeout(rerender, 2500); setTimeout(rerender, 6000); setInterval(() => { if (dayN() !== lastDay) refresh(); }, 6e4);
 
+// Burtram T1 görev kodları (PDF'deki yazılışıyla). Vardiya türü olarak eklenir; takvimde saati ve toplam saat hesaplanır.
+const KT = [["T1A1", "1.Araç", "07:00", "15:00"], ["T1A2", "2.Araç", "07:00", "15:00"], ["T1A3", "3.Araç", "08:00", "16:00"], ["T1A4", "4.Araç", "11:00", "19:00"], ["T1B1", "1.Araç Akşam", "15:00", "23:00"], ["T1B2", "2.Araç Akşam", "15:00", "23:00"], ["T1B3", "3.Araç Akşam", "14:00", "22:00"], ["T1D1", "Değiştirici", "08:00", "16:00"], ["T1D2", "Değiştirici", "13:00", "21:00"], ["T1D3", "Değiştirici", "14:30", "22:30"], ["T1 - 1", "Bina Gündüz", "07:00", "15:00"], ["T1 - 2", "Bina Akşam", "15:00", "23:00"], ["T1 - 3", "Bina Gece", "23:00", "07:00"], ["T1 - 4", "Bina Gece (makas)", "23:00", "07:00"]];
+function seedTypes(api) {
+  const D = api.D; let n = 0;
+  KT.forEach((k) => {
+    const id = "c:" + k[0], ex = D.types.find((t) => t.id === id); if (ex) { if (!ex.k) { ex.k = k[0].replace(/\s/g, ""); n++; } return; }
+    const h = +k[2].slice(0, 2), g = h >= 22 || h <= 5, a = h >= 12 && !g;
+    D.types.push({ id: id, n: k[0] + " · " + k[1], ic: g ? "🌙" : a ? "🌇" : "☀️", c: g ? "#7c93ff" : a ? "#e06fa8" : "#f0c24b", s: k[2], e: k[3], k: k[0].replace(/\s/g, "") }); n++;
+  });
+  if (n) { api.save(); api.render(); api.toast("Burtram T1 görev kodları saatleriyle vardiya türlerine eklendi."); }
+}
+
 export function gruplar(api) {
   const { el, toast, openSheet, ymd, MON, DS, save, render } = api, now = new Date();
+  try { seedTypes(api); } catch (e) {}
   openSheet((sh) => {
     sh.appendChild(el("h3", "", "🗂️ Gruplar · Metro · Tramvay"));
     sh.appendChild(el("div", "vd-tg", "🔒 PDF telefonunda açılır. Okunan liste ve rehber numaraları yalnızca bu telefonda saklanır (uygulamayı kapatsan da kalır), hiçbir yere gönderilmez."));
