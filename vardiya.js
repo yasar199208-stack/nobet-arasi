@@ -1,13 +1,9 @@
 // Vardiya takibi: nöbet takvimi, sıradaki nöbet sayacı, döngü ile doldurma, aylık özet. Veriler yalnızca bu telefonda saklanır.
 const KEY = "na_vardiya_v1";
 const DEF = [
-  { id: "gunduz", n: "Gündüz", ic: "☀️", c: "#f0c24b", s: "08:00", e: "20:00" },
-  { id: "gece", n: "Gece", ic: "🌙", c: "#7c93ff", s: "20:00", e: "08:00" },
-  { id: "tam", n: "24 Saat", ic: "⏳", c: "#ff8a5b", s: "08:00", e: "08:00" },
-  { id: "sabah", n: "Sabah", ic: "🌅", c: "#ffb36b", s: "08:00", e: "16:00" },
-  { id: "aksam", n: "Akşam", ic: "🌇", c: "#e06fa8", s: "16:00", e: "00:00" },
-  { id: "izin", n: "İzin", ic: "🏖️", c: "#4cc9a4", off: 1 },
-  { id: "rapor", n: "Rapor", ic: "🩺", c: "#9aa7b8", off: 1 }
+  { id: "gunduz", n: "Gündüz", ic: "☀️", c: "#f0c24b", s: "08:00", e: "20:00" }, { id: "gece", n: "Gece", ic: "🌙", c: "#7c93ff", s: "20:00", e: "08:00" },
+  { id: "tam", n: "24 Saat", ic: "⏳", c: "#ff8a5b", s: "08:00", e: "08:00" }, { id: "sabah", n: "Sabah", ic: "🌅", c: "#ffb36b", s: "08:00", e: "16:00" },
+  { id: "aksam", n: "Akşam", ic: "🌇", c: "#e06fa8", s: "16:00", e: "00:00" }, { id: "izin", n: "İzin", ic: "🏖️", c: "#4cc9a4", off: 1 }, { id: "rapor", n: "Rapor", ic: "🩺", c: "#9aa7b8", off: 1 }
 ];
 const MON = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
 const DS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
@@ -99,8 +95,13 @@ const pad = (n) => (n < 10 ? "0" : "") + n;
 const ymd = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
 const mins = (s) => { const p = String(s || "00:00").split(":"); return (+p[0] || 0) * 60 + (+p[1] || 0); };
 const wd = (d) => (d.getDay() + 6) % 7;
-function tdef(id) { return D.types.find((t) => t.id === id); }
-function dur(t) { if (!t || t.off) return 0; return ((((mins(t.e) - mins(t.s)) % 1440) + 1440) % 1440 || 1440) / 60; }
+const PAL = ["#4cc9a4", "#7c93ff", "#f0c24b", "#ff8a5b", "#e06fa8", "#5bc0eb", "#9bc53d", "#c77dff"];
+function tdef(id) {
+  const t = D.types.find((x) => x.id === id); if (t || !id || id.slice(0, 2) !== "c:") return t;
+  const c = id.slice(2); let h = 0; for (let i = 0; i < c.length; i++) h = (h * 31 + c.charCodeAt(i)) >>> 0;
+  return { id: id, n: c, ic: "📍", c: PAL[h % 8], cd: 1 };
+}
+function dur(t) { if (!t || t.off || t.cd) return 0; return ((((mins(t.e) - mins(t.s)) % 1440) + 1440) % 1440 || 1440) / 60; }
 function iv(d, t) {
   const a = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, mins(t.s));
   return [a, new Date(a.getTime() + dur(t) * 3600000)];
@@ -126,7 +127,7 @@ function nextInfo(now) {
   let cur = null, nxt = null;
   for (let k = -1; k <= 120 && !(cur && nxt); k++) {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + k), e = D.days[ymd(d)], t = e && tdef(e.t);
-    if (!t || t.off) continue;
+    if (!t || t.off || t.cd) continue;
     const r = iv(d, t);
     if (now >= r[0] && now < r[1]) cur = { t: t, a: r[0], b: r[1] };
     else if (r[0] > now && !nxt) nxt = { t: t, a: r[0], b: r[1] };
@@ -168,8 +169,10 @@ function dayCell(d, now) {
   b.appendChild(el("span", "n", d.getDate()));
   if (t) {
     b.style.background = rgba(t.c, 0.18); b.style.borderColor = rgba(t.c, 0.6);
-    b.appendChild(el("span", "i", t.ic));
-    b.appendChild(el("span", "h", t.off ? (t.n.length > 5 ? t.n.slice(0, 5) : t.n) : dur(t) + "s"));
+    if (t.cd) { const c = el("span", "i", t.n.length > 6 ? t.n.slice(0, 6) : t.n); c.style.cssText = "font-size:12px;font-weight:700;margin-top:10px"; b.appendChild(c); } else {
+      b.appendChild(el("span", "i", t.ic));
+      b.appendChild(el("span", "h", t.off ? (t.n.length > 5 ? t.n.slice(0, 5) : t.n) : dur(t) + "s"));
+    }
   } else b.appendChild(el("span", "i", "·"));
   if (e && e.n) b.appendChild(el("span", "h", "📝"));
   if (!sel && D.fr.length && t && !t.off) { const c = who(k).filter((q) => !q[1].off).length; if (c) b.appendChild(el("span", "h", "👥" + c)); }
@@ -222,7 +225,7 @@ function render() {
   const diff = Math.round((hours - D.target) * 10) / 10;
   b.appendChild(el("div", "vd-tg", "Hedef " + D.target + " saat · " + (diff > 0 ? "hedefin " + diff + " saat üstünde" : diff === 0 ? "hedefe ulaştın" : (-diff) + " saat kaldı") + " (hedefi Ayarlar’dan değiştirebilirsin)"));
   const ac = el("div", "vd-act");
-  [["📄 PDF’den yükle", "pdf"], ["👥 Arkadaşlar", "friends"], ["🔁 Döngü ile doldur", "wizard"], ["📤 Paylaş", "share"], ["⚙️ Ayarlar", "settings"]].forEach((q) => { const x = el("button", "", q[0]); x.type = "button"; x.onclick = () => ext(q[1]); if (q[1] === "pdf") { x.style.flexBasis = "100%"; x.style.background = "var(--lamp)"; x.style.color = "var(--lamp-ink)"; } ac.appendChild(x); });
+  [["📄 PDF’den yükle", "pdf"], ["🗂️ Gruplar · Metro · Tramvay", "gruplar"], ["👥 Arkadaşlar", "friends"], ["🔁 Döngü ile doldur", "wizard"], ["📤 Paylaş", "share"], ["⚙️ Ayarlar", "settings"]].forEach((q) => { const x = el("button", "", q[0]); x.type = "button"; x.onclick = () => ext(q[1]); if (q[1] === "pdf") { x.style.flexBasis = "100%"; x.style.background = "var(--lamp)"; x.style.color = "var(--lamp-ink)"; } ac.appendChild(x); });
   b.appendChild(ac);
   b.appendChild(el("p", "vd-tg", "🔒 Vardiya bilgilerin yalnızca bu telefonda saklanır, kimseyle paylaşılmaz."));
   b.scrollTop = top;
@@ -248,7 +251,7 @@ function dayEdit(d) {
     if (wl.length || D.fr.length) {
       sh.appendChild(el("label", "", sel ? "Bu gün sen" : "Bu gün arkadaşların")); const wb = el("div", "vd-who");
       if (!wl.length) wb.appendChild(el("div", "", sel ? "Senin vardiyan yok." : "Kayıtlı arkadaşın çalışmıyor ya da girilmemiş."));
-      wl.forEach((q) => { const r = el("div"); r.appendChild(el("b", "", q[0])); r.appendChild(el("span", "", q[1].ic + " " + q[1].n + (q[1].off ? "" : " " + q[1].s + "–" + q[1].e))); if (q[2]) { const w = el("button", "vd-ib", "💬"); w.type = "button"; w.onclick = () => wa(q[2], "Selam, nöbet arası müsait misin?"); r.appendChild(w); } wb.appendChild(r); });
+      wl.forEach((q) => { const r = el("div"); r.appendChild(el("b", "", q[0])); r.appendChild(el("span", "", q[1].ic + " " + q[1].n + (q[1].off || q[1].cd ? "" : " " + q[1].s + "–" + q[1].e))); if (q[2]) { const w = el("button", "vd-ib", "💬"); w.type = "button"; w.onclick = () => wa(q[2], "Selam, nöbet arası müsait misin?"); r.appendChild(w); } wb.appendChild(r); });
       sh.appendChild(wb);
     }
     const r = el("div", "vd-r"), cl = el("button", "vd-btn", "Temizle"), ok = el("button", "vd-btn p", "Tamam"); cl.type = ok.type = "button";
@@ -260,10 +263,11 @@ function dayEdit(d) {
 
 
 // Ek parça (döngü, paylaşma, ayarlar) ayrı dosyada
-let X = null, X3 = null, X4 = null;
+let X = null, X3 = null, X4 = null, X5 = null;
 import("./vardiya2.js?v=1").then((m) => { X = m; }).catch(() => {});
-import("./vardiya3.js?v=2").then((m) => { X3 = m; }).catch(() => {});
+import("./vardiya3.js?v=4").then((m) => { X3 = m; }).catch(() => {});
 import("./vardiya4.js?v=3").then((m) => { X4 = m; }).catch(() => {});
+import("./vardiya5.js?v=1").then((m) => { X5 = m; }).catch(() => {});
 const API = {
   get D() { return D; }, set D(v) { D = v; if (!Array.isArray(D.fr)) D.fr = []; },
   save, wa, el, toast, openSheet, closeSheet, tdef, dur, ymd, wd, MON, DS, DL, render,
@@ -273,7 +277,7 @@ const API = {
   delFriend(id) { D.fr = D.fr.filter((x) => x.id !== id); if (sel === id) sel = ""; },
   reset() { D = { types: DEF.map((t) => Object.assign({}, t)), days: {}, target: 195, fr: [] }; sel = ""; save(); }
 };
-function ext(name) { const m = name === "pdf" ? X3 : name === "friends" ? X4 : X; if (m && m[name]) m[name](API); else toast("Biraz bekle, yükleniyor…"); }
+function ext(name) { const m = name === "gruplar" ? X5 : name === "pdf" ? X3 : name === "friends" ? X4 : X; if (m && m[name]) m[name](API); else toast("Biraz bekle, yükleniyor…"); }
 
 function open() {
   if (root) return;
