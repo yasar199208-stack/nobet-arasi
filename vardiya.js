@@ -169,7 +169,10 @@ function dayCell(d, now) {
   b.appendChild(el("span", "n", d.getDate()));
   if (t) {
     b.style.background = rgba(t.c, 0.18); b.style.borderColor = rgba(t.c, 0.6);
-    if (t.cd) { const c = el("span", "i", t.n.length > 6 ? t.n.slice(0, 6) : t.n); c.style.cssText = "font-size:12px;font-weight:700;margin-top:10px"; b.appendChild(c); } else {
+    if (t.cd) { const c = el("span", "i", t.n.length > 6 ? t.n.slice(0, 6) : t.n); c.style.cssText = "font-size:12px;font-weight:700;margin-top:10px"; b.appendChild(c); } else if (t.k && !t.off) {
+      const c = el("span", "i", t.k), f = (x) => String(x || "").replace(/^0/, "").replace(":00", ""); c.style.cssText = "font-size:12px;font-weight:700;margin-top:10px"; b.appendChild(c);
+      const h = el("span", "h", f(t.s) + "-" + f(t.e)); h.style.cssText = "font-size:9px;white-space:nowrap"; b.appendChild(h);
+    } else {
       b.appendChild(el("span", "i", t.ic));
       b.appendChild(el("span", "h", t.off ? (t.n.length > 5 ? t.n.slice(0, 5) : t.n) : dur(t) + "s"));
     }
