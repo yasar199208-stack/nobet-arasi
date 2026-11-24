@@ -25,7 +25,7 @@ function who(k) { const o = []; if (sel) { const e = D.days[k], t = e && tdef(e.
 function wa(f, msg) {
   let n = String((f && f.p) || "").replace(/\D/g, "");
   if (n.length === 11 && n[0] === "0") n = "9" + n; else if (n.length === 10 && n[0] === "5") n = "90" + n;
-  if (n.length < 10) { toast("Önce “Arkadaşlar”dan telefon numarasını gir."); return; }
+  if (n.length < 10) { if (!msg) { toast("Önce “Arkadaşlar”dan telefon numarasını gir."); return; } window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank", "noopener"); toast("WhatsApp’ta kişiyi seç."); return; }
   window.open("https://wa.me/" + n + (msg ? "?text=" + encodeURIComponent(msg) : ""), "_blank", "noopener");
 }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(D)); } catch (e) { toast("Kaydedilemedi, depolama dolu olabilir."); } }
@@ -263,7 +263,7 @@ function dayEdit(d) {
 let X = null, X3 = null, X4 = null;
 import("./vardiya2.js?v=1").then((m) => { X = m; }).catch(() => {});
 import("./vardiya3.js?v=2").then((m) => { X3 = m; }).catch(() => {});
-import("./vardiya4.js?v=2").then((m) => { X4 = m; }).catch(() => {});
+import("./vardiya4.js?v=3").then((m) => { X4 = m; }).catch(() => {});
 const API = {
   get D() { return D; }, set D(v) { D = v; if (!Array.isArray(D.fr)) D.fr = []; },
   save, wa, el, toast, openSheet, closeSheet, tdef, dur, ymd, wd, MON, DS, DL, render,
