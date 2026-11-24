@@ -164,9 +164,10 @@ export function gruplar(api) {
         }
         if (!people.length) { say("Bu PDF'den liste okuyamadım. Taranmış (fotoğraf) bir PDF olabilir."); busy = false; return; }
         D = { people: people, groups: groups.filter((g) => g.c), m: md, y: my }; const old = D.groups.length; D.people.forEach((p) => { p.g = groups.filter((g) => g.c).indexOf(groups[p.g]); });
-        try { localStorage.setItem(GK, JSON.stringify(D)); } catch (e) {}
+        let ok = false; try { localStorage.setItem(GK, JSON.stringify(D)); ok = !!localStorage.getItem(GK); } catch (e) {}
+        try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
         gi = 0; open = -1; if (md !== now.getMonth() || my !== now.getFullYear()) day = 1; if (!old) { say("Grup bulunamadı."); busy = false; return; }
-        draw();
+        draw(); toast(ok ? "Liste telefona kaydedildi ✓ Kapatsan da kalır." : "Liste kaydedilemedi: telefon kayda izin vermiyor.");
       } catch (e) { say("PDF okunamadı. İnternet bağlantını kontrol edip tekrar dene. (PDF okuyucu ilk seferde internetten yüklenir.)"); }
       busy = false;
     };
