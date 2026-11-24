@@ -1,6 +1,7 @@
 // Amiral gemisi maske: "Efsane Kral". Altın taç, mücevherler, ışık huzmeleri, süzülen ışıklar, süslü altın maske ve parlayan gözler.
 import { SP5, drawSp5 } from "./vcmask5.js?v=1";
-export const SP4 = [["efsane", "🌟 EFSANE KRAL"]].concat(SP5);
+import { SP6, drawSp6 } from "./vcmask6.js?v=1";
+export const SP4 = [["efsane", "🌟 EFSANE KRAL"]].concat(SP6, SP5);
 const TAU = Math.PI * 2;
 function rnd(n) { const v = Math.sin(n * 12.9898) * 43758.5453; return v - Math.floor(v); }
 function glow(c, x, y, r, col, a) {
@@ -23,7 +24,7 @@ function gem(c, x, y, r, hue, t, ph) {
 }
 
 export function drawSp4(id, c, cx, cy, s, t) {
-  if (id !== "efsane") return drawSp5(id, c, cx, cy, s, t);
+  if (id !== "efsane") return drawSp6(id, c, cx, cy, s, t) || drawSp5(id, c, cx, cy, s, t);
   const ey = cy - 0.07 * s, y0 = cy - 0.42 * s, pulse = 0.5 + 0.5 * Math.sin(t / 700);
   c.save();
   // 1) Altın aura
