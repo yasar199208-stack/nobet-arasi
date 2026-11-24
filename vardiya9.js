@@ -39,7 +39,7 @@ function cut(line) {
 }
 const fixc = (x) => {
   const u = x.toLocaleUpperCase("tr");
-  if (JUNK.test(u)) return "";
+  if (JUNK.test(u) || !/^[A-ZÇĞİÖŞÜ0-9 \-]+$/.test(u)) return "";
   if (/^H[1Ll!|]$/.test(u) || HIL.test(u)) return "Hİ";
   if (/^Y[1Ll!|]$/.test(u) || /^V[Iİ]$/.test(u)) return "Yİ";
   if (FUZ.test(u) && !CELL.test(u)) return u.replace(/^(.+?)[JIİl|]([A-C])$/, "$1 1$2");
@@ -88,7 +88,7 @@ function open() {
   bk.onclick = () => { close(); try { if (history.state && history.state.ph) history.back(); } catch (e) {} };
   try { history.pushState({ ph: 1, vdb: 1 }, ""); window.addEventListener("popstate", close); } catch (e) {}
   const now = new Date(); let lines = null, mo = now.getMonth(), yr = now.getFullYear(), nm = ""; try { nm = localStorage.getItem("na_vardiya_ad") || ""; } catch (e) {}
-  let sel = -1, st = "", ps = null, rows = [], lq = "", raw = [], showRaw = false;
+  let sd = 1, sel = -1, st = "", ps = null, rows = [], lq = "", raw = [], showRaw = false;
   const draw1 = () => {
     body.innerHTML = "";
     body.appendChild(E("div", "margin-top:12px;font-size:14px;opacity:.85;line-height:1.5", "1) Vardiya listesinin fotoğrafını seç (tablo net, düz ve aydınlık olsun). 2) Adını yaz. 3) Okunanı kontrol edip takvime ekle. Fotoğraf telefonunda okunur, hiçbir yere gönderilmez."));
@@ -121,7 +121,7 @@ function open() {
         const nmx = nameOf(l) || l.slice(0, 40), fw = fold(showRaw ? l : nmx).split(/[^a-z0-9]+/); if (w.length && !w.every((x) => fw.some((y) => y.indexOf(x) === 0))) return; n++;
         const cs = codes(l), b = E("button", BS + ";width:100%;margin-top:8px;text-align:left;display:block", ""); b.type = "button";
         b.appendChild(E("div", "font-weight:700;font-size:15px", nmx)); b.appendChild(E("div", "margin-top:4px;font-size:12px;opacity:.75;word-break:break-word", showRaw ? l : cs.slice(0, 8).join(" ") + (cs.length > 8 ? " … (" + cs.length + " kod)" : "")));
-        b.onclick = () => { ps = { l: l, c: cs, n: nmx }; sel = -1; draw3(); }; lw.appendChild(b);
+        b.onclick = () => { ps = { l: l, c: cs, n: nmx }; sel = -1; sd = 1; draw3(); }; lw.appendChild(b);
       });
       if (!n) lw.appendChild(E("div", "margin-top:14px;opacity:.8", "Bu isimde satır yok. Adı kısaltıp dene ya da yukarıdan tüm satırları göster."));
     };
@@ -135,6 +135,11 @@ function open() {
     body.appendChild(E("div", "margin-top:10px;font-size:13px;opacity:.85;line-height:1.5", "Siyah (Hİ) hücreler çoğu zaman okunmaz ve sonrası kayar. Hİ'nin olması gereken günün numarasına dokun, sonra aşağıdan \"Bu güne boş ekle\" de: sonraki günler bir sağa kayar, sen de Hİ yazarsın. Fazla bir kod varsa \"Bu günü sil\" ile sola kaydır."));
     const sx = E("div", "display:flex;gap:8px;margin-top:8px"); const ia = E("button", BS + ";flex:1;font-size:13px", "＋ Bu güne boş ekle"), da = E("button", BS + ";flex:1;font-size:13px", "－ Bu günü sil"); ia.type = da.type = "button";
     ia.onclick = () => { read(); if (sel < 0) return; ps.c.splice(sel, 0, ""); draw3(); }; da.onclick = () => { read(); if (sel < 0) return; ps.c.splice(sel, 1); draw3(); }; sx.appendChild(ia); sx.appendChild(da); body.appendChild(sx);
+    const sr = E("div", "display:flex;align-items:center;gap:10px;margin-top:12px"); sr.appendChild(E("span", "flex:1;font-size:14px", "Bu fotoğraftaki ilk gün kaçıncı gün?"));
+    const si = E("input", IS + ";width:80px;padding:8px;font-size:16px;text-align:center"); si.type = "number"; si.min = 1; si.max = nd; si.value = sd; si.inputMode = "numeric";
+    si.onchange = () => { read(); const v = Math.max(1, Math.min(nd, +si.value || 1)), d = v - sd; if (d > 0) for (let k = 0; k < d; k++) ps.c.unshift(""); else for (let k = 0; k < -d; k++) ps.c.shift(); sd = v; draw3(); };
+    sr.appendChild(si); body.appendChild(sr);
+    body.appendChild(E("div", "margin-top:6px;font-size:12px;opacity:.75;line-height:1.4", "Ekranda sadece ilk 6 günü gösteren bir fotoğraf çektiysen 1 kalsın. Sonraki günleri başka fotoğrafla ekleyeceksen onda 7 yaz: kodlar 7. günden başlar, önceden eklediğin günler silinmez."));
     const sh = E("div", "display:flex;gap:8px;margin-top:10px"); const l1 = E("button", BS + ";flex:1", "◀ Bir gün geri"), r1 = E("button", BS + ";flex:1", "Bir gün ileri ▶"); l1.type = r1.type = "button";
     l1.onclick = () => { read(); ps.c.shift(); draw3(); }; r1.onclick = () => { read(); ps.c.unshift(""); draw3(); }; sh.appendChild(l1); sh.appendChild(r1); body.appendChild(sh);
     const g = E("div", "display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px"); const ins = [];
