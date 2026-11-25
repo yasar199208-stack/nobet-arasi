@@ -20,7 +20,7 @@ export async function dec(s) {
 export function pack(D, name, months) {
   const T = {}; (D.types || []).forEach((t) => { T[t.id] = t; }); const ti = [], tl = [], d = {};
   Object.keys(D.days || {}).sort().forEach((k) => {
-    if (months.indexOf(k.slice(0, 7)) < 0) return; const v = D.days[k], t = T[v && v.t]; if (!t) return;
+    if (months.indexOf(k.slice(0, 7)) < 0) return; const v = D.days[k]; let t = T[v && v.t]; if (!t && v && typeof v.t === "string" && v.t.slice(0, 2) === "c:") t = { id: v.t, n: v.t.slice(2), ic: "📍", c: "#8a94a6", cd: 1 }; if (!t) return;
     let i = ti.indexOf(t.id); if (i < 0) { i = ti.length; ti.push(t.id); tl.push([t.n || "", t.ic || "", t.c || "", t.s || "", t.e || "", t.off ? 1 : 0, t.cd ? 1 : 0]); } d[k] = i;
   });
   return { v: 1, n: String(name || "").slice(0, 30), t: tl, d: d };
@@ -33,6 +33,7 @@ export function clean(o) {
 }
 export function addFriend(D, c) {
   D.types = D.types || []; D.fr = D.fr || []; const map = c.t.map((t) => {
+    if (t.cd && t.n) return "c:" + t.n;
     const same = D.types.find((x) => x.n === t.n && (x.s || "") === t.s && (x.e || "") === t.e && !!x.off === !!t.off && !!x.cd === !!t.cd); if (same) return same.id;
     let id = "p" + (fold(t.n + t.s + t.e + t.off + t.cd).replace(/[^a-z0-9]/g, "") || "x"); if (D.types.some((x) => x.id === id)) return id;
     const nt = { id: id, n: t.n, ic: t.ic || "📍", c: t.c }; if (t.off) nt.off = 1; if (t.cd) nt.cd = 1; if (t.s) nt.s = t.s; if (t.e) nt.e = t.e; D.types.push(nt); return id;
