@@ -6,7 +6,7 @@ const set = (a) => { try { localStorage.setItem(KEY, JSON.stringify(a.slice(0, 5
 const note = (t) => { try { const e = document.createElement("div"); e.style.cssText = "position:fixed;left:12px;right:12px;bottom:24px;z-index:99999;padding:12px 14px;border-radius:12px;background:rgba(20,24,36,.96);color:#fff;font-size:14px;text-align:center;border:1px solid rgba(255,255,255,.2)"; e.textContent = t; document.body.appendChild(e); setTimeout(() => { try { e.remove(); } catch (x) {} }, 5000); } catch (x) {} };
 try {
   const st = document.createElement("style");
-  st.textContent = ".room.dmhid{display:none!important}.room.dmk{position:relative!important;padding-right:52px!important}.dmx{position:absolute!important;right:8px;top:50%;transform:translateY(-50%);width:32px;height:32px;line-height:30px;text-align:center;border-radius:50%;font-size:16px;cursor:pointer;opacity:.9;border:1px solid #666;background:rgba(0,0,0,.25);color:inherit;box-sizing:border-box;z-index:5}";
+  st.textContent = ".room.dmhid{display:none!important}.room.dmk{position:relative!important;padding-right:52px!important}.dmx{display:block!important;visibility:visible!important;position:absolute!important;right:8px;top:50%;transform:translateY(-50%);width:32px;height:32px;line-height:30px;text-align:center;border-radius:50%;font-size:16px;cursor:pointer;opacity:.9;border:1px solid #666;background:rgba(0,0,0,.25);color:inherit;box-sizing:border-box;z-index:5}";
   document.head.appendChild(st);
 } catch (e) {}
 const HEART = "\u{1F48C}";
@@ -46,7 +46,7 @@ function process() {
         const stop = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
         x.onclick = (ev) => { stop(ev); hide(el, k); };
         x.onpointerdown = stop; x.ontouchstart = (ev) => { ev.stopPropagation(); };
-        el.classList.add("dmk"); el.appendChild(x);
+        x.style.setProperty("display", "block", "important"); el.classList.add("dmk"); el.appendChild(x);
       }
       const i = list.indexOf(k);
       if (i >= 0) {
