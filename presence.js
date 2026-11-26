@@ -18,6 +18,21 @@ const openDm = (name) => {
   if (!t) return false; t.click(); return true;
 };
 let A, Au, F, db, auth, me = null, nick = "", hb = null, perm = false;
+let dmOpen = null; const pf = new Map();
+const pl = () => dmOpen === true ? "💌 Mesaj alma: HERKES" : "💌 Mesaj alma: SADECE ARKADAŞ";
+const pt = () => dmOpen === true ? "💌 Herkes bana özel mesaj yazabilir (Açık). Kapatmak için dokun" : "💌 Sadece arkadaşlarım mesaj yazabilir (Kapalı). Herkese açmak için dokun";
+const refPref = () => document.querySelectorAll(".dmpref").forEach((b) => { b.textContent = b.getAttribute("data-long") ? pt() : pl(); });
+async function togglePref() {
+  if (!me || !F) return; const nv = dmOpen !== true;
+  try { await F.setDoc(F.doc(db, "dmPrefs", me), { open: nv, updatedAt: F.serverTimestamp() }); dmOpen = nv; refPref(); note(nv ? "Artık herkes sana özel mesaj yazabilir. İstemezsen aynı yerden kapat." : "Artık sadece arkadaşların sana mesaj yazabilir."); }
+  catch (e) { note("Ayar kaydedilemedi. Firebase'de \"dmPrefs\" kuralı eklenmemiş olabilir."); }
+}
+async function loadPref() { try { const x = await F.getDoc(F.doc(db, "dmPrefs", me)); dmOpen = x.exists() && x.data().open === true; } catch (e) { dmOpen = false; } refPref(); }
+function mountPref() {
+  const pn = document.querySelector(".mpanel"); if (!pn) return false;
+  if (!pn.querySelector(".dmpref")) { const b = E("button", "", pl()); b.className = "dmpref"; b.type = "button"; b.setAttribute("data-mrank", "9"); b.onclick = togglePref; pn.appendChild(b); }
+  return true;
+}
 async function beat() {
   if (!me || !nick || document.visibilityState === "hidden") return;
   try { await F.setDoc(F.doc(db, "presence", me), { nick: nick, at: F.serverTimestamp(), hide: hid() }); perm = false; } catch (e) { perm = true; }
@@ -36,9 +51,24 @@ function open() {
   const gz = E("button", BS + ";width:100%;margin-top:12px;font-size:14px", ""); gz.type = "button";
   const gzt = () => { gz.textContent = hid() ? "👁️ Durumum gizli (diğerleri beni göremez). Açmak için dokun" : "👁️ Durumumu gizle (kimse beni çevrimiçi görmesin)"; };
   gz.onclick = () => { try { localStorage.setItem("na_gizli", hid() ? "0" : "1"); } catch (e) {} gzt(); document.visibilityState !== "hidden" && beat().then(() => {}); }; gzt(); body.appendChild(gz);
+  const dz = E("button", BS + ";width:100%;margin-top:8px;font-size:14px", ""); dz.type = "button"; dz.className = "dmpref"; dz.setAttribute("data-long", "1"); dz.onclick = togglePref; body.appendChild(dz); refPref();
   const qi = E("input", IS + ";margin-top:12px"); qi.placeholder = "İsimle ara"; qi.oninput = () => { q = qi.value; draw(); }; body.appendChild(qi);
   const info = E("div", "margin-top:10px;font-size:13px;opacity:.8;line-height:1.5"); body.appendChild(info);
   const lw = E("div"); body.appendChild(lw);
+  const startDm = async (d, create) => {
+    if (create) {
+      try {
+        const ms = [me, d.uid].sort(), nm = {}; nm[me] = nick; nm[d.uid] = d.nick;
+        await F.setDoc(F.doc(db, "friendships", ms[0] + "_" + ms[1]), { members: ms, names: nm, createdAt: F.serverTimestamp() });
+        try { await F.deleteDoc(F.doc(db, "friendRequests", me + "_" + d.uid)); } catch (e) {}
+      } catch (e) { msg = "Mesaj başlatılamadı. Kişi ayarını kapatmış ya da seni engellemiş olabilir."; pf.delete(d.uid); draw(); return; }
+    }
+    const nmk = d.nick; let done = false, tries = 0;
+    const run = () => { if (done) return; done = true; window.removeEventListener("popstate", run); const t = setInterval(() => { if (openDm(nmk)) clearInterval(t); else if (++tries > 25) { clearInterval(t); note("Sohbet bulunamadı. 💬 Mesajlar sekmesinden aç."); } }, 160); };
+    close();
+    let pop = false; try { pop = !!(history.state && history.state.pr); } catch (e) {}
+    if (pop) { window.addEventListener("popstate", run); try { history.back(); } catch (e) { run(); } setTimeout(run, 500); } else run();
+  };
   const draw = () => {
     lw.innerHTML = ""; const now = Date.now(), w = fold(q).split(" ").filter(Boolean);
     if (err) { info.textContent = "Liste açılamadı. Firebase'de \"presence\" kuralı eklenmemiş olabilir ya da internet yok."; return; }
@@ -51,24 +81,19 @@ function open() {
         const w2 = E("div", "margin-top:10px"), r = E("div", "display:flex;align-items:center;gap:10px;" + (d.uid === me ? "" : "cursor:pointer")); r.appendChild(E("span", "width:10px;height:10px;border-radius:50%;flex:none;background:" + c)); r.appendChild(E("span", "flex:1;font-size:15px;font-weight:600;word-break:break-word", d.nick + (d.uid === me ? " (sen)" : "")));
         const stt = d.uid === me ? "" : fr.has(d.uid) ? "✓ arkadaş" : outg.has(d.uid) ? "⏳ istek gönderildi" : inc.has(d.uid) ? "📩 sana istek gönderdi" : "";
         if (stt) r.appendChild(E("span", "font-size:12px;opacity:.85", stt)); if (!on2) r.appendChild(E("span", "font-size:12px;opacity:.7", ago(now - d.at)));
-        if (d.uid !== me) r.onclick = () => { sel = sel === d.uid ? "" : d.uid; msg = ""; draw(); }; w2.appendChild(r);
+        if (d.uid !== me) r.onclick = () => { sel = sel === d.uid ? "" : d.uid; msg = ""; draw(); if (sel && !fr.has(d.uid) && !pf.has(d.uid)) { F.getDoc(F.doc(db, "dmPrefs", d.uid)).then((x) => { pf.set(d.uid, x.exists() && x.data().open === true); draw(); }).catch(() => { pf.set(d.uid, false); draw(); }); } }; w2.appendChild(r);
         if (sel === d.uid) {
           const bx = E("div", "margin-top:8px;padding:10px;border-radius:12px;background:rgba(255,255,255,.07);font-size:14px;line-height:1.5");
-          if (fr.has(d.uid)) {
-            const mb = E("button", BS + ";width:100%;font-weight:700", "💌 Mesaj yaz"); mb.type = "button";
-            mb.onclick = () => {
-              const nm = d.nick; let done = false;
-              const run = () => { if (done) return; done = true; window.removeEventListener("popstate", run); if (!openDm(nm)) note("Sohbet bulunamadı. 💬 Mesajlar sekmesinden aç."); };
-              close();
-              let pop = false; try { pop = !!(history.state && history.state.pr); } catch (e) {}
-              if (pop) { window.addEventListener("popstate", run); try { history.back(); } catch (e) { run(); } setTimeout(run, 500); } else run();
-            };
-            bx.appendChild(mb);
-          }
-          else if (outg.has(d.uid)) bx.textContent = "İstek gönderildi. Karşı taraf kabul edince arkadaş olursunuz.";
-          else if (inc.has(d.uid)) bx.textContent = "Bu kişi sana istek göndermiş. 👥 Arkadaşlar bölümünden kabul edebilirsin.";
+          const dmBtn = (cr) => { const mb = E("button", BS + ";width:100%;font-weight:700;margin-top:6px", "💌 Mesaj yaz"); mb.type = "button"; mb.onclick = () => { mb.disabled = true; startDm(d, cr); }; bx.appendChild(mb); };
+          if (fr.has(d.uid)) dmBtn(false);
           else if (blk.has(d.uid)) bx.textContent = "Bu kişiyi engellemişsin.";
-          else { const b = E("button", BS + ";width:100%;font-weight:700", "➕ Arkadaşlık isteği gönder"); b.type = "button"; b.onclick = async () => { b.disabled = true; try { await F.setDoc(F.doc(db, "friendRequests", me + "_" + d.uid), { from: me, to: d.uid, fromNick: nick, toNick: d.nick, createdAt: F.serverTimestamp() }); outg.add(d.uid); msg = "İstek gönderildi."; } catch (e) { msg = "İstek gönderilemedi, tekrar dene."; } draw(); }; bx.appendChild(b); }
+          else {
+            if (outg.has(d.uid)) bx.appendChild(E("div", "", "İstek gönderildi. Karşı taraf kabul edince arkadaş olursunuz."));
+            else if (inc.has(d.uid)) bx.appendChild(E("div", "", "Bu kişi sana istek göndermiş. 👥 Arkadaşlar bölümünden kabul edebilirsin."));
+            if (pf.get(d.uid) === true) dmBtn(true);
+            else bx.appendChild(E("div", "margin-top:6px;opacity:.85", pf.has(d.uid) ? "Bu kişi sadece arkadaşlarından mesaj alıyor." : "Mesaj ayarı kontrol ediliyor..."));
+            if (!outg.has(d.uid) && !inc.has(d.uid)) { const b = E("button", BS + ";width:100%;font-weight:700;margin-top:6px", "➕ Arkadaşlık isteği gönder"); b.type = "button"; b.onclick = async () => { b.disabled = true; try { await F.setDoc(F.doc(db, "friendRequests", me + "_" + d.uid), { from: me, to: d.uid, fromNick: nick, toNick: d.nick, createdAt: F.serverTimestamp() }); outg.add(d.uid); msg = "İstek gönderildi."; } catch (e) { msg = "İstek gönderilemedi, tekrar dene."; } draw(); }; bx.appendChild(b); }
+          }
           if (msg) bx.appendChild(E("div", "margin-top:6px;opacity:.9", msg)); w2.appendChild(bx);
         }
         s.appendChild(w2);
@@ -101,11 +126,12 @@ async function init() {
   Au = await import(FB + "firebase-auth.js"); F = await import(FB + "firebase-firestore.js");
   const app = A.getApps()[0]; auth = Au.getAuth(app); db = F.getFirestore(app);
   Au.onAuthStateChanged(auth, async (u) => {
-    if (!u) { me = null; nick = ""; stopBeat(); return; }
+    if (!u) { me = null; nick = ""; dmOpen = null; stopBeat(); return; }
     me = u.uid; try { const s = await F.getDoc(F.doc(db, "users", u.uid)); nick = s.exists() ? s.data().nick : ""; } catch (e) { nick = ""; }
-    if (nick) startBeat();
+    if (nick) { startBeat(); loadPref(); }
   });
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") beat(); });
   let k = 0; const iv = setInterval(() => { if (mount() || ++k > 60) clearInterval(iv); }, 300);
+  let k2 = 0; const iv2 = setInterval(() => { if (mountPref() || ++k2 > 60) clearInterval(iv2); }, 300);
 }
 init().catch(() => {});
