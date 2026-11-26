@@ -8,6 +8,15 @@ const BEAT = 90000, LIVE = 240000;
 const fold = (s) => String(s).toLocaleLowerCase("tr").replace(/ı/g, "i").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 const hid = () => { try { return localStorage.getItem("na_gizli") === "1"; } catch (e) { return false; } };
 const ago = (ms) => { const m = Math.floor(ms / 60000); if (m < 1) return "az önce"; if (m < 60) return m + " dk önce"; const h = Math.floor(m / 60); if (h < 24) return h + " sa önce"; const d = Math.floor(h / 24); return d + " gün önce"; };
+const note = (t) => { const e = E("div", "position:fixed;left:12px;right:12px;bottom:24px;z-index:99999;padding:12px 14px;border-radius:12px;background:rgba(20,24,36,.96);color:#fff;font-size:14px;text-align:center;border:1px solid rgba(255,255,255,.2)", t); document.body.appendChild(e); setTimeout(() => { try { e.remove(); } catch (x) {} }, 3500); };
+const openDm = (name) => {
+  const rooms = document.getElementById("rooms"); if (!rooms) return false;
+  const want = "@" + fold(name);
+  const find = () => { const l = rooms.querySelectorAll(".room"); for (let i = 0; i < l.length; i++) { const b = l[i].querySelector("b"); const t = b ? fold(b.textContent.replace("\u{1F48C}", "")) : ""; if (b && b.textContent.indexOf("\u{1F48C}") === 0 && t.indexOf(want) === 0 && !/[a-z0-9_]/.test(t.charAt(want.length))) return l[i]; } return null; };
+  let t = find();
+  if (!t) { const q = document.getElementById("q"); if (q && q.value) { q.value = ""; q.dispatchEvent(new Event("input")); t = find(); } }
+  if (!t) return false; t.click(); return true;
+};
 let A, Au, F, db, auth, me = null, nick = "", hb = null, perm = false;
 async function beat() {
   if (!me || !nick || document.visibilityState === "hidden") return;
@@ -35,7 +44,7 @@ function open() {
     if (err) { info.textContent = "Liste açılamadı. Firebase'de \"presence\" kuralı eklenmemiş olabilir ya da internet yok."; return; }
     const vis = docs.filter((d) => (!d.hide || d.uid === me) && (!w.length || w.every((x) => fold(d.nick).split(/[^a-z0-9]+/).some((y) => y.indexOf(x) === 0))));
     const on = vis.filter((d) => now - d.at < LIVE).sort((a, b) => fold(a.nick) < fold(b.nick) ? -1 : 1), off = vis.filter((d) => now - d.at >= LIVE).sort((a, b) => b.at - a.at);
-    info.textContent = on.length + " kişi çevrimiçi, " + off.length + " kişi çevrimdışı" + (perm ? " (senin durumun yazılamadı: kural eksik)" : "") + ". Liste canlı güncellenir. Birine dokunup arkadaşlık isteği gönderebilirsin.";
+    info.textContent = on.length + " kişi çevrimiçi, " + off.length + " kişi çevrimdışı" + (perm ? " (senin durumun yazılamadı: kural eksik)" : "") + ". Liste canlı güncellenir. Birine dokunup arkadaşlık isteği gönderebilir, arkadaşınsa mesaj yazabilirsin.";
     const sec = (t, a, c, on2) => {
       const s = E("div", "margin-top:16px;border:1px solid var(--line,#333);border-radius:14px;padding:10px 12px"); s.appendChild(E("div", "font-weight:700;font-size:16px", t + " · " + a.length));
       a.forEach((d) => {
@@ -45,7 +54,17 @@ function open() {
         if (d.uid !== me) r.onclick = () => { sel = sel === d.uid ? "" : d.uid; msg = ""; draw(); }; w2.appendChild(r);
         if (sel === d.uid) {
           const bx = E("div", "margin-top:8px;padding:10px;border-radius:12px;background:rgba(255,255,255,.07);font-size:14px;line-height:1.5");
-          if (fr.has(d.uid)) bx.textContent = "Arkadaşsınız. Özel mesaj için 💌 Özel mesaj sekmesinden yaz.";
+          if (fr.has(d.uid)) {
+            const mb = E("button", BS + ";width:100%;font-weight:700", "💌 Mesaj yaz"); mb.type = "button";
+            mb.onclick = () => {
+              const nm = d.nick; let done = false;
+              const run = () => { if (done) return; done = true; window.removeEventListener("popstate", run); if (!openDm(nm)) note("Sohbet bulunamadı. 💬 Mesajlar sekmesinden aç."); };
+              close();
+              let pop = false; try { pop = !!(history.state && history.state.pr); } catch (e) {}
+              if (pop) { window.addEventListener("popstate", run); try { history.back(); } catch (e) { run(); } setTimeout(run, 500); } else run();
+            };
+            bx.appendChild(mb);
+          }
           else if (outg.has(d.uid)) bx.textContent = "İstek gönderildi. Karşı taraf kabul edince arkadaş olursunuz.";
           else if (inc.has(d.uid)) bx.textContent = "Bu kişi sana istek göndermiş. 👥 Arkadaşlar bölümünden kabul edebilirsin.";
           else if (blk.has(d.uid)) bx.textContent = "Bu kişiyi engellemişsin.";
