@@ -3,7 +3,7 @@ import { ROOMS } from "./rooms.js?v=2";
 import("./vardiya8.js?v=1").catch(() => {});
 import("./vardiya9.js?v=1").catch(() => {});
 import("./vardiya10.js?v=1").catch(() => {});
-import("./presence.js?v=1").catch(() => {});
+import("./presence.js?v=2").catch(() => {});
 import("./vardiya11.js?v=1").catch(() => {});
 import("./vardiya12.js?v=1").catch(() => {});
 import("./vardiya13.js?v=1").catch(() => {});
