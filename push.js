@@ -2,7 +2,7 @@
 import { ROOMS } from "./rooms.js?v=2";
 const FB = "https://www.gstatic.com/firebasejs/10.12.2/";
 const VAPID = "BJ3Yel-JbXKW-dJA_SZYhjMmtC5hl-HgKKGtGxVex3-C-qearNfF03YsP6ZV9KxPTyd15hhMPYlYzv8puHRqHEI";
-const WORKER = "";
+const WORKER = "https://nobet-push.yasar199208-a29.workers.dev";
 const E = (t, s, x) => { const e = document.createElement(t); if (s) e.style.cssText = s; if (x != null) e.textContent = x; return e; };
 const note = (t) => { const e = E("div", "position:fixed;left:12px;right:12px;bottom:24px;z-index:99999;padding:12px 14px;border-radius:12px;background:rgba(20,24,36,.96);color:#fff;font-size:14px;text-align:center;border:1px solid rgba(255,255,255,.2)", t); document.body.appendChild(e); setTimeout(() => { try { e.remove(); } catch (x) {} }, 5000); };
 const ls = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} return null; };
