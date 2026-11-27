@@ -8,6 +8,7 @@ import { initAvatars, paintAv, loadAv, hasAv, pickPhoto, removePhoto } from "./a
 import { initVoiceMsg, addVoice } from "./sesmesaj.js?v=2";
 import { initOwn, addOwnActs, editedTag } from "./kendi.js?v=1";
 import { initReply, addReplyBtn, getRep, clearRep, addQuote } from "./yanit.js?v=1";
+import { initEtk, setEtkRoom, addReactions, seenMark, onMsgs } from "./etkilesim.js?v=1";
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, runTransaction, collection, addDoc, getDocs, query, orderBy, limit, onSnapshot, serverTimestamp, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -27,6 +28,7 @@ initFun({ toast: toast });
 initVoiceMsg({ db: db, user: () => user, nick: () => nick, room: () => room, msgCol: msgCol, toast: toast });
 initOwn({ db: db, msgCol: msgCol, toast: toast });
 initReply({ toast: toast });
+initEtk({ db: db, user: () => user, room: () => room, msgCol: msgCol, toast: toast, refresh: () => renderChat(false) });
 initAdmin({ db: db, user: () => user, toast: toast, rooms: ROOMS, refresh: () => renderChat() });
 
 const $ = (i) => document.getElementById(i);
@@ -128,6 +130,7 @@ async function enter(u) {
     profile = null; if ($("pp")) $("pp").hidden = true;
     stopCalls();
     resetAdmin();
+    setEtkRoom(null);
     $("app").hidden = true; $("auth").hidden = false;
     return;
   }
@@ -195,6 +198,7 @@ function openRoom(r) {
   room = r;
   setDmUi(r);
   clearRep();
+  setEtkRoom(r);
   if (unsubMsgs) unsubMsgs();
   msgs = [];
   $("rt").textContent = (r.ic ? r.ic + " " : "") + r.n;
@@ -204,8 +208,9 @@ function openRoom(r) {
   unsubMsgs = onSnapshot(qy, (s) => {
     msgs = s.docs.map((d) => {
       const x = d.data({ serverTimestamps: "estimate" });
-      return { id: d.id, uid: x.uid, nick: x.nick, text: x.text, img: x.img, aud: x.aud, dur: x.dur, edited: x.edited === true, rep: x.rep, at: x.createdAt ? x.createdAt.toDate() : new Date() };    }).reverse();
-    renderChat(true);
+      return { id: d.id, uid: x.uid, nick: x.nick, text: x.text, img: x.img, aud: x.aud, dur: x.dur, edited: x.edited === true, rep: x.rep, rx: x.rx, at: x.createdAt ? x.createdAt.toDate() : new Date() };    }).reverse();
+    onMsgs(msgs);
+    renderChat(s.docChanges().some((c) => c.type === "added"));
   }, (e) => toast(errText(e)));
 }
 
@@ -354,6 +359,7 @@ function colorOf(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 
 
 function renderChat(forceBottom) {
   const l = $("log");
+  const keep = l.scrollTop;
   l.innerHTML = "";
   const n = document.createElement("div");
   n.className = "note";
@@ -376,6 +382,7 @@ function renderChat(forceBottom) {
     const w = document.createElement("div"); w.className = "who"; w.textContent = m.nick;
     const t = document.createElement("span"); t.textContent = m.at.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
     if (m.edited) t.appendChild(editedTag());
+    if (mine && room.dm) { const tk = seenMark(m); if (tk) t.appendChild(tk); }
     w.appendChild(t);
     const p = document.createElement("p"); p.textContent = m.text;
     if (isBigEmoji(m.text)) p.className = "big";
@@ -401,10 +408,11 @@ function renderChat(forceBottom) {
       a.appendChild(r); a.appendChild(b); d.appendChild(a);
       addReplyBtn(d, m);
     }
+    addReactions(d, m, room);
     if (isAdmin() && !room.dm && !mine) addAdminDelete(d, m, room);
     row.appendChild(av); row.appendChild(d); l.appendChild(row);
   });
-  if (forceBottom) l.scrollTop = l.scrollHeight;
+  if (forceBottom) l.scrollTop = l.scrollHeight; else l.scrollTop = keep;
 }
 
 $("sf").onsubmit = async (e) => {
