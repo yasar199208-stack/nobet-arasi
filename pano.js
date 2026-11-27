@@ -1,4 +1,5 @@
 // Duyuru panosu (yönetici yazar, herkes okur) ve Şikayet / İstek kutusu (sadece yönetici görür).
+import { EXTRA } from "./tones.js?v=1";
 const FB = "https://www.gstatic.com/firebasejs/10.12.2/";
 const E = (t, s, x) => { const e = document.createElement(t); if (s) e.style.cssText = s; if (x != null) e.textContent = x; return e; };
 const IS = "box-sizing:border-box;width:100%;padding:12px;font-size:16px;border-radius:10px;border:1px solid var(--line,#333);background:var(--bg,#111);color:var(--text,inherit);font-family:inherit";
@@ -9,6 +10,39 @@ const when = (ms) => new Date(ms).toLocaleString("tr-TR", { day: "2-digit", mont
 let A, Au, F, db, auth, me = null, nick = "", adm = false, unA = null, unF = null;
 let ann = [], fbs = [], redraw = null;
 const tms = (d) => { const t = d.data({ serverTimestamps: "estimate" }).createdAt; return t && t.toMillis ? t.toMillis() : Date.now(); };
+
+/* ---------- Bildirim sesi (odalardaki ses ayarıyla aynı: 🔔 Ses düğmesi ve seçilen ses) ---------- */
+const TONES = {
+  bip: { n: "Bip", w: "square", v: 0.45, d: 0.16, s: [[880, 0], [1175, 0.16]] },
+  zil: { n: "Zil", w: "square", v: 0.4, d: 0.11, s: [[1319, 0], [1568, 0.13], [1319, 0.26], [1568, 0.39], [1319, 0.52], [1568, 0.65]] },
+  melodi: { n: "Melodi", w: "triangle", v: 0.9, d: 0.22, s: [[523, 0], [659, 0.2], [784, 0.4], [1047, 0.6], [784, 0.9], [1047, 1.1]] },
+  sesli: { n: "Sesli", w: "square", v: 0.4, d: 0.12, s: [[1175, 0], [1568, 0.13]], say: 1 }
+};
+Object.assign(TONES, EXTRA);
+let ac = null, lastDing = 0;
+const audio = () => { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === "suspended") ac.resume(); } catch (e) {} };
+document.addEventListener("pointerdown", audio, { once: true });
+const speak = (text) => { try { if (!("speechSynthesis" in window)) return; const u = new SpeechSynthesisUtterance(text); const v = (speechSynthesis.getVoices() || []).find((x) => /^tr/i.test(x.lang)); if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "tr-TR"; speechSynthesis.resume(); speechSynthesis.speak(u); } catch (e) {} };
+function ding(text) {
+  if (ls("snd") === "0") return;
+  const now = Date.now(); if (now - lastDing < 2500) return; lastDing = now;
+  try { if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]); } catch (e) {}
+  const k = ls("tone"), T = (k && TONES[k]) || TONES.sesli;
+  try {
+    audio();
+    if (ac) {
+      const t0 = ac.currentTime + 0.02;
+      T.s.forEach((nt) => {
+        const o = ac.createOscillator(), g = ac.createGain(), t = t0 + nt[1];
+        o.type = T.w; o.frequency.setValueAtTime(nt[0], t);
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(T.v, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + T.d);
+        o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + T.d + 0.05);
+      });
+    }
+  } catch (e) {}
+  if (T.say && text) setTimeout(() => speak(text), 300);
+}
+let annReady = false, annPrev = 0, fbReady = false, fbPrev = 0;
 
 function sheet(title, onClose) {
   const p = E("div"); p.className = "panel";
@@ -117,17 +151,23 @@ function mountMenu() {
   if (!pn.querySelector(".fbmenu")) { const b = E("button", "", "\u{1F4E8} Şikayet / istek gönder"); b.className = "fbmenu"; b.type = "button"; b.setAttribute("data-mrank", "9"); b.onclick = openForm; pn.appendChild(b); }
   return true;
 }
-function stop() { if (unA) { try { unA(); } catch (e) {} unA = null; } if (unF) { try { unF(); } catch (e) {} unF = null; } ann = []; fbs = []; adm = false; }
+function stop() { if (unA) { try { unA(); } catch (e) {} unA = null; } if (unF) { try { unF(); } catch (e) {} unF = null; } ann = []; fbs = []; adm = false; annReady = false; annPrev = 0; fbReady = false; fbPrev = 0; }
 async function start(u) {
   me = u.uid;
   try { const s = await F.getDoc(F.doc(db, "users", u.uid)); nick = s.exists() ? s.data().nick : ""; } catch (e) { nick = ""; }
   try { const s = await F.getDoc(F.doc(db, "config", "admin")); adm = s.exists() && s.data().uid === u.uid; } catch (e) { adm = false; }
-  unA = F.onSnapshot(F.query(F.collection(db, "announcements"), F.orderBy("createdAt", "desc"), F.limit(30)), (s) => {
+  unA = F.onSnapshot(F.query(F.collection(db, "announcements"), F.orderBy("createdAt", "desc"), F.limit(30)), { includeMetadataChanges: true }, (s) => {
     ann = s.docs.map((d) => ({ id: d.id, text: String(d.data().text || ""), at: tms(d) })); badges();
+    const top = ann.length ? ann[0].at : 0;
+    if (!s.metadata.fromCache) { if (annReady && top > annPrev && !adm && !s.metadata.hasPendingWrites) ding("Yeni duyuru var"); annReady = true; }
+    annPrev = Math.max(annPrev, top);
     if (redraw && document.querySelector(".panel .sheet")) { redraw(); if (document.querySelector(".pntab") && !adm) annSeen(); }
   }, () => {});
-  if (adm) unF = F.onSnapshot(F.query(F.collection(db, "feedback"), F.orderBy("createdAt", "desc"), F.limit(100)), (s) => {
+  if (adm) unF = F.onSnapshot(F.query(F.collection(db, "feedback"), F.orderBy("createdAt", "desc"), F.limit(100)), { includeMetadataChanges: true }, (s) => {
     fbs = s.docs.map((d) => ({ id: d.id, nick: String(d.data().nick || "?"), kind: d.data().kind, text: String(d.data().text || ""), at: tms(d) })); badges();
+    const top = fbs.length ? fbs[0].at : 0;
+    if (!s.metadata.fromCache) { if (fbReady && top > fbPrev && !s.metadata.hasPendingWrites) ding("Yeni mesaj var"); fbReady = true; }
+    fbPrev = Math.max(fbPrev, top);
     if (redraw && document.querySelector(".panel .sheet")) redraw();
   }, () => {});
   mount();
