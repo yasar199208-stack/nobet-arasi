@@ -10,6 +10,7 @@ import("./vardiya13.js?v=1").catch(() => {});
 import("./vardiya14.js?v=1").catch(() => {});
 import("./kaldir.js?v=1").catch(() => {});
 import("./geri.js?v=1").catch(() => {});
+import("./buyuk.js?v=1").catch(() => {});
 const AL = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const hb = async (s) => new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("nobetarasi-vd|" + s)));
 // Görüntülü konuşma: Vardiya odasındaki herkes aynı görüntülü odaya düşer (kod oda kimliğinden üretilir). Mevcut "📹 Görüntü" sistemini kullanır.
