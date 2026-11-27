@@ -9,6 +9,7 @@ import { initVoiceMsg, addVoice } from "./sesmesaj.js?v=2";
 import { initOwn, addOwnActs, editedTag } from "./kendi.js?v=1";
 import { initReply, addReplyBtn, getRep, clearRep, addQuote } from "./yanit.js?v=1";
 import { initEtk, setEtkRoom, addReactions, seenMark, onMsgs } from "./etkilesim.js?v=1";
+import { initPin, setPinRoom, addPinBtn, applySearch } from "./pinara.js?v=1";
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, runTransaction, collection, addDoc, getDocs, query, orderBy, limit, onSnapshot, serverTimestamp, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -29,6 +30,7 @@ initVoiceMsg({ db: db, user: () => user, nick: () => nick, room: () => room, msg
 initOwn({ db: db, msgCol: msgCol, toast: toast });
 initReply({ toast: toast });
 initEtk({ db: db, user: () => user, room: () => room, msgCol: msgCol, toast: toast, refresh: () => renderChat(false) });
+initPin({ db: db, user: () => user, isAdmin: () => isAdmin(), toast: toast, refresh: () => renderChat(false) });
 initAdmin({ db: db, user: () => user, toast: toast, rooms: ROOMS, refresh: () => renderChat() });
 
 const $ = (i) => document.getElementById(i);
@@ -131,6 +133,7 @@ async function enter(u) {
     stopCalls();
     resetAdmin();
     setEtkRoom(null);
+    setPinRoom(null);
     $("app").hidden = true; $("auth").hidden = false;
     return;
   }
@@ -199,6 +202,7 @@ function openRoom(r) {
   setDmUi(r);
   clearRep();
   setEtkRoom(r);
+  setPinRoom(r);
   if (unsubMsgs) unsubMsgs();
   msgs = [];
   $("rt").textContent = (r.ic ? r.ic + " " : "") + r.n;
@@ -409,9 +413,11 @@ function renderChat(forceBottom) {
       addReplyBtn(d, m);
     }
     addReactions(d, m, room);
+    addPinBtn(d, m, room);
     if (isAdmin() && !room.dm && !mine) addAdminDelete(d, m, room);
     row.appendChild(av); row.appendChild(d); l.appendChild(row);
   });
+  applySearch();
   if (forceBottom) l.scrollTop = l.scrollHeight; else l.scrollTop = keep;
 }
 
