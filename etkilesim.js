@@ -2,7 +2,14 @@
 import { doc, collection, updateDoc, setDoc, onSnapshot, deleteField, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // Kural dosyasıyla aynı anahtarlar
-const RX = [["like", "👍"], ["love", "❤️"], ["haha", "😂"], ["wow", "😮"], ["sad", "😢"], ["pray", "🙏"]];
+const RX = [
+  ["like", "👍"], ["love", "❤️"], ["haha", "😂"], ["rofl", "🤣"], ["inlove", "😍"], ["hug", "🤗"],
+  ["wow", "😮"], ["shock", "😱"], ["mind", "🤯"], ["think", "🤔"], ["eyes", "👀"], ["roll", "🙄"],
+  ["sad", "😢"], ["cry", "😭"], ["broken", "💔"], ["angry", "😡"], ["huff", "😤"], ["sleep", "😴"],
+  ["fire", "🔥"], ["clap", "👏"], ["party", "🎉"], ["celeb", "🥳"], ["hundred", "💯"], ["star", "⭐"],
+  ["pray", "🙏"], ["strong", "💪"], ["ok", "👌"], ["deal", "🤝"], ["raise", "🙌"], ["dislike", "👎"],
+  ["cool", "😎"], ["angel", "😇"], ["crown", "👑"], ["police", "👮"], ["siren", "🚨"], ["tea", "☕"]
+];
 const RXMAP = Object.fromEntries(RX);
 
 let C = null, room = null;
@@ -10,6 +17,8 @@ let picker = null, pickTarget = null;
 let typingEl = null, typingTimer = 0, lastTypingSent = 0;
 let unsubState = null, firstState = true, prevTyping = 0, otherSeen = 0, otherId = "";
 let lastSeenMsg = "", lastMsgs = [];
+const shown = new Set(); // zıplama sadece yeni tepkide olsun
+let firstRender = true;
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);
@@ -27,9 +36,15 @@ export function initEtk(ctx) {
     ".etk-chip{display:inline-flex;align-items:center;gap:4px;background:rgba(127,150,180,.14);border:1px solid var(--line);color:var(--text);border-radius:999px;padding:2px 9px;font-size:14px;cursor:pointer;line-height:1.5}" +
     ".etk-chip.etk-me{border-color:var(--lamp);background:rgba(240,194,75,.18)}" +
     ".etk-chip b{font-size:12px;font-weight:700;color:var(--mute)}" +
-    ".etk-pick{position:fixed;left:50%;bottom:calc(140px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:70;background:var(--panel);border:1px solid var(--lamp);border-radius:999px;padding:6px 8px;display:flex;gap:2px;box-shadow:0 10px 28px rgba(0,0,0,.55)}" +
-    ".etk-pick button{background:none;border:0;font-size:28px;line-height:1;padding:6px 7px;border-radius:50%;cursor:pointer}" +
-    ".etk-pick button.etk-me{background:rgba(240,194,75,.25)}" +
+    ".etk-pick{position:fixed;left:50%;bottom:calc(130px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:70;background:linear-gradient(160deg,#1f3350,#14213a);border:2px solid var(--lamp);border-radius:22px;padding:10px;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;width:min(348px,94vw);box-shadow:0 0 0 4px rgba(240,194,75,.15),0 14px 34px rgba(0,0,0,.6);animation:etkpop .28s cubic-bezier(.2,1.6,.4,1)}" +
+    "@keyframes etkpop{from{opacity:0;transform:translateX(-50%) translateY(24px) scale(.7)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}" +
+    ".etk-pick button{background:none;border:0;font-size:30px;line-height:1;padding:7px 0;border-radius:14px;cursor:pointer;transition:transform .12s ease,background .12s ease}" +
+    ".etk-pick button:active{transform:scale(1.45)}" +
+    ".etk-pick button.etk-me{background:rgba(240,194,75,.3);box-shadow:inset 0 0 0 2px var(--lamp)}" +
+    ".etk-boom{position:fixed;left:50%;top:45%;z-index:80;font-size:96px;line-height:1;pointer-events:none;transform:translate(-50%,-50%);animation:etkboom .9s ease-out forwards;filter:drop-shadow(0 6px 18px rgba(0,0,0,.5))}" +
+    "@keyframes etkboom{0%{opacity:0;transform:translate(-50%,-50%) scale(.3)}25%{opacity:1;transform:translate(-50%,-50%) scale(1.25)}60%{opacity:1;transform:translate(-50%,-60%) scale(1)}100%{opacity:0;transform:translate(-50%,-120%) scale(.8)}}" +
+    ".etk-chip.etk-new{animation:etkchip .35s cubic-bezier(.2,1.6,.4,1)}" +
+    "@keyframes etkchip{from{transform:scale(.4)}to{transform:scale(1)}}" +
     ".etk-back{position:fixed;inset:0;z-index:69}" +
     ".etk-typing{padding:4px 20px;color:var(--lamp);font-size:13px;font-style:italic;min-height:0}" +
     ".etk-typing i{display:inline-block;animation:etkdot 1.2s infinite}" +
@@ -93,11 +108,20 @@ async function toggle(m, r, k) {
   const cur = m.rx && m.rx[u.uid];
   const upd = {};
   upd["rx." + u.uid] = cur === k ? deleteField() : k;
+  if (cur !== k) boom(RXMAP[k]);
   try {
     await updateDoc(doc(C.msgCol(r), m.id), upd);
   } catch (e) {
     C.toast(e && e.code === "permission-denied" ? "İşlem reddedildi. Firestore kurallarını güncelledin mi?" : "Tepki gönderilemedi.");
   }
+}
+
+// Ekranın ortasında büyük emoji patlaması
+function boom(e) {
+  const b = el("div", "etk-boom", e);
+  document.body.appendChild(b);
+  setTimeout(() => b.remove(), 950);
+  if (navigator.vibrate) navigator.vibrate([20, 40, 20]);
 }
 
 // Mesajın altına tepkiler + uzun basınca seçici + "😊 Tepki" düğmesi
@@ -111,7 +135,10 @@ export function addReactions(msgEl, m, r) {
   if (keys.length) {
     const box = el("div", "etk-rx");
     keys.forEach((k) => {
-      const c = el("button", "etk-chip" + (me && rx[me] === k ? " etk-me" : ""));
+      const sig = m.id + ":" + k + ":" + count[k];
+      const fresh = !firstRender && !shown.has(sig);
+      shown.add(sig);
+      const c = el("button", "etk-chip" + (me && rx[me] === k ? " etk-me" : "") + (fresh ? " etk-new" : ""));
       c.type = "button";
       c.appendChild(document.createTextNode(RXMAP[k]));
       c.appendChild(el("b", "", String(count[k])));
@@ -184,6 +211,7 @@ export function setEtkRoom(r) {
   hideTyping();
   if (unsubState) { unsubState(); unsubState = null; }
   firstState = true; prevTyping = 0; otherSeen = 0; lastSeenMsg = ""; lastMsgs = [];
+  firstRender = true;
   otherId = r && r.dm ? r.other : "";
   if (!r || !r.dm || !C.user()) return;
   unsubState = onSnapshot(collection(C.db, "dms", r.pairId, "state"), (s) => {
@@ -204,6 +232,7 @@ export function setEtkRoom(r) {
 // Mesaj listesi her değiştiğinde app.js çağırır
 export function onMsgs(list) {
   lastMsgs = list || [];
+  setTimeout(() => { firstRender = false; }, 0);
   if (!room || !room.dm) return;
   const last = lastMsgs[lastMsgs.length - 1];
   if (last && last.uid === otherId) hideTyping();
