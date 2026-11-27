@@ -31,28 +31,28 @@ function pickMime() {
 
 export function initVoiceMsg(ctx) {
   C = ctx;
-  if (document.getElementById("vmb")) return;
+  if (document.getElementById("smx-vmb")) return;
 
   const st = document.createElement("style");
   st.textContent =
-    ".vmb{background:none;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:0 12px;cursor:pointer;font-size:20px}" +
-    ".vmb.on{border-color:#d9534f;background:rgba(217,83,79,.18)}" +
-    ".vrec{position:fixed;left:10px;right:10px;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:25;background:var(--panel);color:var(--text);border:1px solid #d9534f;border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.45)}" +
-    ".vrec .dot{width:12px;height:12px;border-radius:50%;background:#d9534f;animation:vblink 1s infinite}" +
-    ".vrec .tm{font:600 18px var(--body);min-width:52px}" +
-    ".vrec .hint{flex:1;color:var(--mute);font-size:13px}" +
-    ".vrec button{border:0;border-radius:10px;padding:9px 14px;font-weight:700;cursor:pointer;color:#fff}" +
-    ".vrec .vx{background:#55606e}.vrec .vok{background:#3fb06a}" +
-    "@keyframes vblink{50%{opacity:.25}}" +
-    ".vmsg{display:flex;align-items:center;gap:10px;margin-top:4px;min-width:200px;max-width:280px;background:rgba(127,150,180,.12);border:1px solid var(--line);border-radius:22px;padding:6px 12px 6px 6px}" +
-    ".vmsg .vp{flex:0 0 auto;width:38px;height:38px;border-radius:50%;border:0;background:var(--lamp);color:var(--lamp-ink,#000);font-size:16px;cursor:pointer;display:grid;place-items:center}" +
-    ".vmsg .vt{flex:1;height:6px;border-radius:3px;background:var(--line);position:relative;cursor:pointer}" +
-    ".vmsg .vf{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:3px;background:var(--lamp)}" +
-    ".vmsg .vd{flex:0 0 auto;font-size:12px;color:var(--mute);min-width:34px;text-align:right}";
+    ".smx-btn{background:none;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:0 12px;cursor:pointer;font-size:20px}" +
+    ".smx-btn.smx-on{border-color:#d9534f;background:rgba(217,83,79,.18)}" +
+    ".smx-rec{position:fixed;left:10px;right:10px;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:25;background:var(--panel);color:var(--text);border:1px solid #d9534f;border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.45)}" +
+    ".smx-rec .smx-dot{width:12px;height:12px;border-radius:50%;background:#d9534f;animation:smxblink 1s infinite}" +
+    ".smx-rec .smx-tm{font:600 18px var(--body);min-width:52px}" +
+    ".smx-rec .smx-hint{flex:1;color:var(--mute);font-size:13px}" +
+    ".smx-rec button{border:0;border-radius:10px;padding:9px 14px;font-weight:700;cursor:pointer;color:#fff}" +
+    ".smx-rec .smx-no{background:#55606e}.smx-rec .smx-ok{background:#3fb06a}" +
+    "@keyframes smxblink{50%{opacity:.25}}" +
+    ".smx-msg{display:flex;align-items:center;gap:10px;margin-top:4px;min-width:200px;max-width:280px;background:rgba(127,150,180,.12);border:1px solid var(--line);border-radius:22px;padding:6px 12px 6px 6px}" +
+    ".smx-msg .smx-play{flex:0 0 auto;width:38px;height:38px;border-radius:50%;border:0;background:var(--lamp);color:var(--lamp-ink,#000);font-size:16px;cursor:pointer;display:grid;place-items:center}" +
+    ".smx-msg .smx-track{flex:1;height:6px;border-radius:3px;background:var(--line);position:relative;cursor:pointer}" +
+    ".smx-msg .smx-fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:3px;background:var(--lamp)}" +
+    ".smx-msg .smx-time{flex:0 0 auto;font-size:12px;color:var(--mute);min-width:34px;text-align:right}";
   document.head.appendChild(st);
 
-  btn = el("button", "vmb", "🎙️");
-  btn.id = "vmb";
+  btn = el("button", "smx-btn", "🎙️");
+  btn.id = "smx-vmb";
   btn.type = "button";
   btn.title = "Sesli mesaj";
   btn.setAttribute("aria-label", "Sesli mesaj kaydet");
@@ -95,19 +95,19 @@ async function start() {
   busy = false;
   if (playing) { try { playing.pause(); } catch (e) {} }
   showBar();
-  btn.classList.add("on");
+  btn.classList.add("smx-on");
   btn.textContent = "⏹️";
   if (navigator.vibrate) navigator.vibrate(40);
 }
 
 function showBar() {
   hideBar();
-  bar = el("div", "vrec");
-  const dot = el("span", "dot");
-  timeEl = el("span", "tm", "0:00");
-  const hint = el("span", "hint", "Kaydediliyor… (en fazla " + MAX_SN + " sn)");
-  const x = el("button", "vx", "✖ İptal"); x.type = "button";
-  const ok = el("button", "vok", "➤ Gönder"); ok.type = "button";
+  bar = el("div", "smx-rec");
+  const dot = el("span", "smx-dot");
+  timeEl = el("span", "smx-tm", "0:00");
+  const hint = el("span", "smx-hint", "Kaydediliyor… (en fazla " + MAX_SN + " sn)");
+  const x = el("button", "smx-no", "✖ İptal"); x.type = "button";
+  const ok = el("button", "smx-ok", "➤ Gönder"); ok.type = "button";
   x.onclick = () => finish(true);
   ok.onclick = () => finish(false);
   bar.appendChild(dot); bar.appendChild(timeEl); bar.appendChild(hint); bar.appendChild(x); bar.appendChild(ok);
@@ -130,7 +130,7 @@ function stopStream() {
 
 function resetBtn() {
   if (!btn) return;
-  btn.classList.remove("on");
+  btn.classList.remove("smx-on");
   btn.textContent = "🎙️";
 }
 
@@ -188,11 +188,11 @@ const players = new Map();
 export function addVoice(parent, src, dur, id) {
   if (!AUD_RE.test(String(src || ""))) return;
   const total = Number(dur) > 0 ? Number(dur) : 0;
-  const box = el("div", "vmsg");
-  const p = el("button", "vp", "▶"); p.type = "button"; p.setAttribute("aria-label", "Sesli mesajı oynat");
-  const track = el("div", "vt");
-  const fill = el("div", "vf");
-  const d = el("span", "vd", total ? fmt(total) : "🎙️");
+  const box = el("div", "smx-msg");
+  const p = el("button", "smx-play", "▶"); p.type = "button"; p.setAttribute("aria-label", "Sesli mesajı oynat");
+  const track = el("div", "smx-track");
+  const fill = el("div", "smx-fill");
+  const d = el("span", "smx-time", total ? fmt(total) : "🎙️");
   track.appendChild(fill);
   box.appendChild(p); box.appendChild(track); box.appendChild(d);
   parent.appendChild(box);
