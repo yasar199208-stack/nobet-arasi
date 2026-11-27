@@ -6,6 +6,7 @@ import { initFun, openAvatarPicker, isBigEmoji } from "./fun.js?v=1";
 import { initMedia, setDmUi, addPhoto, startCalls, stopCalls } from "./media.js?v=2";
 import { initAvatars, paintAv, loadAv, hasAv, pickPhoto, removePhoto } from "./avatar.js?v=2";
 import { initVoiceMsg, addVoice } from "./sesmesaj.js?v=1";
+import { initOwn, addOwnActs, editedTag } from "./kendi.js?v=1";
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, runTransaction, collection, addDoc, getDocs, query, orderBy, limit, onSnapshot, serverTimestamp, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -23,6 +24,7 @@ initAvatars(db, colorOf, toast, () => renderProfile());
 initMedia({ db: db, user: () => user, nick: () => nick, room: () => room, msgCol: msgCol, toast: toast });
 initFun({ toast: toast });
 initVoiceMsg({ db: db, user: () => user, nick: () => nick, room: () => room, msgCol: msgCol, toast: toast });
+initOwn({ db: db, msgCol: msgCol, toast: toast });
 initAdmin({ db: db, user: () => user, toast: toast, rooms: ROOMS, refresh: () => renderChat() });
 
 const $ = (i) => document.getElementById(i);
@@ -199,7 +201,7 @@ function openRoom(r) {
   unsubMsgs = onSnapshot(qy, (s) => {
     msgs = s.docs.map((d) => {
       const x = d.data({ serverTimestamps: "estimate" });
-      return { id: d.id, uid: x.uid, nick: x.nick, text: x.text, img: x.img, aud: x.aud, dur: x.dur, at: x.createdAt ? x.createdAt.toDate() : new Date() };    }).reverse();
+      return { id: d.id, uid: x.uid, nick: x.nick, text: x.text, img: x.img, aud: x.aud, dur: x.dur, edited: x.edited === true, at: x.createdAt ? x.createdAt.toDate() : new Date() };    }).reverse();
     renderChat(true);
   }, (e) => toast(errText(e)));
 }
@@ -369,11 +371,12 @@ function renderChat(forceBottom) {
     const d = document.createElement("div"); d.className = "msg";
     const w = document.createElement("div"); w.className = "who"; w.textContent = m.nick;
     const t = document.createElement("span"); t.textContent = m.at.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+    if (m.edited) t.appendChild(editedTag());
     w.appendChild(t);
     const p = document.createElement("p"); p.textContent = m.text;
     if (isBigEmoji(m.text)) p.className = "big";
     d.appendChild(w); if (m.text) d.appendChild(p); if (m.img) addPhoto(d, m.img); if (m.aud) addVoice(d, m.aud, m.dur, m.id);
-    if (mine) av.onclick = () => openProfile(user.uid, nick);
+    if (mine) { av.onclick = () => openProfile(user.uid, nick); addOwnActs(d, m, room); }
     if (!mine) {
       av.onclick = () => openProfile(m.uid, m.nick);
       w.onclick = () => openProfile(m.uid, m.nick);
@@ -393,7 +396,7 @@ function renderChat(forceBottom) {
       };
       a.appendChild(r); a.appendChild(b); d.appendChild(a);
     }
-    if (isAdmin() && !room.dm) addAdminDelete(d, m, room);
+    if (isAdmin() && !room.dm && !mine) addAdminDelete(d, m, room);
     row.appendChild(av); row.appendChild(d); l.appendChild(row);
   });
   if (forceBottom) l.scrollTop = l.scrollHeight;
