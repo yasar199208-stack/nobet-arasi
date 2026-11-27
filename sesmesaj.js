@@ -1,5 +1,6 @@
 // 🎙️ Sesli mesaj: kaydet, dinle, gönder. Ses, fotoğraflar gibi mesajın içinde (Firestore) saklanır.
 import { addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getRep, clearRep } from "./yanit.js?v=1";
 
 const MAX_SN = 60;          // en uzun kayıt (saniye)
 const BITRATE = 16000;      // konuşma için yeterli, dosya küçük kalır
@@ -175,7 +176,11 @@ async function process(r0) {
     if (!AUD_RE.test(data)) { C.toast("Bu ses biçimi desteklenmiyor."); return; }
     if (data.length > MAX_CHARS) { C.toast("Ses çok uzun oldu. Daha kısa konuş."); return; }
     C.toast("Sesli mesaj gönderiliyor…");
-    await addDoc(C.msgCol(r), { uid: u.uid, nick: C.nick(), text: "", aud: data, dur: Math.min(MAX_SN, dur), createdAt: serverTimestamp() });
+    const rp = getRep();
+    const msg = { uid: u.uid, nick: C.nick(), text: "", aud: data, dur: Math.min(MAX_SN, dur), createdAt: serverTimestamp() };
+    if (rp) msg.rep = rp;
+    await addDoc(C.msgCol(r), msg);
+    if (rp) clearRep();
     C.toast("Sesli mesaj gönderildi ✅");
   } catch (e) {
     C.toast(e && e.code === "permission-denied" ? "İşlem reddedildi. Firestore kurallarını güncelledin mi?" : "Sesli mesaj gönderilemedi.");
