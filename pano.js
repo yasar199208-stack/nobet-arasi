@@ -65,7 +65,7 @@ function openPano() {
     const go = E("button", "margin-top:8px;background:var(--lamp,#f0c24b);color:var(--lamp-ink,#000);border:0;font-weight:700;padding:10px 14px", "Yayınla"); go.type = "button";
     go.onclick = async () => {
       const t = ta.value.trim(); if (!t) return; go.disabled = true;
-      try { await F.addDoc(F.collection(db, "announcements"), { text: t, createdAt: F.serverTimestamp() }); ta.value = ""; note("Duyuru yayınlandı."); }
+      try { await F.addDoc(F.collection(db, "announcements"), { text: t, createdAt: F.serverTimestamp() }); ta.value = ""; note("Duyuru yayınlandı."); try { window.dispatchEvent(new CustomEvent("na-push", { detail: { kind: "ann" } })); } catch (x) {} }
       catch (e) { note("Yayınlanamadı. Firebase kurallarına \"announcements\" eklenmemiş olabilir."); }
       go.disabled = false;
     };
@@ -103,7 +103,7 @@ function openForm() {
     const t = ta.value.trim(); if (t.length < 3) { note("Biraz daha ayrıntı yaz."); return; }
     const last = Number(ls("na_fb_son") || 0); if (Date.now() - last < 60000) { note("Biraz bekle, bir dakikada bir mesaj gönderebilirsin."); return; }
     go.disabled = true;
-    try { await F.addDoc(F.collection(db, "feedback"), { uid: me, nick: nick, kind: kind, text: t, createdAt: F.serverTimestamp() }); ls("na_fb_son", String(Date.now())); w.close(); note("Mesajın yöneticiye iletildi. Teşekkürler."); }
+    try { await F.addDoc(F.collection(db, "feedback"), { uid: me, nick: nick, kind: kind, text: t, createdAt: F.serverTimestamp() }); ls("na_fb_son", String(Date.now())); w.close(); note("Mesajın yöneticiye iletildi. Teşekkürler."); try { window.dispatchEvent(new CustomEvent("na-push", { detail: { kind: "fb" } })); } catch (x) {} }
     catch (e) { note("Gönderilemedi. Biraz sonra tekrar dene."); go.disabled = false; }
   };
   w.s.appendChild(row); w.s.appendChild(ta); w.s.appendChild(cnt); w.s.appendChild(go);
