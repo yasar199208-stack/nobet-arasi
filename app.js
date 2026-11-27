@@ -10,6 +10,7 @@ import { initOwn, addOwnActs, editedTag } from "./kendi.js?v=1";
 import { initReply, addReplyBtn, getRep, clearRep, addQuote } from "./yanit.js?v=1";
 import { initEtk, setEtkRoom, addReactions, seenMark, onMsgs } from "./etkilesim.js?v=1";
 import { initPin, setPinRoom, addPinBtn, applySearch } from "./pinara.js?v=1";
+import { initEkstra, daySep, addPoll, addBadge, bumpStat } from "./ekstra.js?v=1";
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, runTransaction, collection, addDoc, getDocs, query, orderBy, limit, onSnapshot, serverTimestamp, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -31,6 +32,7 @@ initOwn({ db: db, msgCol: msgCol, toast: toast });
 initReply({ toast: toast });
 initEtk({ db: db, user: () => user, room: () => room, msgCol: msgCol, toast: toast, refresh: () => renderChat(false) });
 initPin({ db: db, user: () => user, isAdmin: () => isAdmin(), toast: toast, refresh: () => renderChat(false) });
+initEkstra({ db: db, user: () => user, nick: () => nick, room: () => room, msgCol: msgCol, toast: toast });
 initAdmin({ db: db, user: () => user, toast: toast, rooms: ROOMS, refresh: () => renderChat() });
 
 const $ = (i) => document.getElementById(i);
@@ -212,7 +214,7 @@ function openRoom(r) {
   unsubMsgs = onSnapshot(qy, (s) => {
     msgs = s.docs.map((d) => {
       const x = d.data({ serverTimestamps: "estimate" });
-      return { id: d.id, uid: x.uid, nick: x.nick, text: x.text, img: x.img, aud: x.aud, dur: x.dur, edited: x.edited === true, rep: x.rep, rx: x.rx, at: x.createdAt ? x.createdAt.toDate() : new Date() };    }).reverse();
+      return { id: d.id, uid: x.uid, nick: x.nick, text: x.text, img: x.img, aud: x.aud, dur: x.dur, edited: x.edited === true, rep: x.rep, rx: x.rx, poll: x.poll, pv: x.pv, at: x.createdAt ? x.createdAt.toDate() : new Date() };    }).reverse();
     onMsgs(msgs);
     renderChat(s.docChanges().some((c) => c.type === "added"));
   }, (e) => toast(errText(e)));
@@ -374,8 +376,12 @@ function renderChat(forceBottom) {
     e.className = "note"; e.textContent = "Bu odada henüz mesaj yok. İlk mesajı sen yaz.";
     l.appendChild(e);
   }
+  let prevAt = null;
   msgs.forEach((m) => {
     if (blocked.has(m.uid)) return;
+    const sep = daySep(prevAt, m.at);
+    if (sep) l.appendChild(sep);
+    prevAt = m.at;
     const mine = user && m.uid === user.uid;
     const row = document.createElement("div"); row.className = "row" + (mine ? " mine" : "");
     row.dataset.mid = m.id;
@@ -388,9 +394,10 @@ function renderChat(forceBottom) {
     if (m.edited) t.appendChild(editedTag());
     if (mine && room.dm) { const tk = seenMark(m); if (tk) t.appendChild(tk); }
     w.appendChild(t);
+    addBadge(w, m.uid);
     const p = document.createElement("p"); p.textContent = m.text;
     if (isBigEmoji(m.text)) p.className = "big";
-    d.appendChild(w); if (m.rep) addQuote(d, m.rep); if (m.text) d.appendChild(p); if (m.img) addPhoto(d, m.img); if (m.aud) addVoice(d, m.aud, m.dur, m.id);
+    d.appendChild(w); if (m.rep) addQuote(d, m.rep); if (m.text) d.appendChild(p); if (m.img) addPhoto(d, m.img); if (m.aud) addVoice(d, m.aud, m.dur, m.id); if (m.poll) addPoll(d, m, room);
     if (mine) { av.onclick = () => openProfile(user.uid, nick); addOwnActs(d, m, room); addReplyBtn(d, m); }
     if (!mine) {
       av.onclick = () => openProfile(m.uid, m.nick);
@@ -434,6 +441,7 @@ $("sf").onsubmit = async (e) => {
   try {
     await addDoc(msgCol(room), data);
     if (rp) clearRep();
+    bumpStat();
   } catch (err) {
     $("in").value = t;
     toast("Mesaj gönderilemedi. " + errText(err));
