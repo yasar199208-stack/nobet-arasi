@@ -5,8 +5,9 @@ import { initAdmin, loadAdmin, resetAdmin, isAdmin, addAdminDelete } from "./adm
 import { initFun, openAvatarPicker, isBigEmoji } from "./fun.js?v=1";
 import { initMedia, setDmUi, addPhoto, startCalls, stopCalls } from "./media.js?v=2";
 import { initAvatars, paintAv, loadAv, hasAv, pickPhoto, removePhoto } from "./avatar.js?v=2";
-import { initVoiceMsg, addVoice } from "./sesmesaj.js?v=1";
+import { initVoiceMsg, addVoice } from "./sesmesaj.js?v=2";
 import { initOwn, addOwnActs, editedTag } from "./kendi.js?v=1";
+import { initReply, addReplyBtn, getRep, clearRep, addQuote } from "./yanit.js?v=1";
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, runTransaction, collection, addDoc, getDocs, query, orderBy, limit, onSnapshot, serverTimestamp, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -25,6 +26,7 @@ initMedia({ db: db, user: () => user, nick: () => nick, room: () => room, msgCol
 initFun({ toast: toast });
 initVoiceMsg({ db: db, user: () => user, nick: () => nick, room: () => room, msgCol: msgCol, toast: toast });
 initOwn({ db: db, msgCol: msgCol, toast: toast });
+initReply({ toast: toast });
 initAdmin({ db: db, user: () => user, toast: toast, rooms: ROOMS, refresh: () => renderChat() });
 
 const $ = (i) => document.getElementById(i);
@@ -192,6 +194,7 @@ $("q").oninput = renderRooms;
 function openRoom(r) {
   room = r;
   setDmUi(r);
+  clearRep();
   if (unsubMsgs) unsubMsgs();
   msgs = [];
   $("rt").textContent = (r.ic ? r.ic + " " : "") + r.n;
@@ -201,7 +204,7 @@ function openRoom(r) {
   unsubMsgs = onSnapshot(qy, (s) => {
     msgs = s.docs.map((d) => {
       const x = d.data({ serverTimestamps: "estimate" });
-      return { id: d.id, uid: x.uid, nick: x.nick, text: x.text, img: x.img, aud: x.aud, dur: x.dur, edited: x.edited === true, at: x.createdAt ? x.createdAt.toDate() : new Date() };    }).reverse();
+      return { id: d.id, uid: x.uid, nick: x.nick, text: x.text, img: x.img, aud: x.aud, dur: x.dur, edited: x.edited === true, rep: x.rep, at: x.createdAt ? x.createdAt.toDate() : new Date() };    }).reverse();
     renderChat(true);
   }, (e) => toast(errText(e)));
 }
@@ -365,6 +368,7 @@ function renderChat(forceBottom) {
     if (blocked.has(m.uid)) return;
     const mine = user && m.uid === user.uid;
     const row = document.createElement("div"); row.className = "row" + (mine ? " mine" : "");
+    row.dataset.mid = m.id;
     const av = document.createElement("div"); av.className = "av";
     av.dataset.av = m.uid; av.dataset.nm = m.nick || "";
     paintAv(av, m.uid, m.nick); loadAv(m.uid);
@@ -375,8 +379,8 @@ function renderChat(forceBottom) {
     w.appendChild(t);
     const p = document.createElement("p"); p.textContent = m.text;
     if (isBigEmoji(m.text)) p.className = "big";
-    d.appendChild(w); if (m.text) d.appendChild(p); if (m.img) addPhoto(d, m.img); if (m.aud) addVoice(d, m.aud, m.dur, m.id);
-    if (mine) { av.onclick = () => openProfile(user.uid, nick); addOwnActs(d, m, room); }
+    d.appendChild(w); if (m.rep) addQuote(d, m.rep); if (m.text) d.appendChild(p); if (m.img) addPhoto(d, m.img); if (m.aud) addVoice(d, m.aud, m.dur, m.id);
+    if (mine) { av.onclick = () => openProfile(user.uid, nick); addOwnActs(d, m, room); addReplyBtn(d, m); }
     if (!mine) {
       av.onclick = () => openProfile(m.uid, m.nick);
       w.onclick = () => openProfile(m.uid, m.nick);
@@ -395,6 +399,7 @@ function renderChat(forceBottom) {
         catch (e) { toast(errText(e)); }
       };
       a.appendChild(r); a.appendChild(b); d.appendChild(a);
+      addReplyBtn(d, m);
     }
     if (isAdmin() && !room.dm && !mine) addAdminDelete(d, m, room);
     row.appendChild(av); row.appendChild(d); l.appendChild(row);
@@ -409,8 +414,12 @@ $("sf").onsubmit = async (e) => {
   if (Date.now() - lastSend < 1000) { toast("Biraz yavaş yaz."); return; }
   lastSend = Date.now();
   $("in").value = "";
+  const rp = getRep();
+  const data = { uid: user.uid, nick: nick, text: t, createdAt: serverTimestamp() };
+  if (rp) data.rep = rp;
   try {
-    await addDoc(msgCol(room), { uid: user.uid, nick: nick, text: t, createdAt: serverTimestamp() });
+    await addDoc(msgCol(room), data);
+    if (rp) clearRep();
   } catch (err) {
     $("in").value = t;
     toast("Mesaj gönderilemedi. " + errText(err));
