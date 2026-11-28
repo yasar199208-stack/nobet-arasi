@@ -144,6 +144,11 @@ function ding(force) {
   if (T.say) setTimeout(() => say(T.say), 300);
 }
 
+// 🔕 Sessize alınan odalar (paylas.js kaydeder)
+function isMutedId(id) {
+  try { const a = JSON.parse(localStorage.getItem("na_muted") || "[]"); return Array.isArray(a) && a.indexOf(id) >= 0; } catch (e) { return false; }
+}
+
 // Tüm herkese açık odalardaki yeni mesaj sesi
 let pubSubs = [];
 function watchAll() {
@@ -156,7 +161,7 @@ function watchAll() {
       if (!d) { ready = true; return; }
       const x = d.data({ serverTimestamps: "estimate" });
       const at = x.createdAt ? x.createdAt.toMillis() : Date.now();
-      if (ready && !s.metadata.fromCache && !s.metadata.hasPendingWrites && x.uid !== uid && at > prev) ding();
+      if (ready && !s.metadata.fromCache && !s.metadata.hasPendingWrites && x.uid !== uid && at > prev && !isMutedId(r.id)) ding();
       prev = at; ready = true;
     }, () => {});
     pubSubs.push(un);
@@ -201,7 +206,11 @@ function watch(id, pairId) {
     const x = d.data({ serverTimestamps: "estimate" });
     const prev = last[id];
     last[id] = { uid: x.uid, at: x.createdAt ? x.createdAt.toMillis() : Date.now() };
-    if (ready && !s.metadata.fromCache && !s.metadata.hasPendingWrites && x.uid !== uid && (!prev || last[id].at > prev.at)) ding();
+    if (ready && !s.metadata.fromCache && !s.metadata.hasPendingWrites && x.uid !== uid && (!prev || last[id].at > prev.at)) {
+      // 🆘 Acil durum mesajı: sessize alınmış ya da ses kapalı olsa bile çalar
+      if (String(x.text || "").indexOf("🆘 ACİL DURUM") === 0) ding(true);
+      else if (!isMutedId(id)) ding();
+    }
     ready = true;
     if (fresh && seen[id] === undefined) { seen[id] = last[id].at; save(); }
     markOpen();
