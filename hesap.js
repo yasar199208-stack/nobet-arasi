@@ -63,10 +63,11 @@ async function wipe(user) {
   const i = await getDocs(query(collection(db, "friendRequests"), where("to", "==", uid)));
   await delAll(o.docs.concat(i.docs).map((d) => d.ref));
 
-  // Profil resmi, hakkımda, rozet sayacı, takma ad, profil
+  // Profil resmi, hakkımda, rozet sayacı, nöbet durumu, takma ad, profil
   await tryDel(doc(db, "avatars", uid));
   await tryDel(doc(db, "about", uid));
   await tryDel(doc(db, "stats", uid));
+  await tryDel(doc(db, "duty", uid));
   if (nick) await tryDel(doc(db, "nicks", nick.toLocaleLowerCase("tr")));
   await deleteDoc(doc(db, "users", uid));
 }
