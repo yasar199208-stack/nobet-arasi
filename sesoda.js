@@ -1,5 +1,5 @@
 // 🎧 Canlı sesli sohbet odaları: telefon görüşmesi gibi, herkes aynı anda konuşur ve duyar.
-// Her odada en fazla 8 kişi. Ses doğrudan telefonlar arasında gider (WebRTC), hiçbir yere kaydedilmez.
+// 18 oda, her odada en fazla 8 kişi. Ses doğrudan telefonlar arasında gider (WebRTC), hiçbir yere kaydedilmez.
 // Firestore sadece bağlantı kurmak için kullanılır: sesoda/{oda}/peers ve sesoda/{oda}/sig
 import { getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -10,18 +10,32 @@ const auth = getAuth(), db = getFirestore();
 const $ = (i) => document.getElementById(i);
 
 const MAX = 8;
-const STALE = 90 * 1000;
+const STALE = 150 * 1000;   // bu kadar süre sinyal gelmeyen kişi odadan düşer
+const BEAT = 60 * 1000;     // "odadayım" sinyali (az veri harcasın diye dakikada bir)
 const ICE = { iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }] };
+// [id, simge, ad, açıklama, grup]
 const LIST = [
-  ["genel", "☕", "Genel sohbet", "Herkese açık muhabbet"],
-  ["gece", "🌙", "Gece nöbeti", "Uyumayanlar burada"],
-  ["dert", "💬", "Dertleşme", "İçini dök, dinleyen var"],
-  ["meslek", "🛡️", "Meslek sohbeti", "İş, mevzuat, tecrübe"],
-  ["mac", "⚽", "Maç sohbeti", "Maç izlerken muhabbet"],
-  ["muzik", "🎵", "Müzik ve muhabbet", "Sakin sohbet"]
+  ["genel", "☕", "Genel sohbet", "Herkese açık muhabbet", "💬 Sohbet"],
+  ["genel2", "☕", "Genel sohbet 2", "Birinci doluysa buraya gel", "💬 Sohbet"],
+  ["gece", "🌙", "Gece nöbeti", "Uyumayanlar burada", "💬 Sohbet"],
+  ["sabah", "🌅", "Sabah vardiyası", "Günaydın, çay demlendi", "💬 Sohbet"],
+  ["dert", "💬", "Dertleşme", "İçini dök, dinleyen var", "💬 Sohbet"],
+  ["girgir", "😂", "Gırgır şamata", "Fıkra, şaka, kahkaha", "💬 Sohbet"],
+  ["meslek", "🛡️", "Meslek sohbeti", "İş, mevzuat, tecrübe", "🛡️ Meslek"],
+  ["maas", "💰", "Maaş ve haklar", "Mesai, izin, sözleşme", "🛡️ Meslek"],
+  ["sinav", "📚", "Sınav hazırlık", "Kimlik yenileme, sertifika", "🛡️ Meslek"],
+  ["yeni", "🆕", "Yeni başlayanlar", "Sor, tecrübeliler anlatsın", "🛡️ Meslek"],
+  ["avm", "🏬", "AVM güvenlikçileri", "Mağaza, otopark, giriş", "🏢 Çalışılan yer"],
+  ["hastane", "🏥", "Hastane güvenlikçileri", "Acil, poliklinik, ziyaretçi", "🏢 Çalışılan yer"],
+  ["fabrika", "🏭", "Fabrika ve şantiye", "Vardiya, devriye, kantar", "🏢 Çalışılan yer"],
+  ["site", "🏘️", "Site ve konut", "Kapı, ziyaretçi, kargo", "🏢 Çalışılan yer"],
+  ["mac", "⚽", "Maç sohbeti", "Maç izlerken muhabbet", "🎉 Eğlence"],
+  ["muzik", "🎵", "Müzik ve muhabbet", "Sakin sohbet", "🎉 Eğlence"],
+  ["oyun", "🎮", "Oyun sohbeti", "Telefon oyunları, okey, tavla", "🎉 Eğlence"],
+  ["yol", "🚗", "Yol arkadaşı", "İşe giderken, dönerken", "🎉 Eğlence"]
 ];
 
-let me = null, myNick = "", btn = null, lobby = null, lobbyBox = null, lobbyUns = [], counts = {};
+let me = null, myNick = "", btn = null, lobby = null, lobbyBox = null, lobbyT = null, counts = {};
 let S = null, actx = null;
 
 function el(tag, cls, txt) {
@@ -69,6 +83,9 @@ const st = document.createElement("style");
 st.textContent =
   ".so-lobby{z-index:72}" +
   ".so-note{color:var(--mute);font-size:13px;margin:0 0 12px}" +
+  ".so-g{margin:14px 0 6px;font:700 16px var(--head);color:var(--lamp)}" +
+  ".so-g:first-child{margin-top:0}" +
+  ".so-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0 0 10px;color:var(--mute);font-size:13px}" +
   ".so-r{display:flex!important;align-items:center;gap:12px;width:100%;margin:0 0 8px;padding:12px!important;text-align:left;border-radius:12px!important}" +
   ".so-r .so-ic{font-size:28px}" +
   ".so-r .so-t{flex:1;min-width:0}" +
@@ -120,7 +137,16 @@ function buildLobby() {
 function paintLobby() {
   if (!lobbyBox) return;
   lobbyBox.textContent = "";
+  const total = Object.keys(counts).reduce((a, k) => a + counts[k].n, 0);
+  const top = el("div", "so-top");
+  top.appendChild(el("span", "", total ? "🟢 Şu an " + total + " kişi sesli odalarda" : "Şu an kimse yok, ilk sen gir!"));
+  const rf = el("button", "", "🔄 Yenile"); rf.type = "button";
+  rf.onclick = refreshLobby;
+  top.appendChild(rf);
+  lobbyBox.appendChild(top);
+  let grp = "";
   LIST.forEach((r) => {
+    if (r[4] !== grp) { grp = r[4]; lobbyBox.appendChild(el("div", "so-g", grp)); }
     const c = counts[r[0]] || { n: 0, names: [] };
     const b = el("button", "so-r");
     b.type = "button";
@@ -135,19 +161,28 @@ function paintLobby() {
   });
 }
 
-function watchLobby() {
-  stopLobby();
-  LIST.forEach((r) => {
-    lobbyUns.push(onSnapshot(collection(db, "sesoda", r[0], "peers"), (s) => {
+// Oda listesi: canlı dinlemek yerine açılışta ve 45 saniyede bir okunur (az veri harcar)
+let denied = false;
+async function refreshLobby() {
+  denied = false;
+  await Promise.all(LIST.map(async (r) => {
+    try {
+      const s = await getDocs(collection(db, "sesoda", r[0], "peers"));
       const live = s.docs.map((d) => d.data()).filter(alive);
       counts[r[0]] = { n: live.length, names: live.map((x) => x.nick || "?") };
-      paintLobby();
       // 10 dakikadan eski kalıntıları temizle
       s.docs.forEach((d) => { const x = d.data(); if (typeof x.ts === "number" && Date.now() - x.ts > 10 * 60 * 1000) deleteDoc(d.ref).catch(() => {}); });
-    }, (e) => { if (e && e.code === "permission-denied") toast("Sesli sohbet reddedildi. Firestore kurallarını güncelledin mi?"); }));
-  });
+    } catch (e) { if (e && e.code === "permission-denied") denied = true; }
+  }));
+  if (denied) toast("Sesli sohbet reddedildi. Firestore kurallarını güncelledin mi?");
+  paintLobby();
 }
-function stopLobby() { lobbyUns.forEach((u) => { try { u(); } catch (e) {} }); lobbyUns = []; }
+function watchLobby() {
+  stopLobby();
+  refreshLobby();
+  lobbyT = setInterval(() => { if (lobby && !lobby.hidden && !document.hidden) refreshLobby(); }, 45 * 1000);
+}
+function stopLobby() { clearInterval(lobbyT); lobbyT = null; }
 
 async function openLobby() {
   if (!me) return;
@@ -399,7 +434,7 @@ async function enter(rid) {
   try { await setDoc(doc(db, "sesoda", rid, "peers", me.uid), { nick: myNick, ts: Date.now(), mute: false }); }
   catch (e) { toast(e && e.code === "permission-denied" ? "Reddedildi. Firestore kurallarını güncelledin mi?" : "Odaya girilemedi."); leave(false); return; }
 
-  S.hb = setInterval(() => { if (S) updateDoc(doc(db, "sesoda", S.rid, "peers", me.uid), { ts: Date.now() }).catch(() => {}); }, 20000);
+  S.hb = setInterval(() => { if (S) updateDoc(doc(db, "sesoda", S.rid, "peers", me.uid), { ts: Date.now() }).catch(() => {}); }, BEAT);
   S.unsubs.push(onSnapshot(collection(db, "sesoda", rid, "peers"), onPeers, () => {}));
   S.unsubs.push(onSnapshot(query(collection(db, "sesoda", rid, "sig"), where("to", "==", me.uid)), (s) => {
     s.docChanges().forEach((c) => {
