@@ -12,6 +12,7 @@ import { initEtk, setEtkRoom, addReactions, seenMark, onMsgs } from "./etkilesim
 import { initPin, setPinRoom, addPinBtn, applySearch } from "./pinara.js?v=1";
 import { initEkstra, daySep, addPoll, addBadge, bumpStat } from "./ekstra.js?v=1";
 import { initPaylas, setPaylasRoom, addForwardBtn, decorateSos } from "./paylas.js?v=1";
+import { initAbout, renderAbout } from "./hakkimda.js?v=1";
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, runTransaction, collection, addDoc, getDocs, query, orderBy, limit, onSnapshot, serverTimestamp, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -35,6 +36,7 @@ initEtk({ db: db, user: () => user, room: () => room, msgCol: msgCol, toast: toa
 initPin({ db: db, user: () => user, isAdmin: () => isAdmin(), toast: toast, refresh: () => renderChat(false) });
 initEkstra({ db: db, user: () => user, nick: () => nick, room: () => room, msgCol: msgCol, toast: toast });
 initPaylas({ db: db, user: () => user, nick: () => nick, friends: () => friendRooms, toast: toast });
+initAbout({ db: db, user: () => user, toast: toast });
 initAdmin({ db: db, user: () => user, toast: toast, rooms: ROOMS, refresh: () => renderChat() });
 
 const $ = (i) => document.getElementById(i);
@@ -297,7 +299,7 @@ styleEl.textContent = ".pcard{max-width:340px;text-align:center}.pcard .av{width
 document.head.appendChild(styleEl);
 const ppEl = document.createElement("div");
 ppEl.className = "panel"; ppEl.id = "pp"; ppEl.hidden = true;
-ppEl.innerHTML = '<div class="sheet pcard"><div class="av" id="pav"></div><h2 id="pn"></h2><p class="empty" id="ps"></p><div class="pbtns"><button id="pa" type="button"></button><button id="px" type="button">Kapat</button></div><div class="pbtns"><button id="pr" type="button" hidden>Resmi kaldır</button><button id="pe" type="button" hidden>😎 Hazır avatar</button></div></div>';
+ppEl.innerHTML = '<div class="sheet pcard"><div class="av" id="pav"></div><h2 id="pn"></h2><p class="empty" id="ps"></p><div id="pab"></div><div class="pbtns"><button id="pa" type="button"></button><button id="px" type="button">Kapat</button></div><div class="pbtns"><button id="pr" type="button" hidden>Resmi kaldır</button><button id="pe" type="button" hidden>😎 Hazır avatar</button></div></div>';
 document.body.appendChild(ppEl);
 
 const pbEl = document.createElement("button");
@@ -321,6 +323,7 @@ function renderProfile() {
   paintAv($("pav"), uid, nm);
   loadAv(uid);
   $("pn").textContent = nm;
+  renderAbout($("pab"), uid, uid === user.uid);
   const fr = friendRooms.find((f) => f.other === uid);
   const inc = incoming.find((r) => r.from === uid);
   const out = outgoing.find((r) => r.to === uid);
