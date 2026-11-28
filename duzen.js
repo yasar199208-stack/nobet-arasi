@@ -3,6 +3,8 @@
 //   Özel sohbet:  [←]   💌 @arkadaş ………………  [🔍] [📹] [☰]
 // - "Sen: …", 📍 Durum, 🎧 Sesli oda, 📚 Bilgi, 🔔 oda bildirimi ve 🆘 Acil durum ☰ menünün içine taşınır
 // - ☰ düğmesinin köşesinde seçili durumun simgesi görünür (🟢, 🌙, ☕ …)
+// - Ana ekran: başlık incelir, büyük kutular satırda 4'lü küçük kartlara döner,
+//   🗑️ Hesabı sil ana ekrandan ☰ menünün en altına taşınır
 // Diğer dosyalara dokunmaz; düğmeleri yerine taşır ve görünüşlerini düzenler.
 const $ = (i) => document.getElementById(i);
 
@@ -34,7 +36,22 @@ st.textContent =
   ".mpanel .minfo{display:none!important}" +
   ".mpanel button{min-height:46px;border-radius:12px!important;font-size:16px!important;padding:10px 14px!important;margin:0 0 8px!important}" +
   ".mpanel .du-sep{height:1px;background:var(--line);margin:4px 2px 12px}" +
-  ".mpanel .du-sos{background:rgba(217,83,79,.14)!important;border-color:rgba(217,83,79,.6)!important;color:#ff9b93!important;font-weight:700}";
+  ".mpanel .du-sos{background:rgba(217,83,79,.14)!important;border-color:rgba(217,83,79,.6)!important;color:#ff9b93!important;font-weight:700}" +
+  ".mpanel .du-del{background:none!important;border-color:rgba(217,83,79,.45)!important;color:#e0786a!important;font-size:14px!important;min-height:40px!important}" +
+  // Ana ekran (telefon)
+  "@media (max-width:760px){" +
+  "aside .brand{padding:10px 16px 9px!important;border-bottom-width:2px!important}" +
+  "aside .brand .logo svg{width:28px!important;height:28px!important}" +
+  "aside .brand h1{font-size:25px!important}" +
+  ".mtabs{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px!important;padding:10px 12px 2px!important}" +
+  ".mtabs button{display:flex!important;align-items:center;justify-content:center;flex-wrap:wrap;min-width:0!important;min-height:54px;margin:0!important;padding:6px 4px!important;border-radius:14px!important;border:1px solid var(--line)!important;background:rgba(127,150,180,.08)!important;color:var(--text)!important;font-size:13px!important;line-height:1.25!important;text-align:center;white-space:normal;overflow-wrap:anywhere;transition:background .15s,border-color .15s,transform .1s}" +
+  ".mtabs button:active{transform:scale(.95)}" +
+  ".mtabs button[aria-pressed=\"true\"]{border-color:var(--lamp)!important;background:rgba(240,194,75,.12)!important;font-weight:700}" +
+  "aside .q{margin:10px 12px 4px!important;width:calc(100% - 24px)!important;border-radius:14px!important;padding:11px 14px!important}" +
+  "aside .rooms{padding:8px 12px 10px!important;gap:8px!important}" +
+  "aside .room{border-radius:999px!important;padding:8px 16px!important}" +
+  "aside .room[aria-current=\"true\"]{background:rgba(240,194,75,.12)!important}" +
+  "}";
 document.head.appendChild(st);
 
 function colorOf(s) { let h = 0; s = String(s || ""); for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return "hsl(" + h + ",55%,68%)"; }
@@ -101,12 +118,31 @@ function tidyMenu() {
     else if (t === "🔕") setTxt(mtb, "🔕 Bu oda sessizde (açmak için dokun)");
   }
 
-  // 🆘 Acil durum: menünün en altına
+  // En alta: 🆘 Acil durum, sonra 🗑️ Hesabı sil
   const sos = $("sosb");
-  if (sos) {
-    if (!sos.classList.contains("du-sos")) { sos.classList.add("du-sos"); sos.textContent = "🆘 Acil durum (arkadaşlarına haber ver)"; }
-    if (panel.lastChild !== sos) panel.appendChild(sos);
+  if (sos && !sos.classList.contains("du-sos")) { sos.classList.add("du-sos"); sos.textContent = "🆘 Acil durum (arkadaşlarına haber ver)"; }
+  const del = findDel();
+  if (del && !del.classList.contains("du-del")) {
+    const row = del.parentElement;
+    if (row && !row.closest(".mpanel")) row.style.display = "none";   // ana ekrandaki boş satırı gizle
+    del.classList.add("du-del");
+    del.style.cssText = "";
   }
+  const tail = [sos, del].filter(Boolean);
+  let ok = true;
+  for (let i = 0; i < tail.length; i++) if (panel.children[panel.children.length - tail.length + i] !== tail[i]) ok = false;
+  if (!ok) tail.forEach((b) => panel.appendChild(b));
+}
+
+// hesap.js'in "🗑️ Hesabı sil" düğmesi
+function findDel() {
+  const all = document.querySelectorAll("button");
+  for (let i = 0; i < all.length; i++) {
+    const b = all[i];
+    if (b.closest(".msg") || b.closest(".sheet")) continue;
+    if (b.textContent.trim() === "🗑️ Hesabı sil") return b;
+  }
+  return null;
 }
 
 let badge = null;
