@@ -44,8 +44,12 @@ st.textContent =
   "aside .brand .logo svg{width:28px!important;height:28px!important}" +
   "aside .brand h1{font-size:25px!important}" +
   ".mtabs{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px!important;padding:10px 12px 2px!important}" +
-  ".mtabs button{display:flex!important;align-items:center;justify-content:center;flex-wrap:wrap;min-width:0!important;min-height:54px;margin:0!important;padding:6px 4px!important;border-radius:14px!important;border:1px solid var(--line)!important;background:rgba(127,150,180,.08)!important;color:var(--text)!important;font-size:13px!important;line-height:1.25!important;text-align:center;white-space:normal;overflow-wrap:anywhere;transition:background .15s,border-color .15s,transform .1s}" +
+  ".mtabs button{display:flex!important;align-items:center;justify-content:center;flex-wrap:wrap;min-width:0!important;min-height:48px;margin:0!important;padding:6px 4px!important;border-radius:14px!important;border:1px solid var(--line)!important;background:rgba(127,150,180,.08)!important;color:var(--text)!important;font-size:13px!important;line-height:1.25!important;text-align:center;white-space:normal;overflow-wrap:anywhere;transition:background .15s,border-color .15s,transform .1s}" +
   ".mtabs button:active{transform:scale(.95)}" +
+  // Son satır boş kalmasın: 1 kart kalırsa tüm satırı, 2 kart kalırsa yarı yarıya, 3 kart kalırsa sonuncusu 2 hücre kaplar
+  ".mtabs button:last-child:nth-child(4n+1){grid-column:1/-1}" +
+  ".mtabs button:nth-last-child(2):nth-child(4n+1),.mtabs button:last-child:nth-child(4n+2){grid-column:span 2}" +
+  ".mtabs button:last-child:nth-child(4n+3){grid-column:span 2}" +
   ".mtabs button[aria-pressed=\"true\"]{border-color:var(--lamp)!important;background:rgba(240,194,75,.12)!important;font-weight:700}" +
   "aside .q{margin:10px 12px 4px!important;width:calc(100% - 24px)!important;border-radius:14px!important;padding:11px 14px!important}" +
   "aside .rooms{padding:8px 12px 10px!important;gap:8px!important}" +
