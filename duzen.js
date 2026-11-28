@@ -57,7 +57,19 @@ st.textContent =
   "aside .rooms{padding:8px 12px 10px!important;gap:8px!important}" +
   "aside .room{border-radius:999px!important;padding:8px 16px!important}" +
   "aside .room[aria-current=\"true\"]{background:rgba(240,194,75,.12)!important}" +
-  "}";
+  "}" +
+  // Tablet ve bilgisayar (geniş ekran): soldaki dar sütunda kartlar 3'lü olsun, yazılar taşmasın
+  "@media (min-width:761px){" +
+  ".mtabs{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px!important;padding:10px 10px 4px!important}" +
+  ".mtabs button{display:flex!important;align-items:center;justify-content:center;flex-wrap:wrap;min-width:0!important;min-height:52px;margin:0!important;padding:6px 4px!important;border-radius:14px!important;border:1px solid var(--line)!important;background:rgba(127,150,180,.08)!important;color:var(--text)!important;font-size:13px!important;line-height:1.25!important;text-align:center;white-space:normal;overflow-wrap:anywhere}" +
+  ".mtabs button[aria-pressed=\"true\"]{border-color:var(--lamp)!important;background:rgba(240,194,75,.12)!important;font-weight:700}" +
+  ".mtabs button:last-child:nth-child(3n+1){grid-column:1/-1}" +
+  ".mtabs button:last-child:nth-child(3n+2){grid-column:span 2}" +
+  "aside .q{border-radius:14px!important}" +
+  "}" +
+  // Mesaj altındaki düğmeler (Yanıtla, Tepki, …) balondan taşmasın; dokunmatik ekranda (tablet) hep görünsün
+  ".msg .acts{flex-wrap:wrap!important;row-gap:4px!important}" +
+  "@media (hover:none){.msg .acts{display:flex!important}}";
 document.head.appendChild(st);
 
 function colorOf(s) { let h = 0; s = String(s || ""); for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return "hsl(" + h + ",55%,68%)"; }
