@@ -1,5 +1,5 @@
 // 🎧 Canlı sesli sohbet odaları: telefon görüşmesi gibi, herkes aynı anda konuşur ve duyar.
-// 18 oda, her odada en fazla 8 kişi. Ses doğrudan telefonlar arasında gider (WebRTC), hiçbir yere kaydedilmez.
+// 18 oda, her odada en fazla 12 kişi. Ses doğrudan telefonlar arasında gider (WebRTC), hiçbir yere kaydedilmez.
 // Firestore sadece bağlantı kurmak için kullanılır: sesoda/{oda}/peers ve sesoda/{oda}/sig
 import { getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -9,7 +9,8 @@ for (let i = 0; i < 150 && !getApps().length; i++) await new Promise((r) => setT
 const auth = getAuth(), db = getFirestore();
 const $ = (i) => document.getElementById(i);
 
-const MAX = 8;
+const MAX = 12;
+const KBPS = 24;           // kişi başı ses kalitesi sınırı (kalabalıkta internet yetsin diye)
 const STALE = 150 * 1000;   // bu kadar süre sinyal gelmeyen kişi odadan düşer
 const BEAT = 60 * 1000;     // "odadayım" sinyali (az veri harcasın diye dakikada bir)
 const ICE = { iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }] };
@@ -284,7 +285,7 @@ function mkPc(pid) {
   pc.onconnectionstatechange = () => {
     if (!S || S.pcs[pid] !== pc) return;
     const s = pc.connectionState;
-    if (s === "connected") setState(pid, "");
+    if (s === "connected") { setState(pid, ""); limitBitrate(pc); }
     else if (s === "connecting" || s === "new") setState(pid, "Bağlanıyor…");
     else if (s === "disconnected") setState(pid, "Bağlantı zayıf…", true);
     else if (s === "failed") {
@@ -297,6 +298,18 @@ function mkPc(pid) {
   S.pcs[pid] = pc;
   setState(pid, "Bağlanıyor…");
   return pc;
+}
+// Kalabalık odada her telefon herkese ayrı ses gönderir; kaliteyi biraz düşürüp interneti rahatlat
+function limitBitrate(pc) {
+  try {
+    pc.getSenders().forEach((sd) => {
+      if (!sd.track || sd.track.kind !== "audio" || !sd.getParameters) return;
+      const p = sd.getParameters();
+      if (!p.encodings || !p.encodings.length) p.encodings = [{}];
+      p.encodings[0].maxBitrate = KBPS * 1000;
+      sd.setParameters(p).catch(() => {});
+    });
+  } catch (e) {}
 }
 async function flush(pc) { while (pc._q.length) { try { await pc.addIceCandidate(pc._q.shift()); } catch (e) {} } }
 
