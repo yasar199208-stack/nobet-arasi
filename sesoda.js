@@ -1,9 +1,11 @@
 // 🎧 Canlı sesli sohbet odaları: telefon görüşmesi gibi, herkes aynı anda konuşur ve duyar.
 // 18 oda, her odada en fazla 12 kişi. Ses doğrudan telefonlar arasında gider (WebRTC), hiçbir yere kaydedilmez.
 // Firestore sadece bağlantı kurmak için kullanılır: sesoda/{oda}/peers ve sesoda/{oda}/sig
+// Güvenlik: girişte kural onayı, kişiyi kendin için sessize alma, şikayet (sesRep),
+// yönetici için odadan atma (15 dk, sesoda/{oda}/kicks) ve kalıcı engelleme (bans).
 import { getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, orderBy, limit, onSnapshot, serverTimestamp, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 for (let i = 0; i < 150 && !getApps().length; i++) await new Promise((r) => setTimeout(r, 200));
 const auth = getAuth(), db = getFirestore();
@@ -37,7 +39,17 @@ const LIST = [
 ];
 
 let me = null, myNick = "", btn = null, lobby = null, lobbyBox = null, lobbyT = null, counts = {};
-let S = null, actx = null;
+let S = null, actx = null, adminUid = "";
+const KICK_MIN = 15;
+const RULES_KEY = "na_so_kural_v1";
+const RULES = [
+  "🚫 Küfür, hakaret, aşağılama ve tehdit yasak.",
+  "🚫 Kişisel bilgi (telefon, adres, çalıştığın yerin adı) paylaşma, başkasınınkini de isteme.",
+  "🚫 Siyaset, din ve ırk tartışması açma; kimseyi kışkırtma.",
+  "🚫 Müzik çalıp, bağırıp, sürekli araya girip odayı rahatsız etme.",
+  "✅ Rahatsız eden olursa dairesine dokun: kendin için sessize al ya da 🚩 bildir.",
+  "⚠️ Kurallara uymayan yönetici tarafından odadan atılır ya da kalıcı engellenir."
+];
 
 function el(tag, cls, txt) {
   const e = document.createElement(tag);
@@ -113,7 +125,18 @@ st.textContent =
   ".so-bar button.off{background:#5a1c18;border-color:var(--danger)}" +
   ".so-bar .so-end{background:var(--danger);border-color:var(--danger);color:#fff}" +
   ".so-rep{position:fixed;inset:0;z-index:78;background:rgba(0,0,0,.6);display:grid;place-items:center;padding:16px}" +
-  ".so-rep .sheet button{display:block;width:100%;margin:0 0 8px;text-align:left;padding:10px 12px}";
+  ".so-rep .sheet button{display:block;width:100%;margin:0 0 8px;text-align:left;padding:10px 12px}" +
+  ".so-rep .sheet button.dang{border-color:var(--danger);color:var(--danger)}" +
+  ".so-rules{margin:0 0 12px;padding-left:4px;list-style:none}" +
+  ".so-rules li{margin:0 0 8px;line-height:1.4;font-size:15px}" +
+  ".so-rep .sheet button.ok{background:var(--lamp);color:var(--lamp-ink);border:0;font-weight:700;text-align:center}" +
+  ".so-tile{cursor:pointer}" +
+  ".so-tile.lm .so-av{opacity:.45}" +
+  ".so-adm{display:block;width:100%;margin:0 0 10px}" +
+  ".so-ri{border-bottom:1px solid var(--line);padding:8px 0}" +
+  ".so-ri small{display:block;color:var(--mute);font-size:12px}" +
+  ".so-ri div{display:flex;gap:8px;margin-top:6px}" +
+  ".so-ri div button{flex:1;margin:0!important;text-align:center!important}";
 document.head.appendChild(st);
 
 /* ---------- Lobi: oda listesi ---------- */
@@ -145,6 +168,11 @@ function paintLobby() {
   rf.onclick = refreshLobby;
   top.appendChild(rf);
   lobbyBox.appendChild(top);
+  if (isAdm()) {
+    const ab = el("button", "so-adm", "🛡️ Sesli oda şikayetleri"); ab.type = "button";
+    ab.onclick = adminReports;
+    lobbyBox.appendChild(ab);
+  }
   let grp = "";
   LIST.forEach((r) => {
     if (r[4] !== grp) { grp = r[4]; lobbyBox.appendChild(el("div", "so-g", grp)); }
@@ -215,6 +243,7 @@ function tile(id, name) {
     t.appendChild(av);
     t.appendChild(el("b", "", name || "?"));
     t.appendChild(el("small", "", ""));
+    if (id !== "me") t.onclick = (e) => { e.stopPropagation(); peerMenu(id); };
     S.grid.appendChild(t);
     S.tiles[id] = t;
   }
@@ -229,9 +258,12 @@ function setState(id, txt, bad) {
 function setMuteIcon(id, m) {
   const t = S && S.tiles[id];
   if (!t) return;
+  if (id !== "me") S.rmute[id] = m;
+  const lm = id !== "me" && S.lmute.has(id);
   const i = t.querySelector(".so-av i");
-  i.textContent = m ? "🔇" : "";
-  i.style.display = m ? "grid" : "none";
+  i.textContent = lm ? "🔕" : m ? "🔇" : "";
+  i.style.display = lm || m ? "grid" : "none";
+  t.classList.toggle("lm", lm);
 }
 function dropPeer(id) {
   if (!S) return;
@@ -275,6 +307,7 @@ function mkPc(pid) {
     if (!stream || !S) return;
     let a = S.audios[pid];
     if (!a) { a = el("audio"); a.autoplay = true; a.setAttribute("playsinline", ""); S.root.appendChild(a); S.audios[pid] = a; }
+    a.muted = S.lmute.has(pid);
     if (a.srcObject !== stream) {
       a.srcObject = stream;
       a.play().catch(() => setState(pid, "🔈 Sesi açmak için dokun", true));
@@ -326,7 +359,14 @@ async function callPeer(pid) {
 async function onSig(d) {
   if (!S || d.to !== me.uid || !d.from || d.from === me.uid) return;
   const pid = d.from, x = d.data;
+  if (S.kicked.has(pid)) return;
   try {
+    if (d.type === "kick") {
+      if (!adminUid || pid !== adminUid) return;
+      if (x === me.uid) { toast("👢 Yönetici seni bu odadan " + KICK_MIN + " dakikalığına çıkardı."); leave(true); }
+      else if (x) { S.kicked.add(x); dropPeer(x); delete S.names[x]; count(); }
+      return;
+    }
     if (d.type === "offer") {
       // Yeni teklif gelirse eski bağlantıyı kapatıp baştan kur
       if (S.pcs[pid]) { try { S.pcs[pid].close(); } catch (e) {} delete S.pcs[pid]; }
@@ -363,7 +403,7 @@ function onPeers(s) {
   s.docs.forEach((d) => {
     if (d.id === me.uid) return;
     const x = d.data();
-    if (!alive(x)) return;
+    if (!alive(x) || S.kicked.has(d.id)) return;
     live[d.id] = x;
   });
   Object.keys(live).forEach((id) => {
@@ -394,6 +434,12 @@ async function enter(rid) {
   if (S || !me) return;
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.RTCPeerConnection) { toast("Bu cihaz canlı sesli sohbeti desteklemiyor."); return; }
   if ((counts[rid] && counts[rid].n >= MAX)) { toast("Oda dolu (en fazla " + MAX + " kişi)."); return; }
+  if (!(await acceptRules())) return;
+  try {
+    const k = await getDoc(doc(db, "sesoda", rid, "kicks", me.uid));
+    const until = k.exists() && k.data().until && k.data().until.toMillis ? k.data().until.toMillis() : 0;
+    if (until > Date.now()) { toast("👢 Bu odadan çıkarıldın. " + Math.ceil((until - Date.now()) / 60000) + " dakika sonra tekrar girebilirsin."); return; }
+  } catch (e) {}
   let stream = null;
   try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false }); }
   catch (e) { toast("Mikrofon izni gerekli."); return; }
@@ -411,7 +457,7 @@ async function enter(rid) {
   const cnt = el("span", "", "👥 1/" + MAX);
   head.appendChild(cnt);
   root.appendChild(head);
-  root.appendChild(el("p", "so-sub", "🔴 Canlı · Ses doğrudan telefonlar arasında gider, kaydedilmez. Uygulamayı açık tut."));
+  root.appendChild(el("p", "so-sub", "🔴 Canlı · Ses kaydedilmez · Küfür ve hakaret yasak · Birinin dairesine dokunarak onu sessize alabilir ya da bildirebilirsin."));
   const grid = el("div", "so-grid");
   root.appendChild(grid);
   const bar = el("div", "so-bar");
@@ -422,7 +468,7 @@ async function enter(rid) {
   root.appendChild(bar);
   document.body.appendChild(root);
 
-  S = { rid: rid, stream: stream, pcs: {}, names: {}, tiles: {}, audios: {}, an: {}, unsubs: [], root: root, grid: grid, cnt: cnt, muted: false, ready: false, joinedAt: Date.now(), wl: null };
+  S = { rid: rid, stream: stream, pcs: {}, names: {}, tiles: {}, audios: {}, an: {}, unsubs: [], root: root, grid: grid, cnt: cnt, muted: false, ready: false, joinedAt: Date.now(), wl: null, lmute: new Set(), rmute: {}, kicked: new Set() };
   tile("me", (myNick || "Sen") + " (sen)");
   setMuteIcon("me", false);
   analyse("me", stream);
@@ -436,7 +482,7 @@ async function enter(rid) {
     setMuteIcon("me", S.muted);
     updateDoc(doc(db, "sesoda", S.rid, "peers", me.uid), { mute: S.muted, ts: Date.now() }).catch(() => {});
   };
-  rep.onclick = reportMenu;
+  rep.onclick = () => pickPeer("🚩 Kimi bildiriyorsun?", reportPeer);
   end.onclick = () => leave(true);
   root.addEventListener("click", () => {
     if (!S) return;
@@ -481,36 +527,145 @@ async function leave(backToLobby) {
   if (backToLobby) openLobby();
 }
 
-function reportMenu() {
-  if (!S) return;
-  const s = S;
-  const ids = Object.keys(s.names);
+/* ---------- Güvenlik: kurallar, kişi menüsü, şikayet, yönetici ---------- */
+function isAdm() { return !!(me && adminUid && me.uid === adminUid); }
+
+function sheetOv() {
   const ov = el("div", "so-rep");
   const sh = el("div", "sheet");
-  const head = el("div", "sh");
-  head.appendChild(el("h2", "", "🚩 Kimi bildiriyorsun?"));
-  const x = el("button", "", "Vazgeç"); x.type = "button"; x.onclick = () => ov.remove();
-  head.appendChild(x);
-  sh.appendChild(head);
-  if (!ids.length) sh.appendChild(el("p", "so-note", "Odada başka kimse yok."));
-  ids.forEach((id) => {
-    const b = el("button", "", "🚩 " + s.names[id]); b.type = "button";
-    b.onclick = async () => {
-      b.disabled = true;
-      s.rep = s.rep || {};
-      if (s.rep[id]) { toast("Bu kişiyi zaten bildirdin."); ov.remove(); return; }
-      try {
-        await addDoc(collection(db, "reports"), { reporter: me.uid, room: "ses:" + s.rid, msgId: String(s.names[id]).slice(0, 40), msgUid: id, createdAt: serverTimestamp() });
-        s.rep[id] = 1;
-        toast("Şikayet yöneticiye iletildi.");
-        ov.remove();
-      } catch (e) { b.disabled = false; toast("Şikayet gönderilemedi."); }
-    };
-    sh.appendChild(b);
-  });
   ov.appendChild(sh);
   ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
   document.body.appendChild(ov);
+  return { ov: ov, sh: sh };
+}
+function sheetHead(sh, title, ov) {
+  const head = el("div", "sh");
+  head.appendChild(el("h2", "", title));
+  const x = el("button", "", "Kapat"); x.type = "button"; x.onclick = () => ov.remove();
+  head.appendChild(x);
+  sh.appendChild(head);
+}
+function btnIn(sh, txt, fn, cls) {
+  const b = el("button", cls || "", txt); b.type = "button";
+  b.onclick = fn;
+  sh.appendChild(b);
+  return b;
+}
+
+// Odaya ilk girişte kurallar (bir kez kabul edilir)
+function acceptRules() {
+  let ok = false;
+  try { ok = localStorage.getItem(RULES_KEY) === "1"; } catch (e) {}
+  if (ok) return Promise.resolve(true);
+  return new Promise((res) => {
+    const o = sheetOv();
+    o.ov.onclick = null;
+    o.sh.appendChild(el("h2", "", "📜 Sesli oda kuralları"));
+    const ul = el("ul", "so-rules");
+    RULES.forEach((r) => ul.appendChild(el("li", "", r)));
+    o.sh.appendChild(ul);
+    btnIn(o.sh, "✅ Okudum, kabul ediyorum", () => { try { localStorage.setItem(RULES_KEY, "1"); } catch (e) {} o.ov.remove(); res(true); }, "ok");
+    btnIn(o.sh, "Vazgeç", () => { o.ov.remove(); res(false); });
+  });
+}
+
+// Bir kişinin dairesine dokununca açılan menü
+function peerMenu(id) {
+  if (!S || !S.names[id]) return;
+  const name = S.names[id];
+  const o = sheetOv();
+  sheetHead(o.sh, name, o.ov);
+  const lm = S.lmute.has(id);
+  btnIn(o.sh, lm ? "🔔 Sesini aç" : "🔕 Benim için sessize al", () => {
+    if (!S) return;
+    if (S.lmute.has(id)) S.lmute.delete(id); else S.lmute.add(id);
+    if (S.audios[id]) S.audios[id].muted = S.lmute.has(id);
+    setMuteIcon(id, !!S.rmute[id]);
+    toast(S.lmute.has(id) ? "🔕 " + name + " artık sana duyulmuyor (sadece senin için)." : "🔔 " + name + " yeniden duyuluyor.");
+    o.ov.remove();
+  });
+  btnIn(o.sh, "🚩 Yöneticiye bildir", () => { o.ov.remove(); reportPeer(id); });
+  if (isAdm()) {
+    btnIn(o.sh, "👢 Odadan at (" + KICK_MIN + " dakika)", () => { o.ov.remove(); kickPeer(id, false); }, "dang");
+    btnIn(o.sh, "🚫 Kalıcı engelle", () => { o.ov.remove(); if (confirm(name + " kalıcı olarak engellensin mi? Uygulamada hiçbir yere yazamaz ve giremez.")) kickPeer(id, true); }, "dang");
+  }
+}
+
+// Kişi seçtirme (alttaki 🚩 Bildir düğmesi için)
+function pickPeer(title, fn) {
+  if (!S) return;
+  const ids = Object.keys(S.names);
+  const o = sheetOv();
+  sheetHead(o.sh, title, o.ov);
+  if (!ids.length) o.sh.appendChild(el("p", "so-note", "Odada başka kimse yok."));
+  ids.forEach((id) => btnIn(o.sh, "🚩 " + S.names[id], () => { o.ov.remove(); fn(id); }));
+}
+
+async function reportPeer(id) {
+  if (!S) return;
+  S.rep = S.rep || {};
+  if (S.rep[id]) { toast("Bu kişiyi zaten bildirdin."); return; }
+  try {
+    await addDoc(collection(db, "sesRep"), { reporter: me.uid, rid: S.rid, nick: String(S.names[id] || "?").slice(0, 40), uid: id, createdAt: serverTimestamp() });
+    S.rep[id] = 1;
+    toast("🚩 Şikayet yöneticiye iletildi. İstersen onu kendin için sessize de alabilirsin.");
+  } catch (e) { toast(e && e.code === "permission-denied" ? "Şikayet reddedildi. Firestore kurallarını güncelledin mi?" : "Şikayet gönderilemedi."); }
+}
+
+// Yönetici: odadan at (15 dk) ya da kalıcı engelle
+async function kickPeer(id, ban) {
+  if (!S || !isAdm()) return;
+  const name = S.names[id] || "?";
+  try {
+    await setDoc(doc(db, "sesoda", S.rid, "kicks", id), { until: Timestamp.fromDate(new Date(Date.now() + KICK_MIN * 60000)), by: me.uid });
+    if (ban) await setDoc(doc(db, "bans", id), { nick: String(name).slice(0, 20), createdAt: serverTimestamp() });
+  } catch (e) { toast("İşlem yapılamadı. Firestore kurallarını güncelledin mi?"); return; }
+  sig(id, "kick", id);
+  Object.keys(S.names).forEach((o) => { if (o !== id) sig(o, "kick", id); });
+  S.kicked.add(id);
+  dropPeer(id); delete S.names[id]; count();
+  toast(ban ? "🚫 " + name + " kalıcı olarak engellendi." : "👢 " + name + " odadan çıkarıldı.");
+}
+
+// Yönetici: sesli oda şikayetleri listesi
+async function adminReports() {
+  if (!isAdm()) return;
+  const o = sheetOv();
+  sheetHead(o.sh, "🛡️ Sesli oda şikayetleri", o.ov);
+  const box = el("div", "");
+  o.sh.appendChild(box);
+  box.appendChild(el("p", "so-note", "Yükleniyor…"));
+  let s;
+  try { s = await getDocs(query(collection(db, "sesRep"), orderBy("createdAt", "desc"), limit(40))); }
+  catch (e) { box.textContent = ""; box.appendChild(el("p", "so-note", "Şikayetler okunamadı. Firestore kurallarını güncelledin mi?")); return; }
+  box.textContent = "";
+  if (s.empty) { box.appendChild(el("p", "so-note", "Şikayet yok. 👍")); return; }
+  const per = {};
+  s.docs.forEach((d) => { const u = d.data().uid; per[u] = (per[u] || 0) + 1; });
+  s.docs.forEach((d) => {
+    const r = d.data();
+    const it = el("div", "so-ri");
+    const rm = room(r.rid);
+    const when = r.createdAt && r.createdAt.toDate ? r.createdAt.toDate().toLocaleString("tr-TR") : "";
+    it.appendChild(el("b", "", "Şikayet edilen: " + (r.nick || "?") + (per[r.uid] > 1 ? " (" + per[r.uid] + " şikayet)" : "")));
+    it.appendChild(el("small", "", "🎧 " + rm[1] + " " + rm[2] + " · " + when));
+    const row = el("div", "");
+    const ban = el("button", "dang", "🚫 Engelle"); ban.type = "button";
+    ban.onclick = async () => {
+      if (!confirm((r.nick || "Bu kişi") + " kalıcı olarak engellensin mi?")) return;
+      try {
+        await setDoc(doc(db, "bans", r.uid), { nick: String(r.nick || "").slice(0, 20), createdAt: serverTimestamp() });
+        await deleteDoc(d.ref);
+        it.remove();
+        toast("🚫 Engellendi.");
+      } catch (e) { toast("Engellenemedi."); }
+    };
+    const cl = el("button", "", "Şikayeti kapat"); cl.type = "button";
+    cl.onclick = () => deleteDoc(d.ref).then(() => it.remove()).catch(() => toast("Kapatılamadı."));
+    row.appendChild(ban); row.appendChild(cl);
+    it.appendChild(row);
+    box.appendChild(it);
+  });
 }
 
 /* ---------- Üstteki düğme ---------- */
@@ -529,7 +684,11 @@ onAuthStateChanged(auth, (u) => {
   if (!u) { if (S) leave(false); closeLobby(); }
   me = u;
   myNick = "";
-  if (u) ensureBtn();
+  adminUid = "";
+  if (u) {
+    ensureBtn();
+    getDoc(doc(db, "config", "admin")).then((a) => { adminUid = a.exists() ? a.data().uid || "" : ""; }).catch(() => {});
+  }
 });
 
 document.addEventListener("visibilitychange", () => { if (S && !document.hidden) wake(true); });
