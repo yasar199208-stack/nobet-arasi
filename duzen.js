@@ -1,10 +1,12 @@
 // Modern üst bar: sohbet alanı büyüsün diye her şey tek satırda
 //   Oda:          [🏠]  🌙 Oda adı ………………  [🔍] [☰]
 //   Özel sohbet:  [←]   💌 @arkadaş ………………  [🔍] [📹] [☰]
-// - "Sen: …", 📍 Durum, 🎧 Sesli oda, 📚 Bilgi, 🔔 oda bildirimi ve 🆘 Acil durum ☰ menünün içine taşınır
+// - "Sen: …", 📍 Durum, 🎧 Sesli oda, 📚 Bilgi, 🔔 oda bildirimi ve 🆘 Acil durum ☰ menünün en üstüne taşınır;
+//   🚪 Çıkış yap ve 🗑️ Hesabı sil menünün altına (Temizle bölümünün üstüne) alınır
+// - Vardiya ekranındaki "👥 Arkadaşlar" düğmesi menüye kaçıp çoğalmasın diye "👥 Vardiya arkadaşları" olur
 // - ☰ düğmesinin köşesinde seçili durumun simgesi görünür (🟢, 🌙, ☕ …)
 // - Ana ekran: başlık incelir, büyük kutular satırda 4'lü küçük kartlara döner,
-//   🗑️ Hesabı sil ana ekrandan ☰ menünün en altına taşınır
+//   🗑️ Hesabı sil ana ekrandan ☰ menüye taşınır
 // Diğer dosyalara dokunmaz; düğmeleri yerine taşır ve görünüşlerini düzenler.
 const $ = (i) => document.getElementById(i);
 
@@ -68,8 +70,15 @@ const TOP = [
   (b) => b.classList.contains("dur-chip"),
   (b) => b.textContent.trim().indexOf("🎧") === 0,
   (b) => b.textContent.trim().indexOf("📚") === 0,
-  (b) => b.id === "mtb"
+  (b) => b.id === "mtb",
+  (b) => b.id === "sosb"
 ];
+
+// Vardiya ekranındaki "👥 Arkadaşlar" düğmesini, menü onu kapmadan önce yeniden adlandır
+new MutationObserver(() => {
+  const bs = document.querySelectorAll(".vd-act button");
+  for (let i = 0; i < bs.length; i++) if (bs[i].textContent.trim() === "👥 Arkadaşlar") bs[i].textContent = "👥 Vardiya arkadaşları";
+}).observe(document.body, { childList: true, subtree: true });
 
 function findBtn(test) {
   const all = document.querySelectorAll(".top button, .mpanel button");
@@ -95,7 +104,14 @@ function tidyMenu() {
   const stx = chip && chip.classList.contains("on") ? chip.textContent.trim() : "Durum seçilmedi";
   if (sub.textContent !== stx) sub.textContent = stx;
 
-  // Üst grup: Durum, Sesli oda, Bilgi, Oda bildirimi
+  // Daha önce menüye kaçmış fazladan "👥 Arkadaşlar" kopyalarını kaldır (asıl düğmenin id'si fb)
+  const dups = panel.querySelectorAll("button");
+  for (let i = 0; i < dups.length; i++) {
+    const b = dups[i];
+    if (b.id !== "fb" && b.textContent.trim().indexOf("👥 Arkadaşlar") === 0) b.remove();
+  }
+
+  // Üst grup: Durum, Sesli oda, Bilgi, Oda bildirimi, Acil durum
   let ref = meBox;
   const info = panel.querySelector(".minfo");
   if (info && info.previousSibling !== meBox) panel.insertBefore(info, meBox.nextSibling);
@@ -122,9 +138,20 @@ function tidyMenu() {
     else if (t === "🔕") setTxt(mtb, "🔕 Bu oda sessizde (açmak için dokun)");
   }
 
-  // En alta: 🆘 Acil durum, sonra 🗑️ Hesabı sil
+  // 🆘 Acil durum yazısı
   const sos = $("sosb");
   if (sos && !sos.classList.contains("du-sos")) { sos.classList.add("du-sos"); sos.textContent = "🆘 Acil durum (arkadaşlarına haber ver)"; }
+
+  // Ses ayarları: anlaşılır yazılar
+  const pb = panel.querySelectorAll("button");
+  for (let i = 0; i < pb.length; i++) {
+    const b = pb[i], t = b.textContent.trim();
+    if (t === "🔔 Ses açık") setTxt(b, "🔊 Mesaj sesi: açık");
+    else if (t === "🔕 Ses kapalı") setTxt(b, "🔇 Mesaj sesi: kapalı");
+    else if (t.indexOf("🎵 ") === 0 && t.indexOf(":") < 0) setTxt(b, "🎵 Bildirim tonu: " + t.slice(3));
+  }
+
+  // Alta: 🚪 Çıkış yap ve 🗑️ Hesabı sil ("Temizle" bölümünün hemen üstüne, yoksa en sona)
   const del = findDel();
   if (del && !del.classList.contains("du-del")) {
     const row = del.parentElement;
@@ -132,10 +159,24 @@ function tidyMenu() {
     del.classList.add("du-del");
     del.style.cssText = "";
   }
-  const tail = [sos, del].filter(Boolean);
-  let ok = true;
-  for (let i = 0; i < tail.length; i++) if (panel.children[panel.children.length - tail.length + i] !== tail[i]) ok = false;
-  if (!ok) tail.forEach((b) => panel.appendChild(b));
+  const out = $("out");
+  const tail = [out, del].filter((b) => b && (b === del || panel.contains(b)));
+  if (tail.length) {
+    let head = null;
+    for (let i = 0; i < panel.children.length; i++) {
+      const c = panel.children[i];
+      if (c.tagName !== "BUTTON" && c.textContent.trim() === "Temizle") { head = c; break; }
+    }
+    // Temizle başlığının üstündeki çizgi varsa onun da üstüne
+    if (head && head.previousElementSibling && head.previousElementSibling.tagName !== "BUTTON" && !head.previousElementSibling.textContent.trim()) head = head.previousElementSibling;
+    let ok = true, at = head;
+    for (let i = tail.length - 1; i >= 0; i--) {
+      const want = at ? at.previousSibling : panel.lastChild;
+      if (want !== tail[i]) { ok = false; break; }
+      at = tail[i];
+    }
+    if (!ok) tail.forEach((b) => { if (head) panel.insertBefore(b, head); else panel.appendChild(b); });
+  }
 }
 
 // hesap.js'in "🗑️ Hesabı sil" düğmesi
