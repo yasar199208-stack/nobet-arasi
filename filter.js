@@ -16,6 +16,7 @@ import("./vardiya.js?v=2").catch(() => {});
 import("./theme.js?v=2").catch(() => {});
 import("./durum.js?v=2").catch(() => {});
 import("./kidem.js?v=1").catch(() => {});
+import("./bilgi.js?v=1").catch(() => {});
 
 // Küfür filtresi: uygunsuz ifade içeren mesaj gönderilmeden önce engellenir.
 const $ = (i) => document.getElementById(i);
