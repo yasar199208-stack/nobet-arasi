@@ -11,6 +11,7 @@ import { initReply, addReplyBtn, getRep, clearRep, addQuote } from "./yanit.js?v
 import { initEtk, setEtkRoom, addReactions, seenMark, onMsgs } from "./etkilesim.js?v=1";
 import { initPin, setPinRoom, addPinBtn, applySearch } from "./pinara.js?v=1";
 import { initEkstra, daySep, addPoll, addBadge, bumpStat } from "./ekstra.js?v=1";
+import { initPaylas, setPaylasRoom, addForwardBtn, decorateSos } from "./paylas.js?v=1";
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, runTransaction, collection, addDoc, getDocs, query, orderBy, limit, onSnapshot, serverTimestamp, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -33,6 +34,7 @@ initReply({ toast: toast });
 initEtk({ db: db, user: () => user, room: () => room, msgCol: msgCol, toast: toast, refresh: () => renderChat(false) });
 initPin({ db: db, user: () => user, isAdmin: () => isAdmin(), toast: toast, refresh: () => renderChat(false) });
 initEkstra({ db: db, user: () => user, nick: () => nick, room: () => room, msgCol: msgCol, toast: toast });
+initPaylas({ db: db, user: () => user, nick: () => nick, friends: () => friendRooms, toast: toast });
 initAdmin({ db: db, user: () => user, toast: toast, rooms: ROOMS, refresh: () => renderChat() });
 
 const $ = (i) => document.getElementById(i);
@@ -136,6 +138,7 @@ async function enter(u) {
     resetAdmin();
     setEtkRoom(null);
     setPinRoom(null);
+    setPaylasRoom(null);
     $("app").hidden = true; $("auth").hidden = false;
     return;
   }
@@ -205,6 +208,7 @@ function openRoom(r) {
   clearRep();
   setEtkRoom(r);
   setPinRoom(r);
+  setPaylasRoom(r);
   if (unsubMsgs) unsubMsgs();
   msgs = [];
   $("rt").textContent = (r.ic ? r.ic + " " : "") + r.n;
@@ -421,6 +425,8 @@ function renderChat(forceBottom) {
     }
     addReactions(d, m, room);
     addPinBtn(d, m, room);
+    addForwardBtn(d, m);
+    decorateSos(d, m);
     if (isAdmin() && !room.dm && !mine) addAdminDelete(d, m, room);
     row.appendChild(av); row.appendChild(d); l.appendChild(row);
   });
