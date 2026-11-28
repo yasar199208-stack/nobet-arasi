@@ -1,6 +1,6 @@
 // Ek modüller: biri yüklenemezse (dosya yoksa) filtre yine de çalışır.
 import("./legal.js?v=1").catch(() => {});
-import("./hesap.js?v=3").catch(() => {});
+import("./hesap.js?v=4").catch(() => {});
 import("./yazi.js?v=1").catch(() => {});
 import("./video.js?v=1").catch(() => {});
 import("./otoban.js?v=2").catch(() => {});
@@ -14,6 +14,7 @@ import("./vcall.js?v=8").catch(() => {});
 import("./vcmask.js?v=4").catch(() => {});
 import("./vardiya.js?v=2").catch(() => {});
 import("./theme.js?v=2").catch(() => {});
+import("./durum.js?v=1").catch(() => {});
 
 // Küfür filtresi: uygunsuz ifade içeren mesaj gönderilmeden önce engellenir.
 const $ = (i) => document.getElementById(i);
