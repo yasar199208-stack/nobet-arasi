@@ -63,8 +63,10 @@ async function wipe(user) {
   const i = await getDocs(query(collection(db, "friendRequests"), where("to", "==", uid)));
   await delAll(o.docs.concat(i.docs).map((d) => d.ref));
 
-  // Profil resmi, takma ad, profil
+  // Profil resmi, hakkımda, rozet sayacı, takma ad, profil
   await tryDel(doc(db, "avatars", uid));
+  await tryDel(doc(db, "about", uid));
+  await tryDel(doc(db, "stats", uid));
   if (nick) await tryDel(doc(db, "nicks", nick.toLocaleLowerCase("tr")));
   await deleteDoc(doc(db, "users", uid));
 }
@@ -108,7 +110,7 @@ function open() {
     x.onclick = () => { if (!busy) panel.hidden = true; };
     head.appendChild(x);
     sheet.appendChild(head);
-    const p = el("p", "", "Hesabın, takma adın, profil resmin, arkadaşlıkların ve özel sohbetlerdeki mesajların kalıcı olarak silinir. Bu işlem geri alınamaz. Herkese açık odalarda yazdığın eski mesajlar kalabilir; silinmesini istersen nobetarasi.destek@gmail.com adresine yaz.");
+    const p = el("p", "", "Hesabın, takma adın, profil resmin, hakkımda bilgilerin, arkadaşlıkların ve özel sohbetlerdeki mesajların kalıcı olarak silinir. Bu işlem geri alınamaz. Herkese açık odalarda yazdığın eski mesajlar kalabilir; silinmesini istersen nobetarasi.destek@gmail.com adresine yaz.");
     p.style.cssText = "margin:0 0 12px;color:var(--mute);font-size:14px";
     sheet.appendChild(p);
     const pw = el("input");
