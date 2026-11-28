@@ -18,7 +18,7 @@ import("./durum.js?v=2").catch(() => {});
 import("./kidem.js?v=1").catch(() => {});
 import("./bilgi.js?v=1").catch(() => {});
 import("./sesoda.js?v=4").catch(() => {});
-import("./duzen.js?v=1").catch(() => {});
+import("./duzen.js?v=2").catch(() => {});
 
 // Küfür filtresi: uygunsuz ifade içeren mesaj gönderilmeden önce engellenir.
 const $ = (i) => document.getElementById(i);
